@@ -1,0 +1,63 @@
+{
+  "name": "osu-mgr-website",
+  "author": "@osu-mgr",
+  "license": "MIT",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "rimraf .next/static && set NODE_OPTIONS='--inspect' && next dev -p 3005",
+    "build": "next build",
+    "start": "next start",
+    "type-check": "tsc --pretty --noEmit",
+    "format": "prettier --write **/*.{js,ts,tsx}",
+    "lint": "eslint . --ext ts --ext tsx --ext js",
+    "test": "jest",
+    "test-all": "npm run lint && npm run type-check && npm run test"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "pre-push": "npm run type-check"
+    }
+  },
+  "lint-staged": {
+    "*.@(ts|tsx)": [
+      "npm run lint",
+      "npm run format"
+    ]
+  },
+  "dependencies": {
+    "next": "latest",
+    "next-tinacms-github": "^0.29.0",
+    "prop-types": "^15.7.2",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-tinacms-github": "^0.29.0",
+    "react-tinacms-inline": "^0.29.0",
+    "recoil": "0.0.10",
+    "semantic-ui-css": "^2.4.1",
+    "semantic-ui-react": "^1.2.1",
+    "styled-components": "^5.1.1"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^10.4.9",
+    "@types/jest": "^26.0.10",
+    "@types/node": "^14.6.1",
+    "@types/react": "^16.9.48",
+    "@types/testing-library__react": "^10.2.0",
+    "@typescript-eslint/eslint-plugin": "^3.10.1",
+    "@typescript-eslint/parser": "^3.10.1",
+    "babel-jest": "^26.3.0",
+    "dotenv": "^8.2.0",
+    "eslint": "^7.7.0",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-react": "^7.20.6",
+    "husky": "^4.2.5",
+    "jest": "^26.4.2",
+    "jest-watch-typeahead": "^0.6.0",
+    "lint-staged": "^10.2.13",
+    "prettier": "^2.1.1",
+    "rimraf": "^3.0.2",
+    "tinacms": "^0.29.0",
+    "typescript": "^4.0.2"
+  }
+}
