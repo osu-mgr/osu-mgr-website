@@ -21,8 +21,8 @@ export default class AppClass extends App {
 					// baseBranch: props.pageProps.preview && process.env.BASE_BRANCH,
 				}),
 			},
-      sidebar: props.pageProps.preview,
-      toolbar: props.pageProps.preview,
+			sidebar: props.pageProps.preview,
+			toolbar: props.pageProps.preview,
 		});
 		// eslint-disable-next-line no-console
 		// console.log('AppClass', props);
@@ -44,18 +44,18 @@ export default class AppClass extends App {
 }
 
 const onLogin = async () => {
-  const token = localStorage.getItem('tinacms-github-token') || null;
-  const headers = new Headers();
+	const token = localStorage.getItem('tinacms-github-token') || null;
+	const headers = new Headers();
 
-  if (token) {
-    headers.append('Authorization', 'Bearer ' + token);
-  }
+	if (token) {
+		headers.append('Authorization', 'Bearer ' + token);
+	}
 
-  const resp = await fetch(`/api/preview`, { headers: headers });
-  const data = await resp.json();
+	const resp = await fetch(`/api/preview`, { headers: headers });
+	const data = await resp.json();
 
-  if (resp.status == 200) window.location.href = window.location.pathname;
-  else throw new Error(data.message);
+	if (resp.status == 200) window.location.href = window.location.pathname;
+	else throw new Error(data.message);
 };
 
 const onLogout = () => {
