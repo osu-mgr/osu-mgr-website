@@ -1,9 +1,24 @@
 import App, { AppProps } from 'next/app';
 // import { RecoilRoot } from 'recoil';
+import { createMedia } from "@artsy/fresnel";
 import { TinaCMS, TinaProvider } from 'tinacms';
 import { GithubClient, TinacmsGithubProvider } from 'react-tinacms-github';
 // import { BranchSwitcherPlugin } from '../tina-plugins/branch-switcher';
 import 'semantic-ui-css/semantic.min.css';
+
+const AppMedia = createMedia({
+  breakpoints: {
+    mobile: 320,
+    tablet: 768,
+    computer: 992,
+    largeScreen: 1200,
+    widescreen: 1920
+  }
+});
+
+const mediaStyles = AppMedia.createMediaStyle();
+const { Media, MediaContextProvider } = AppMedia;
+export { Media };
 
 export default class AppClass extends App {
 	cms: TinaCMS;
@@ -30,15 +45,20 @@ export default class AppClass extends App {
 	render(): JSX.Element {
 		const { Component, pageProps } = this.props;
 		return (
-			<TinaProvider cms={this.cms}>
-				<TinacmsGithubProvider
-					onLogin={onLogin}
-					onLogout={onLogout}
-					error={pageProps.error}
-				>
-					<Component {...pageProps} />
-				</TinacmsGithubProvider>
-			</TinaProvider>
+			<>
+				<style>{ mediaStyles }</style>
+				<MediaContextProvider>
+					<TinaProvider cms={this.cms}>
+						<TinacmsGithubProvider
+							onLogin={onLogin}
+							onLogout={onLogout}
+							error={pageProps.error}
+						>
+							<Component {...pageProps} />
+						</TinacmsGithubProvider>
+					</TinaProvider>
+				</MediaContextProvider>	
+			</>
 		);
 	}
 }

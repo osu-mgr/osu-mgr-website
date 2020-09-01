@@ -26,6 +26,7 @@
     ]
   },
   "dependencies": {
+    "@artsy/fresnel": "^1.2.1",
     "next": "latest",
     "next-tinacms-github": "^0.29.0",
     "prop-types": "^15.7.2",
