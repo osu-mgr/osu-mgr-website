@@ -23,7 +23,7 @@ export const Page: FunctionComponent<{ file: any }> = ({ file }) => {
 				</Head>
 				<Image fluid rounded>
 					<video autoPlay loop muted>
-						<source src="osu-mgr-loop.mp4" type="video/webm"/>
+						<source src="osu-mgr-loop.mp4" type="video/mp4"/>
 					</video>
 					<div className='videoCover'>
 						<Segment vertical inverted textAlign='center' style={{ background: 'none' }}>
