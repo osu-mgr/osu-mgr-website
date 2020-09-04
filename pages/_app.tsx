@@ -57,7 +57,135 @@ export default class AppClass extends App {
 							<Component {...pageProps} />
 						</TinacmsGithubProvider>
 					</TinaProvider>
-				</MediaContextProvider>	
+				</MediaContextProvider>
+				<style jsx global>{`
+					html,
+					body {
+						padding: 0;
+						margin: 0;
+					}
+					body {
+						overflow-y: scroll;
+					}
+					* {
+						box-sizing: border-box;
+					}
+					a, .ui.inverted.list .item a:not(.ui) {
+						color: #D73F09 !important;
+					}
+					a:hover, .ui.inverted.list .item a:not(.ui):hover {
+						color: #D73F09 !important;
+						filter: contrast(50%);
+					}
+					a:hover *, .ui.inverted.list .item a:not(.ui):hover * {
+						filter: contrast(50%);
+					}
+					::selection {
+						background-color: #C6DAE7;
+					}
+					@media only screen and (max-width: 991px) {
+						.ui.stackable.menu {
+								-webkit-box-orient:vertical;
+								-webkit-box-direction: normal;
+								-ms-flex-direction: column;
+								flex-direction: column
+						}
+				
+						.ui.stackable.menu .item {
+								width: 100%!important
+						}
+				
+						.ui.stackable.secondary.pointing.menu .item {
+								border: none;
+								border-left: 2px solid transparent;
+						}
+				
+						.ui.stackable.secondary.pointing.menu .item.active {
+								border-left-color: white;
+						}
+				
+						.ui.stackable.menu .item:before {
+								position: absolute;
+								content: '';
+								top: auto;
+								bottom: 0;
+								left: 0;
+								width: 100%;
+								height: 1px;
+								background: rgba(34,36,38,.1)
+						}
+				
+						.ui.stackable.menu .left.item,.ui.stackable.menu .left.menu {
+								margin-right: 0!important
+						}
+				
+						.ui.stackable.menu .right.item,.ui.stackable.menu .right.menu {
+								margin-left: 0!important
+						}
+				
+						.ui.stackable.menu .left.menu,.ui.stackable.menu .right.menu {
+								-webkit-box-orient: vertical;
+								-webkit-box-direction: normal;
+								-ms-flex-direction: column;
+								flex-direction: column
+						}
+						
+						.ui.stackable.grid {
+								width:auto;
+								margin-left: 0!important;
+								margin-right: 0!important
+						}
+
+						.ui.grid>.stackable.stackable.row>.column,.ui.stackable.grid>.column.grid>.column,.ui.stackable.grid>.column.row>.column,.ui.stackable.grid>.column:not(.row),.ui.stackable.grid>.row>.column,.ui.stackable.grid>.row>.wide.column,.ui.stackable.grid>.wide.column {
+								width: 100%!important;
+								margin: 0 0!important;
+								-webkit-box-shadow: none!important;
+								box-shadow: none!important;
+								padding: 1rem 1rem!important
+						}
+
+						.ui.stackable.grid:not(.vertically)>.row {
+								margin: 0;
+								padding: 0
+						}
+
+						.ui.container>.ui.stackable.grid>.column,.ui.container>.ui.stackable.grid>.row>.column {
+								padding-left: 0!important;
+								padding-right: 0!important
+						}
+
+						.ui.grid .ui.stackable.grid,.ui.segment:not(.vertical) .ui.stackable.page.grid {
+								margin-left: -1rem!important;
+								margin-right: -1rem!important
+						}
+
+						.ui.stackable.celled.grid>.column:not(.row):first-child,.ui.stackable.celled.grid>.row:first-child>.column:first-child,.ui.stackable.divided.grid>.column:not(.row):first-child,.ui.stackable.divided.grid>.row:first-child>.column:first-child {
+								border-top: none!important
+						}
+
+						.ui.inverted.stackable.celled.grid>.column:not(.row),.ui.inverted.stackable.celled.grid>.row>.column,.ui.inverted.stackable.divided.grid>.column:not(.row),.ui.inverted.stackable.divided.grid>.row>.column {
+								border-top: 1px solid rgba(255,255,255,.1)
+						}
+
+						.ui.stackable.celled.grid>.column:not(.row),.ui.stackable.celled.grid>.row>.column,.ui.stackable.divided:not(.vertically).grid>.column:not(.row),.ui.stackable.divided:not(.vertically).grid>.row>.column {
+								border-top: 1px solid rgba(34,36,38,.15);
+								-webkit-box-shadow: none!important;
+								box-shadow: none!important;
+								padding-top: 2rem!important;
+								padding-bottom: 2rem!important
+						}
+
+						.ui.stackable.celled.grid>.row {
+								-webkit-box-shadow: none!important;
+								box-shadow: none!important
+						}
+
+						.ui.stackable.divided:not(.vertically).grid>.column:not(.row),.ui.stackable.divided:not(.vertically).grid>.row>.column {
+								padding-left: 0!important;
+								padding-right: 0!important
+						}
+					}
+				`}</style>
 			</>
 		);
 	}
