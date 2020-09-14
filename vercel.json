@@ -1,6 +1,5 @@
 {
     "redirects": [
-        { "source": "/monitor", "destination": "http://128.193.70.68:3600/d/ejl64KjZz/ararmonitor?orgId=1&refresh=10s&from=now-7d&to=now&kiosk" },
-        { "source": "/progress", "destination": "https://oregonstateuniversity-my.sharepoint.com/:x:/r/personal/heatond_oregonstate_edu/_layouts/15/guestaccess.aspx?e=SVXAf5&share=ETJWzONLLkdDtr9YBuiMjYsBcHR5CV7mw1tGDtmLwFyGZA" }
+        { "source": "/monitor", "destination": "http://128.193.70.68:3600/d/aHUYvDzGz/nypro?orgId=1&refresh=10s&from=now-2d&to=now&kiosk" }
     ]
 }
