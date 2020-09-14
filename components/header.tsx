@@ -80,6 +80,7 @@ const Header: FunctionComponent = () => {
 							items={[
 								{ link: '/about-us', text: 'Contact Information' },
 								{ link: '/staff', text: 'Staff' },
+								{ link: '/oversight-committee', text: 'Oversight Committee' },
 								{ link: '/facility-history', text: 'Facility History' },
 							]}
 						/>
