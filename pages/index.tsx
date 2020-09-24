@@ -27,10 +27,7 @@ export const Page: FunctionComponent<{ file: any }> = ({ file }) => {
 					</video>
 					<div className='videoCover'>
 						<Segment vertical inverted textAlign='center' style={{ background: 'none' }}>
-							<Header as='h1' inverted style={{ fontSize: '3rem' }}>
-								Oregon State University<br/>
-								Marine and Geology Repository
-							</Header>
+							<img className='videoCoverLogo' src="/logo.svg"/>
 							<Grid relaxed='very' columns='2'>
 								<Grid.Column textAlign='right'>
 									<Link href='samples-request'>
@@ -167,6 +164,10 @@ export const Page: FunctionComponent<{ file: any }> = ({ file }) => {
 						align-items: center;
 						justify-content: center;
 						background: rgba(0, 0, 0, .5);
+					}
+					.videoCoverLogo {
+						height: 15em !important;
+						margin: 0 auto 3em;
 					}
 				`}</style>
 		</>
