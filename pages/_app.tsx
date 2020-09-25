@@ -3,8 +3,9 @@ import App, { AppProps } from 'next/app';
 import { createMedia } from "@artsy/fresnel";
 import { TinaCMS, TinaProvider } from 'tinacms';
 import { GithubClient, TinacmsGithubProvider } from 'react-tinacms-github';
-// import { BranchSwitcherPlugin } from '../tina-plugins/branch-switcher';
+import ExitToolbarWidget from '../tina-plugins/exit';
 import 'semantic-ui-css/semantic.min.css';
+import '../tina.css';
 
 const AppMedia = createMedia({
   breakpoints: {
@@ -26,7 +27,7 @@ export default class AppClass extends App {
 		super(props);
 		this.cms = new TinaCMS({
 			enabled: props.pageProps.preview,
-			// plugins: [BranchSwitcherPlugin],
+			plugins: [ExitToolbarWidget],
 			apis: {
 				github: new GithubClient({
 					proxy: '/api/proxy-github',
