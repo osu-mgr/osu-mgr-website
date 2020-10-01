@@ -6,7 +6,7 @@ import { useGithubJsonForm } from 'react-tinacms-github';
 import { InlineForm, InlineText } from 'react-tinacms-inline';
 import Layout from '../components/layout';
 
-export const Index = ({ file }: { file: any }): JSX.Element => {
+const Page = ({ file }: { file: any }): JSX.Element => {
 	const [data, form] = useGithubJsonForm(file, {
 		label: 'Page',
 		fields: [{ name: 'HTML Title', component: 'text' }],
@@ -25,8 +25,7 @@ export const Index = ({ file }: { file: any }): JSX.Element => {
 		</Layout>
 	);
 };
-
-export default Index;
+export default Page;
 
 export const getStaticProps: GetStaticProps = async function ({
 	preview,
