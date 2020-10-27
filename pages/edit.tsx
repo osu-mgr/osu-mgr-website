@@ -10,25 +10,25 @@ import Layout from '../components/layout';
 import PrimaryButton from '../components/primaryButton';
 
 const Page: FunctionComponent<{ file: any }> = ({ file }) => {
-  const cms = useCMS();
+	const cms = useCMS();
 	const [data, form] = useGithubJsonForm(file, {
 		label: 'Page',
 		fields: [{ name: 'HTML Title', component: 'text' }],
 	});
 	usePlugin(form);
-  return (
-    <Layout>
-      <Head>
-        <title>{ data['HTML Title'] || '' }</title>
-      </Head>
-			<Container textAlign="center">
+	return (
+		<Layout>
+			<Head>
+				<title>{data['HTML Title'] || ''}</title>
+			</Head>
+			<Container textAlign='center'>
 				<PrimaryButton onClick={() => cms.toggle()} size='huge'>
 					{cms.enabled ? 'Exit Editing' : 'Enable Editing'}
 				</PrimaryButton>
 			</Container>
-    </Layout>
-  );
-}
+		</Layout>
+	);
+};
 
 export default Page;
 

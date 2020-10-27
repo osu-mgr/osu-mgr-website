@@ -11,21 +11,25 @@ import Layout from '../components/layout';
 const Map: FunctionComponent = () => {
 	return (
 		<>
-      <iframe className='map' scrolling="no" src="https://osugisci.maps.arcgis.com/apps/webappviewer/index.html?id=56819d2b62674659aab2f67d793cebc8" />
-        <style jsx>{`
-          .map {
-            border: none;
-            position: absolute;
-            width: 100%;
-            height: 100%;
-          }
-        `}</style>
+			<iframe
+				className='map'
+				scrolling='no'
+				src='https://osugisci.maps.arcgis.com/apps/webappviewer/index.html?id=56819d2b62674659aab2f67d793cebc8'
+			/>
+			<style jsx>{`
+				.map {
+					border: none;
+					position: absolute;
+					width: 100%;
+					height: 100%;
+				}
+			`}</style>
 		</>
 	);
 };
 
 export const Page: FunctionComponent<{ file: any }> = ({ file }) => {
-  const [open, setOpen] = useState(true);
+	const [open, setOpen] = useState(true);
 	const [data, form] = useGithubJsonForm(file, {
 		label: 'Page',
 		fields: [{ name: 'HTML Title', component: 'text' }],
@@ -34,47 +38,40 @@ export const Page: FunctionComponent<{ file: any }> = ({ file }) => {
 	return (
 		<Layout fullWidth>
 			<Head>
-				<title>{ data['HTML Title'] || '' }</title>
+				<title>{data['HTML Title'] || ''}</title>
 			</Head>
-      <Portal onClose={() => setOpen(false)} open={open}>
-				<div style={{
-					position: 'fixed',
-					zIndex: 1000,
-					display: 'flex',
-					alignContent: 'center',
-					alignItems: 'center',
-					left: 0,
-					top: 0,
-					bottom: 0,
-					right: 0
-				}}>
+			<Portal onClose={() => setOpen(false)} open={open}>
+				<div
+					style={{
+						position: 'fixed',
+						zIndex: 1000,
+						display: 'flex',
+						alignContent: 'center',
+						alignItems: 'center',
+						left: 0,
+						top: 0,
+						bottom: 0,
+						right: 0,
+					}}
+				>
 					<Segment
 						style={{
 							maxWidth: '75vw',
-							margin: 'auto'
+							margin: 'auto',
 						}}
 					>
 						<Header>
 							<Menu pointing secondary>
-								<Menu.Item
-									name='overview'
-									active
-								/>
-								<Menu.Item
-									name='instructions'
-								/>
-								<Menu.Item
-									name='filtering'
-								/>
+								<Menu.Item name='overview' active />
+								<Menu.Item name='instructions' />
+								<Menu.Item name='filtering' />
 								<Menu.Menu position='right'>
-									<Menu.Item
-										icon='close'
-										onClick={() => setOpen(false)}
-									/>
+									<Menu.Item icon='close' onClick={() => setOpen(false)} />
 								</Menu.Menu>
 							</Menu>
 						</Header>
-						<ReactMarkdown source={ `
+						<ReactMarkdown
+							source={`
 The marine sediment and rock collection at the OSU Marine Geology Repository comes from all oceans. As of 2020 it contains:
 
 #### The Marine Geology and Geophysics Collection: 
@@ -92,11 +89,12 @@ The marine sediment and rock collection at the OSU Marine Geology Repository com
 - Rock samples from 139 ROV dives sampled by NOAA in marine national monuments in the Pacific Ocean
 
 The map contains core, grab, and dredge locations for our searchable holdings listed in the Index to Marine and Lacustrine Geological Samples database. This is a complete list of our holdings but it will be constantly updated with new information as we continue to digitally collate our collection.
-						` } />
+						`}
+						/>
 					</Segment>
 				</div>
-      </Portal>
-      <Map />
+			</Portal>
+			<Map />
 		</Layout>
 	);
 };

@@ -4,38 +4,43 @@ import { Container } from 'semantic-ui-react';
 import Header from './header';
 import Footer from './footer';
 
-const Layout: FunctionComponent<{ fullWidth?: boolean }> = ({ fullWidth, children }) => {
+const Layout: FunctionComponent<{ fullWidth?: boolean }> = ({
+	fullWidth,
+	children,
+}) => {
 	return (
 		<>
 			<Head>
 				<link rel='icon' href='/favicon.ico' />
 			</Head>
 			<header>
-				<Header/>
+				<Header />
 			</header>
 			<main>
 				<div className='falseHeader'>
-				<	Header/>
+					<Header />
 				</div>
 				<div className='content'>
-					{ fullWidth ? <>{ children }</> : <Container style={{ margin: '1em 0' }}>{ children }</Container> }
+					{fullWidth ? (
+						<>{children}</>
+					) : (
+						<Container style={{ margin: '1em 0' }}>{children}</Container>
+					)}
 				</div>
 			</main>
 			<footer>
-				<Footer/>
+				<Footer />
 			</footer>
 			<style jsx>{`
 				header {
-					position: ${ fullWidth ? 'absolute' : 'fixed' };
+					position: ${fullWidth ? 'absolute' : 'fixed'};
 					width: 100%;
 					z-index: 1000;
 					border: none;
 				}
 
 				main {
-					min-height: calc(
-						100vh - 10em
-					);
+					min-height: calc(100vh - 10em);
 					width: 100%;
 					display: flex;
 					flex-direction: column;
@@ -45,7 +50,7 @@ const Layout: FunctionComponent<{ fullWidth?: boolean }> = ({ fullWidth, childre
 					width: 100%;
 					visibility: hidden;
 				}
-				
+
 				.content {
 					flex: 1;
 					position: relative;
@@ -62,7 +67,7 @@ const Layout: FunctionComponent<{ fullWidth?: boolean }> = ({ fullWidth, childre
 						max-width: 250px !important;
 						margin: auto !important;
 					}
-					
+
 					header {
 						position: absolute;
 					}

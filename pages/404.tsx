@@ -16,18 +16,18 @@ const Page: FunctionComponent<{ file: any }> = ({ file }) => {
 	return (
 		<Layout>
 			<Head>
-				<title>{ data['HTML Title'] || '' }</title>
+				<title>{data['HTML Title'] || ''}</title>
 			</Head>
-      <Container style={{ display: 'flex', height: '50vh' }}>
-        <Message
-          error
-          size='large'
-          icon='warning'
-          header='Error 404'
-          content='This page is not found.'
-          style={{ margin: 'auto', width: 'auto' }}
-        />
-      </Container>
+			<Container style={{ display: 'flex', height: '50vh' }}>
+				<Message
+					error
+					size='large'
+					icon='warning'
+					header='Error 404'
+					content='This page is not found.'
+					style={{ margin: 'auto', width: 'auto' }}
+				/>
+			</Container>
 		</Layout>
 	);
 };

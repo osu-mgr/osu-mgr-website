@@ -67,7 +67,7 @@ const MenuItemDropdown: FunctionComponent<{
 
 const Header: FunctionComponent = () => {
 	return (
-		<>	
+		<>
 			<Segment inverted attached>
 				<Menu secondary pointing stackable inverted>
 					<Container>
@@ -146,7 +146,7 @@ const Header: FunctionComponent = () => {
 						display: flex;
 						align-items: center;
 					}
-					
+
 					.osu {
 						height: 4em;
 						margin: auto;
