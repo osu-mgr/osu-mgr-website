@@ -4,7 +4,8 @@
   "license": "MIT",
   "version": "1.0.0",
   "scripts": {
-    "dev": "rimraf .next/static && set NODE_OPTIONS='--inspect' && next dev -p 3005",
+    "dev": "rimraf .next/static && next dev -p 3005",
+    "debug": "rimraf .next/static && cross-env NODE_OPTIONS='--inspect' next dev -p 3006",
     "build": "next build",
     "start": "next start",
     "type-check": "tsc --pretty --noEmit",
@@ -54,6 +55,7 @@
     "@typescript-eslint/eslint-plugin": "^4.6.1",
     "@typescript-eslint/parser": "^4.6.1",
     "babel-jest": "^26.6.3",
+    "cross-env": "^7.0.2",
     "dotenv": "^8.2.0",
     "eslint": "^7.12.1",
     "eslint-config-prettier": "^6.15.0",
