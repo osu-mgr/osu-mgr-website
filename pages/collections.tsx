@@ -44,7 +44,7 @@ export const Page: FunctionComponent<{ file: any }> = ({ file }) => {
 				<div
 					style={{
 						position: 'fixed',
-						zIndex: 1000,
+						zIndex: 2400,
 						display: 'flex',
 						alignContent: 'center',
 						alignItems: 'center',

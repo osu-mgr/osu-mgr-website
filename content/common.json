@@ -1,0 +1,19 @@
+{
+  "Site Title": "OSU Marine and Geology Repository",
+  "Menu Items": [
+    {
+      "text": "About Us",
+      "link": "/about-us",
+      "items": [
+        {
+          "text": "Contact Information",
+          "link": "/about-us#contact"
+        },
+        {
+          "text": "Staff",
+          "link": "/staff"
+        }
+      ]
+    }
+  ]
+}

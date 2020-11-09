@@ -35,7 +35,7 @@ const Layout: FunctionComponent<{ fullWidth?: boolean }> = ({
 				header {
 					position: ${fullWidth ? 'absolute' : 'fixed'};
 					width: 100%;
-					z-index: 1000;
+					z-index: 2400;
 					border: none;
 				}
 

@@ -90,12 +90,42 @@ const ColumnsBlocks = {
 	},
 };
 
-const Page: FunctionComponent<{ file: any }> = ({ file }) => {
+const Page: FunctionComponent<{ common: any; file: any }> = ({
+	common,
+	file,
+}) => {
 	const [data, form] = useGithubJsonForm(file, {
 		label: 'Page',
-		fields: [{ name: 'HTML Title', component: 'text' }],
+		fields: [
+			{
+				name: 'HTML Title',
+				component: 'text',
+			},
+		],
 	});
 	usePlugin(form);
+	const [, commonForm] = useGithubJsonForm(common, {
+		label: 'Site',
+		fields: [
+			{
+				name: 'Site Title',
+				component: 'text',
+			},
+			{
+				label: 'Menu Items',
+				name: 'common.menuItems',
+				component: 'group-list',
+				fields: [
+					{
+						label: 'About Us',
+						name: 'about-us',
+						component: 'list',
+					},
+				],
+			},
+		],
+	});
+	usePlugin(commonForm);
 	return (
 		<>
 			<Layout>
@@ -233,17 +263,35 @@ export const getStaticProps: GetStaticProps = async function ({
 	previewData,
 }) {
 	if (preview) {
-		return getGithubPreviewProps({
+		const common = await getGithubPreviewProps({
+			...previewData,
+			fileRelativePath: 'content/common.json',
+			parse: parseJson,
+		});
+		const index = await getGithubPreviewProps({
 			...previewData,
 			fileRelativePath: 'content/index.json',
 			parse: parseJson,
 		});
+
+		return {
+			props: {
+				preview,
+				common: common.props.file,
+				file: index.props.file,
+				error: common.props.error || index.props.error || undefined,
+			},
+		};
 	}
 	return {
 		props: {
 			sourceProvider: null,
 			error: null,
 			preview: false,
+			common: {
+				fileRelativePath: 'content/common.json',
+				data: (await import('../content/common.json')).default,
+			},
 			file: {
 				fileRelativePath: 'content/index.json',
 				data: (await import('../content/index.json')).default,
