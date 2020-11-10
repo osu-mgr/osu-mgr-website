@@ -6,21 +6,28 @@ import { useCMS } from 'tinacms';
 import { usePlugin } from 'tinacms';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import { Container } from 'semantic-ui-react';
+import { useGitHubSiteForm } from '../common/site';
 import { getGithubFilesStaticProps } from '../common/next-tinacms';
 import Layout from '../components/layout';
 import PrimaryButton from '../components/primaryButton';
 
 const Page: FunctionComponent<{ content: any }> = ({ content }) => {
 	const cms = useCMS();
-	const [data, form] = useGithubJsonForm(content.file, {
+	const [pageData, pageForm] = useGithubJsonForm(content.page, {
 		label: 'Page',
 		fields: [{ name: 'HTML Title', component: 'text' }],
 	});
-	usePlugin(form);
+	usePlugin(pageForm);
+	const [siteData, siteForm] = useGitHubSiteForm(content.site);
+	usePlugin(siteForm);
 	return (
 		<Layout>
 			<Head>
-				<title>{data['HTML Title'] || ''}</title>
+				<title>
+					{pageData['HTML Title'] || ''}
+					{(pageData['HTML Title'] && siteData['Site Title'] && '|') || ''}
+					{siteData['Site Title'] || ''}
+				</title>
 			</Head>
 			<Container textAlign='center'>
 				<PrimaryButton onClick={() => cms.toggle()} size='huge'>
@@ -41,7 +48,11 @@ export const getStaticProps: GetStaticProps = async function ({
 		preview,
 		previewData,
 		files: {
-			file: {
+			site: {
+				fileRelativePath: 'content/site.json',
+				parse: parseJson,
+			},
+			page: {
 				fileRelativePath: 'content/edit.json',
 				parse: parseJson,
 			},

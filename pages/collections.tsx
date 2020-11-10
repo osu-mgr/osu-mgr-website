@@ -1,10 +1,12 @@
 import Head from 'next/head';
 import { FunctionComponent, useState } from 'react';
-import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
+import { parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
 import { usePlugin } from 'tinacms';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import { Portal, Segment, Header, Menu } from 'semantic-ui-react';
+import { useGitHubSiteForm } from '../common/site';
+import { getGithubFilesStaticProps } from '../common/next-tinacms';
 import ReactMarkdown from 'react-markdown';
 import Layout from '../components/layout';
 
@@ -28,17 +30,23 @@ const Map: FunctionComponent = () => {
 	);
 };
 
-export const Page: FunctionComponent<{ file: any }> = ({ file }) => {
+export const Page: FunctionComponent<{ content: any }> = ({ content }) => {
 	const [open, setOpen] = useState(true);
-	const [data, form] = useGithubJsonForm(file, {
+	const [pageData, pageForm] = useGithubJsonForm(content.page, {
 		label: 'Page',
 		fields: [{ name: 'HTML Title', component: 'text' }],
 	});
-	usePlugin(form);
+	usePlugin(pageForm);
+	const [siteData, siteForm] = useGitHubSiteForm(content.site);
+	usePlugin(siteForm);
 	return (
 		<Layout fullWidth>
 			<Head>
-				<title>{data['HTML Title'] || ''}</title>
+				<title>
+					{pageData['HTML Title'] || ''}
+					{(pageData['HTML Title'] && siteData['Site Title'] && '|') || ''}
+					{siteData['Site Title'] || ''}
+				</title>
 			</Head>
 			<Portal onClose={() => setOpen(false)} open={open}>
 				<div
@@ -105,22 +113,18 @@ export const getStaticProps: GetStaticProps = async function ({
 	preview,
 	previewData,
 }) {
-	if (preview) {
-		return getGithubPreviewProps({
-			...previewData,
-			fileRelativePath: 'content/collections.json',
-			parse: parseJson,
-		});
-	}
-	return {
-		props: {
-			sourceProvider: null,
-			error: null,
-			preview: false,
-			file: {
+	return await getGithubFilesStaticProps({
+		preview,
+		previewData,
+		files: {
+			site: {
+				fileRelativePath: 'content/site.json',
+				parse: parseJson,
+			},
+			page: {
 				fileRelativePath: 'content/collections.json',
-				data: (await import('../content/collections.json')).default,
+				parse: parseJson,
 			},
 		},
-	};
+	});
 };

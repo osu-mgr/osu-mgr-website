@@ -1,23 +1,32 @@
 import Head from 'next/head';
-import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
+import { FunctionComponent } from 'react';
+import { parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
 import { usePlugin } from 'tinacms';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import { InlineForm, InlineText } from 'react-tinacms-inline';
+import { useGitHubSiteForm } from '../common/site';
+import { getGithubFilesStaticProps } from '../common/next-tinacms';
 import Layout from '../components/layout';
 
-const Page = ({ file }: { file: any }): JSX.Element => {
-	const [data, form] = useGithubJsonForm(file, {
+const Page: FunctionComponent<{ content: any }> = ({ content }) => {
+	const [pageData, pageForm] = useGithubJsonForm(content.page, {
 		label: 'Page',
 		fields: [{ name: 'HTML Title', component: 'text' }],
 	});
-	usePlugin(form);
+	usePlugin(pageForm);
+	const [siteData, siteForm] = useGitHubSiteForm(content.site);
+	usePlugin(siteForm);
 	return (
 		<Layout>
 			<Head>
-				<title>{data['HTML Title'] || ''}</title>
+				<title>
+					{pageData['HTML Title'] || ''}
+					{(pageData['HTML Title'] && siteData['Site Title'] && '|') || ''}
+					{siteData['Site Title'] || ''}
+				</title>
 			</Head>
-			<InlineForm form={form}>
+			<InlineForm form={pageForm}>
 				<h1>
 					<InlineText name='Page Title' />
 				</h1>
@@ -31,22 +40,18 @@ export const getStaticProps: GetStaticProps = async function ({
 	preview,
 	previewData,
 }) {
-	if (preview) {
-		return getGithubPreviewProps({
-			...previewData,
-			fileRelativePath: 'content/about-us.json',
-			parse: parseJson,
-		});
-	}
-	return {
-		props: {
-			sourceProvider: null,
-			error: null,
-			preview: false,
-			file: {
-				fileRelativePath: 'content/about-us.json',
-				data: (await import('../content/about-us.json')).default,
+	return await getGithubFilesStaticProps({
+		preview,
+		previewData,
+		files: {
+			site: {
+				fileRelativePath: 'content/site.json',
+				parse: parseJson,
+			},
+			page: {
+				fileRelativePath: 'content/edit.json',
+				parse: parseJson,
 			},
 		},
-	};
+	});
 };

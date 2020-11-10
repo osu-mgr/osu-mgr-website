@@ -1,22 +1,30 @@
 import Head from 'next/head';
 import { FunctionComponent } from 'react';
-import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
+import { parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
 import { usePlugin } from 'tinacms';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import { Container, Message } from 'semantic-ui-react';
+import { useGitHubSiteForm } from '../common/site';
+import { getGithubFilesStaticProps } from '../common/next-tinacms';
 import Layout from '../components/layout';
 
-const Page: FunctionComponent<{ file: any }> = ({ file }) => {
-	const [data, form] = useGithubJsonForm(file, {
+const Page: FunctionComponent<{ content: any }> = ({ content }) => {
+	const [pageData, pageForm] = useGithubJsonForm(content.page, {
 		label: 'Page',
 		fields: [{ name: 'HTML Title', component: 'text' }],
 	});
-	usePlugin(form);
+	usePlugin(pageForm);
+	const [siteData, siteForm] = useGitHubSiteForm(content.site);
+	usePlugin(siteForm);
 	return (
 		<Layout>
 			<Head>
-				<title>{data['HTML Title'] || ''}</title>
+				<title>
+					{pageData['HTML Title'] || ''}
+					{(pageData['HTML Title'] && siteData['Site Title'] && '|') || ''}
+					{siteData['Site Title'] || ''}
+				</title>
 			</Head>
 			<Container style={{ display: 'flex', height: '50vh' }}>
 				<Message
@@ -38,22 +46,18 @@ export const getStaticProps: GetStaticProps = async function ({
 	preview,
 	previewData,
 }) {
-	if (preview) {
-		return getGithubPreviewProps({
-			...previewData,
-			fileRelativePath: 'content/404.json',
-			parse: parseJson,
-		});
-	}
-	return {
-		props: {
-			sourceProvider: null,
-			error: null,
-			preview: false,
-			file: {
+	return await getGithubFilesStaticProps({
+		preview,
+		previewData,
+		files: {
+			site: {
+				fileRelativePath: 'content/site.json',
+				parse: parseJson,
+			},
+			page: {
 				fileRelativePath: 'content/404.json',
-				data: (await import('../content/404.json')).default,
+				parse: parseJson,
 			},
 		},
-	};
+	});
 };
