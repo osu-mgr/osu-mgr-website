@@ -1,17 +1,18 @@
 import Head from 'next/head';
 import { FunctionComponent } from 'react';
-import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
+import { parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
 import { useCMS } from 'tinacms';
 import { usePlugin } from 'tinacms';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import { Container } from 'semantic-ui-react';
+import { getGithubFilesStaticProps } from '../common/next-tinacms';
 import Layout from '../components/layout';
 import PrimaryButton from '../components/primaryButton';
 
-const Page: FunctionComponent<{ file: any }> = ({ file }) => {
+const Page: FunctionComponent<{ content: any }> = ({ content }) => {
 	const cms = useCMS();
-	const [data, form] = useGithubJsonForm(file, {
+	const [data, form] = useGithubJsonForm(content.file, {
 		label: 'Page',
 		fields: [{ name: 'HTML Title', component: 'text' }],
 	});
@@ -36,22 +37,14 @@ export const getStaticProps: GetStaticProps = async function ({
 	preview,
 	previewData,
 }) {
-	if (preview) {
-		return getGithubPreviewProps({
-			...previewData,
-			fileRelativePath: 'content/edit.json',
-			parse: parseJson,
-		});
-	}
-	return {
-		props: {
-			sourceProvider: null,
-			error: null,
-			preview: false,
+	return await getGithubFilesStaticProps({
+		preview,
+		previewData,
+		files: {
 			file: {
 				fileRelativePath: 'content/edit.json',
-				data: (await import('../content/edit.json')).default,
+				parse: parseJson,
 			},
 		},
-	};
+	});
 };

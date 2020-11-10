@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import { FunctionComponent } from 'react';
-import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
+import { parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
 import { useCMS, usePlugin, BlockTemplate } from 'tinacms';
 import { useGithubJsonForm } from 'react-tinacms-github';
@@ -11,6 +11,8 @@ import {
 	BlocksControls,
 	InlineText,
 } from 'react-tinacms-inline';
+import { useGitHubSiteForm } from '../common/site';
+import { getGithubFilesStaticProps } from '../common/next-tinacms';
 import Layout from '../components/layout';
 import Link from '../components/link';
 import PrimaryButton from '../components/primaryButton';
@@ -90,11 +92,8 @@ const ColumnsBlocks = {
 	},
 };
 
-const Page: FunctionComponent<{ common: any; file: any }> = ({
-	common,
-	file,
-}) => {
-	const [data, form] = useGithubJsonForm(file, {
+const Page: FunctionComponent<{ content: any }> = ({ content }) => {
+	const [pageData, pageForm] = useGithubJsonForm(content.page, {
 		label: 'Page',
 		fields: [
 			{
@@ -103,36 +102,20 @@ const Page: FunctionComponent<{ common: any; file: any }> = ({
 			},
 		],
 	});
-	usePlugin(form);
-	const [, commonForm] = useGithubJsonForm(common, {
-		label: 'Site',
-		fields: [
-			{
-				name: 'Site Title',
-				component: 'text',
-			},
-			{
-				label: 'Menu Items',
-				name: 'common.menuItems',
-				component: 'group-list',
-				fields: [
-					{
-						label: 'About Us',
-						name: 'about-us',
-						component: 'list',
-					},
-				],
-			},
-		],
-	});
-	usePlugin(commonForm);
+	usePlugin(pageForm);
+	const [siteData, siteForm] = useGitHubSiteForm(content.site);
+	usePlugin(siteForm);
 	return (
 		<>
 			<Layout>
 				<Head>
-					<title>{data['HTML Title'] || ''}</title>
+					<title>
+						{pageData['HTML Title'] || ''}
+						{(pageData['HTML Title'] && siteData['Site Title'] && '|') || ''}
+						{siteData['Site Title'] || ''}
+					</title>
 				</Head>
-				<InlineForm form={form}>
+				<InlineForm form={pageForm}>
 					<Image fluid rounded>
 						<video autoPlay loop muted>
 							<source src='osu-mgr-loop.mp4' type='video/mp4' />
@@ -262,40 +245,18 @@ export const getStaticProps: GetStaticProps = async function ({
 	preview,
 	previewData,
 }) {
-	if (preview) {
-		const common = await getGithubPreviewProps({
-			...previewData,
-			fileRelativePath: 'content/common.json',
-			parse: parseJson,
-		});
-		const index = await getGithubPreviewProps({
-			...previewData,
-			fileRelativePath: 'content/index.json',
-			parse: parseJson,
-		});
-
-		return {
-			props: {
-				preview,
-				common: common.props.file,
-				file: index.props.file,
-				error: common.props.error || index.props.error || undefined,
+	return await getGithubFilesStaticProps({
+		preview,
+		previewData,
+		files: {
+			site: {
+				fileRelativePath: 'content/site.json',
+				parse: parseJson,
 			},
-		};
-	}
-	return {
-		props: {
-			sourceProvider: null,
-			error: null,
-			preview: false,
-			common: {
-				fileRelativePath: 'content/common.json',
-				data: (await import('../content/common.json')).default,
-			},
-			file: {
+			page: {
 				fileRelativePath: 'content/index.json',
-				data: (await import('../content/index.json')).default,
+				parse: parseJson,
 			},
 		},
-	};
+	});
 };
