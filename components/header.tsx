@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import React, { FunctionComponent } from 'react';
 import { Menu, Container, Dropdown, Segment } from 'semantic-ui-react';
+import { NavigationData } from '../common/site';
 
 const MenuItemLink: FunctionComponent<{
 	link: string;
@@ -65,7 +66,9 @@ const MenuItemDropdown: FunctionComponent<{
 	);
 };
 
-const Header: FunctionComponent = () => {
+const Header: FunctionComponent<{
+	navigation: NavigationData[];
+}> = ({ navigation }) => {
 	return (
 		<>
 			<Segment inverted attached>
@@ -75,51 +78,15 @@ const Header: FunctionComponent = () => {
 							<img className='osu' src='/osu.png' />
 						</div>
 						<MenuItemLink link='/' text='Home' />
-						<MenuItemDropdown
-							text='About Us'
-							items={[
-								{ link: '/about-us', text: 'Contact Information' },
-								{ link: '/staff', text: 'Staff' },
-								{ link: '/oversight-committee', text: 'Oversight Committee' },
-								{ link: '/facility-history', text: 'Facility History' },
-							]}
-						/>
-						<MenuItemDropdown
-							text='Collections'
-							items={[
-								{ link: '/collections', text: 'OSU Main Collection' },
-								{ link: '/noaa-ex', text: 'NOAA Hosted Collection' },
-								{
-									link: '/repositories',
-									text: 'Other Repositories and Databases',
-								},
-							]}
-						/>
-						<MenuItemLink link='/services' text='Facilities, Services' />
-						<MenuItemLink link='/request-samples' text='Request Samples' />
-						<MenuItemLink
-							link='/repository-calendar'
-							text='Repository Calendar'
-						/>
-						<MenuItemDropdown
-							text='Software Resources'
-							items={[
-								{ link: '/sedct', text: 'SedCT' },
-								{ link: '/corelyzer', text: 'Corelyzer' },
-							]}
-						/>
-						<MenuItemDropdown
-							text='Education, Outreach, Meetings'
-							items={[
-								{ link: '/education-outreach', text: 'Education & Outreach' },
-								{
-									link:
-										'/2017-meeting-of-the-curators-of-marine-lacustrine-and-geological-samples',
-									text: '2017 Curators Meeting',
-								},
-							]}
-						/>
-						<MenuItemLink link='/publications' text='Publications' />
+						{navigation &&
+							navigation.map((item) => {
+								if (item.menu)
+									return (
+										<MenuItemDropdown text={item.text} items={item.menu} />
+									);
+								if (item.link)
+									return <MenuItemLink text={item.text} link={item.link} />;
+							})}
 					</Container>
 				</Menu>
 			</Segment>

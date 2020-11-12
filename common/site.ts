@@ -1,6 +1,7 @@
 import { useGithubJsonForm } from 'react-tinacms-github';
 import { GithubFile } from 'next-tinacms-github';
 import { Field } from 'tinacms';
+import { v4 as uuidv4 } from 'uuid';
 
 interface GroupListField extends Field {
 	component: 'group-list';
@@ -13,6 +14,15 @@ interface GroupListField extends Field {
 		key?: string;
 		label?: string;
 	};
+}
+
+export interface NavigationData {
+	text: string;
+	link?: string;
+	menu?: {
+		text: string;
+		link: string;
+	}[];
 }
 
 export const useGitHubSiteForm = (file: GithubFile<any>): any => {
@@ -32,7 +42,7 @@ export const useGitHubSiteForm = (file: GithubFile<any>): any => {
 		}),
 		defaultItem: () => ({
 			name: 'New Navigation Menu Item',
-			id: Math.random().toString(36).substr(2, 9),
+			id: uuidv4(),
 		}),
 		fields: [
 			{
@@ -58,7 +68,7 @@ export const useGitHubSiteForm = (file: GithubFile<any>): any => {
 		}),
 		defaultItem: () => ({
 			name: 'New Navigation Bar Item',
-			id: Math.random().toString(36).substr(2, 9),
+			id: uuidv4(),
 		}),
 		fields: [
 			{

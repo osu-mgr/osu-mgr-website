@@ -1,24 +1,25 @@
 import Head from 'next/head';
 import React, { FunctionComponent } from 'react';
 import { Container } from 'semantic-ui-react';
+import { NavigationData } from '../common/site';
 import Header from './header';
 import Footer from './footer';
 
-const Layout: FunctionComponent<{ fullWidth?: boolean }> = ({
-	fullWidth,
-	children,
-}) => {
+const Layout: FunctionComponent<{
+	fullWidth?: boolean;
+	navigation?: NavigationData[];
+}> = ({ fullWidth, navigation, children }) => {
 	return (
 		<>
 			<Head>
 				<link rel='icon' href='/favicon.ico' />
 			</Head>
 			<header>
-				<Header />
+				<Header navigation={navigation} />
 			</header>
 			<main>
 				<div className='falseHeader'>
-					<Header />
+					<Header navigation={navigation} />
 				</div>
 				<div className='content'>
 					{fullWidth ? (

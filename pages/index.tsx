@@ -107,7 +107,7 @@ const Page: FunctionComponent<{ content: any }> = ({ content }) => {
 	usePlugin(siteForm);
 	return (
 		<>
-			<Layout>
+			<Layout navigation={siteData.navigation}>
 				<Head
 					siteTitle={siteData['siteTitle']}
 					pageTitle={pageData['htmlTitle']}

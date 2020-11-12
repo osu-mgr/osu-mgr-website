@@ -2,82 +2,101 @@
   "siteTitle": "OSU Marine and Geology Repository",
   "navigation": [
     {
+      "id": "f5210168-b4ff-417a-a16b-94bc7f3536bb",
       "text": "About Us",
       "menu": [
         {
+          "id": "d4a13f84-58d5-41e4-925b-dbac853df58c",
           "text": "Contact Information",
           "link": "/about-us"
         },
         {
+          "id": "1be419b7-d2b1-457a-a407-3f88c37b0bbd",
           "text": "Staff",
           "link": "/staff"
         },
         {
+          "id": "c317c21f-5872-4952-aac9-c520f3cecc93",
           "text": "Oversight Committee",
           "link": "/oversight-committee"
         },
         {
+          "id": "dcd8cb3a-5776-4133-97e7-5af28209bb14",
           "text": "Facility History",
           "link": "/facility-history"
         }
       ]
     },
     {
+      "id": "7f1c89de-eb11-4911-aea8-4216e5a2cdfa",
       "text": "Collections",
       "menu": [
         {
+          "id": "76225412-00da-4809-b1e7-3e306bedf514",
           "text": "OSU Main Collection",
           "link": "/collections"
         },
         {
+          "id": "02d7a887-cdc5-4277-aff3-9c376d1a93b5",
           "text": "NOAA Hosted Collection",
           "link": "/noaa-ex"
         },
         {
+          "id": "3b9ab80c-18e3-4f8f-81c4-616dd11a7f63",
           "text": "Other Repositories and Databases",
           "link": "/repositories"
         }
       ]
     },
     {
+      "id": "65971037-08ac-4a71-90dc-71b2a9d92808",
       "text": "Facilities, Services",
       "link": "/services"
     },
     {
+      "id": "2191c7a8-e03e-4a95-827f-60c31abd079f",
       "text": "Request Samples",
       "link": "/request-samples"
     },
     {
+      "id": "df029d4a-3712-4113-978b-f408df17722c",
       "text": "Repository Calendar",
       "link": "/repository-calendar"
     },
     {
+      "id": "0cc6d105-6a0e-43a8-a513-60111ef01353",
       "text": "Software Resources",
       "menu": [
         {
+          "id": "a7ec45a0-d73d-4940-8c2b-386e67a333d0",
           "text": "SedCT",
           "link": "/sedct"
         },
         {
+          "id": "99e867bd-5519-465e-a2ef-ee5a1eaa105f",
           "text": "Corelyzer",
           "link": "/corelyzer"
         }
       ]
     },
     {
+      "id": "ba5f5778-4c02-43ec-9543-d3b48d28ef46",
       "text": "Education, Outreach, Meetings",
       "menu": [
         {
+          "id": "b4871553-961b-4c7d-abc7-567e099fae44",
           "text": "Education & Outreach",
           "link": "/education-outreach"
         },
         {
+          "id": "8087f5ed-de66-4e53-a159-c0586623bf51",
           "text": "2017 Curators Meeting",
           "link": "/2017-meeting-of-the-curators-of-marine-lacustrine-and-geological-samples"
         }
       ]
     },
     {
+      "id": "4042631c-de3b-489f-a23c-b6bdbce9298b",
       "text": "Publications",
       "link": "/publications"
     }
