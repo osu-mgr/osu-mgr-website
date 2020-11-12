@@ -1,26 +1,83 @@
 import { useGithubJsonForm } from 'react-tinacms-github';
 import { GithubFile } from 'next-tinacms-github';
+import { Field } from 'tinacms';
+
+interface GroupListField extends Field {
+	component: 'group-list';
+	fields: Field[];
+	defaultItem?: Record<string, unknown> | (() => Record<string, unknown>);
+	itemProps?: (item: {
+		id: string;
+		text: string;
+	}) => {
+		key?: string;
+		label?: string;
+	};
+}
 
 export const useGitHubSiteForm = (file: GithubFile<any>): any => {
-	return useGithubJsonForm(file, {
-		label: 'Site',
+	const siteTitleText: Field = {
+		label: 'Site Title',
+		name: 'siteTitle',
+		component: 'text',
+		description: 'Displayed in the browser tab.',
+	};
+	const navMenuGroupList: GroupListField = {
+		label: 'Navigation Menu',
+		name: 'menu',
+		component: 'group-list',
+		itemProps: (item) => ({
+			key: item.id,
+			label: item.text,
+		}),
+		defaultItem: () => ({
+			name: 'New Navigation Menu Item',
+			id: Math.random().toString(36).substr(2, 9),
+		}),
 		fields: [
 			{
-				name: 'Site Title',
+				label: 'Navigation Menu Item Text',
+				name: 'text',
 				component: 'text',
 			},
 			{
-				label: 'Menu Items',
-				name: 'common.menuItems',
-				component: 'group-list',
-				fields: [
-					{
-						label: 'About Us',
-						name: 'about-us',
-						component: 'list',
-					},
-				],
+				label: 'Navigation Menu Item Link',
+				name: 'link',
+				component: 'text',
 			},
 		],
+	};
+	const navBarGroupList: GroupListField = {
+		label: 'Navigation Bar',
+		name: 'navigation',
+		component: 'group-list',
+		description: 'Displayed in the header.',
+		itemProps: (item) => ({
+			key: item.id,
+			label: item.text,
+		}),
+		defaultItem: () => ({
+			name: 'New Navigation Bar Item',
+			id: Math.random().toString(36).substr(2, 9),
+		}),
+		fields: [
+			{
+				label: 'Navigation Bar Text',
+				name: 'text',
+				component: 'text',
+				description: 'The text for this item in the navigation bar.',
+			},
+			{
+				label: 'Navigation Bar Link',
+				name: 'link',
+				component: 'text',
+				description: 'This is only used if the menu is empty.',
+			},
+			navMenuGroupList,
+		],
+	};
+	return useGithubJsonForm(file, {
+		label: 'Site',
+		fields: [siteTitleText, navBarGroupList],
 	});
 };

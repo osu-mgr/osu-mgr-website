@@ -6,6 +6,7 @@ import { GithubClient, TinacmsGithubProvider } from 'react-tinacms-github';
 import ExitToolbarWidget from '../tina-plugins/exit';
 import 'semantic-ui-css/semantic.min.css';
 import '../tina.css';
+import { NextGithubMediaStore } from 'next-tinacms-github';
 
 const AppMedia = createMedia({
 	breakpoints: {
@@ -25,23 +26,21 @@ export default class AppClass extends App {
 	cms: TinaCMS;
 	constructor(props: AppProps) {
 		super(props);
+		const github = new GithubClient({
+			proxy: '/api/proxy-github',
+			authCallbackRoute: '/api/create-github-access-token',
+			clientId: process.env.GITHUB_CLIENT_ID,
+			baseRepoFullName: process.env.REPO_FULL_NAME,
+			// baseBranch: props.pageProps.preview && process.env.BASE_BRANCH,
+		});
 		this.cms = new TinaCMS({
 			enabled: props.pageProps.preview,
 			plugins: [ExitToolbarWidget],
-			apis: {
-				github: new GithubClient({
-					proxy: '/api/proxy-github',
-					authCallbackRoute: '/api/create-github-access-token',
-					clientId: process.env.GITHUB_CLIENT_ID,
-					baseRepoFullName: process.env.REPO_FULL_NAME,
-					// baseBranch: props.pageProps.preview && process.env.BASE_BRANCH,
-				}),
-			},
+			apis: { github },
 			sidebar: props.pageProps.preview,
 			toolbar: props.pageProps.preview,
+			media: new NextGithubMediaStore(github),
 		});
-		// eslint-disable-next-line no-console
-		// console.log('AppClass', props);
 	}
 	render(): JSX.Element {
 		const { Component, pageProps } = this.props;

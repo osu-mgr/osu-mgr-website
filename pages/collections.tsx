@@ -1,4 +1,3 @@
-import Head from 'next/head';
 import { FunctionComponent, useState } from 'react';
 import { parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
@@ -8,6 +7,7 @@ import { Portal, Segment, Header, Menu } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
 import { getGithubFilesStaticProps } from '../common/next-tinacms';
 import ReactMarkdown from 'react-markdown';
+import Head from '../components/head';
 import Layout from '../components/layout';
 
 const Map: FunctionComponent = () => {
@@ -34,20 +34,17 @@ export const Page: FunctionComponent<{ content: any }> = ({ content }) => {
 	const [open, setOpen] = useState(true);
 	const [pageData, pageForm] = useGithubJsonForm(content.page, {
 		label: 'Page',
-		fields: [{ name: 'HTML Title', component: 'text' }],
+		fields: [{ name: 'htmlTitle', component: 'text' }],
 	});
 	usePlugin(pageForm);
 	const [siteData, siteForm] = useGitHubSiteForm(content.site);
 	usePlugin(siteForm);
 	return (
 		<Layout fullWidth>
-			<Head>
-				<title>
-					{pageData['HTML Title'] || ''}
-					{(pageData['HTML Title'] && siteData['Site Title'] && '|') || ''}
-					{siteData['Site Title'] || ''}
-				</title>
-			</Head>
+			<Head
+				siteTitle={siteData['siteTitle']}
+				pageTitle={pageData['htmlTitle']}
+			/>
 			<Portal onClose={() => setOpen(false)} open={open}>
 				<div
 					style={{

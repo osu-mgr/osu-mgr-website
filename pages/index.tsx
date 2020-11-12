@@ -1,4 +1,3 @@
-import Head from 'next/head';
 import { FunctionComponent } from 'react';
 import { parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
@@ -13,6 +12,7 @@ import {
 } from 'react-tinacms-inline';
 import { useGitHubSiteForm } from '../common/site';
 import { getGithubFilesStaticProps } from '../common/next-tinacms';
+import Head from '../components/head';
 import Layout from '../components/layout';
 import Link from '../components/link';
 import PrimaryButton from '../components/primaryButton';
@@ -97,7 +97,7 @@ const Page: FunctionComponent<{ content: any }> = ({ content }) => {
 		label: 'Page',
 		fields: [
 			{
-				name: 'HTML Title',
+				name: 'htmlTitle',
 				component: 'text',
 			},
 		],
@@ -108,13 +108,10 @@ const Page: FunctionComponent<{ content: any }> = ({ content }) => {
 	return (
 		<>
 			<Layout>
-				<Head>
-					<title>
-						{pageData['HTML Title'] || ''}
-						{(pageData['HTML Title'] && siteData['Site Title'] && '|') || ''}
-						{siteData['Site Title'] || ''}
-					</title>
-				</Head>
+				<Head
+					siteTitle={siteData['siteTitle']}
+					pageTitle={pageData['htmlTitle']}
+				/>
 				<InlineForm form={pageForm}>
 					<Image fluid rounded>
 						<video autoPlay loop muted>
@@ -162,7 +159,7 @@ const Page: FunctionComponent<{ content: any }> = ({ content }) => {
 							</Grid.Column>
 							<Grid.Column width='12'>
 								<Header as='h2'>
-									<InlineTextarea name='Mission' />
+									<InlineTextarea name='mission' />
 								</Header>
 							</Grid.Column>
 							<Grid.Column width='2' textAlign='right'>

@@ -1,19 +1,85 @@
 {
-  "Site Title": "OSU Marine and Geology Repository",
-  "Menu Items": [
+  "siteTitle": "OSU Marine and Geology Repository",
+  "navigation": [
     {
       "text": "About Us",
-      "link": "/about-us",
-      "items": [
+      "menu": [
         {
           "text": "Contact Information",
-          "link": "/about-us#contact"
+          "link": "/about-us"
         },
         {
           "text": "Staff",
           "link": "/staff"
+        },
+        {
+          "text": "Oversight Committee",
+          "link": "/oversight-committee"
+        },
+        {
+          "text": "Facility History",
+          "link": "/facility-history"
         }
       ]
+    },
+    {
+      "text": "Collections",
+      "menu": [
+        {
+          "text": "OSU Main Collection",
+          "link": "/collections"
+        },
+        {
+          "text": "NOAA Hosted Collection",
+          "link": "/noaa-ex"
+        },
+        {
+          "text": "Other Repositories and Databases",
+          "link": "/repositories"
+        }
+      ]
+    },
+    {
+      "text": "Facilities, Services",
+      "link": "/services"
+    },
+    {
+      "text": "Request Samples",
+      "link": "/request-samples"
+    },
+    {
+      "text": "Repository Calendar",
+      "link": "/repository-calendar"
+    },
+    {
+      "text": "Software Resources",
+      "menu": [
+        {
+          "text": "SedCT",
+          "link": "/sedct"
+        },
+        {
+          "text": "Corelyzer",
+          "link": "/corelyzer"
+        }
+      ]
+    },
+    {
+      "text": "Education, Outreach, Meetings",
+      "menu": [
+        {
+          "text": "Education & Outreach",
+          "link": "/education-outreach"
+        },
+        {
+          "text": "2017 Curators Meeting",
+          "link": "/2017-meeting-of-the-curators-of-marine-lacustrine-and-geological-samples"
+        }
+      ]
+    },
+    {
+      "text": "Publications",
+      "link": "/publications"
     }
   ]
 }

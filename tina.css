@@ -61,6 +61,22 @@ div[class^='SiteWrapper-sc-'][open] header {
   width: calc(100% - var(--tina-sidebar-width));
 }
 
+/* Move the sidebar menu toggle to the to */
+button[class^='SidebarToggleButton-sc-'] {
+  top: 10px;
+  bottom: auto;
+}
+
+/* Hide the Media Manager redundant menu toggle */
+button[class^='Button-sc-'][class*='MenuToggle-sc-'] {
+  display: none !important;
+}
+
+/* Hide the More Actions button */
+button[class^='MoreActionsButton-sc-'] {
+  display: none;
+}
+
 header {
   transition: width 150ms ease-out;
 }

@@ -1,4 +1,3 @@
-import Head from 'next/head';
 import { FunctionComponent } from 'react';
 import { parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
@@ -8,6 +7,7 @@ import { useGithubJsonForm } from 'react-tinacms-github';
 import { Container } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
 import { getGithubFilesStaticProps } from '../common/next-tinacms';
+import Head from '../components/head';
 import Layout from '../components/layout';
 import PrimaryButton from '../components/primaryButton';
 
@@ -15,20 +15,17 @@ const Page: FunctionComponent<{ content: any }> = ({ content }) => {
 	const cms = useCMS();
 	const [pageData, pageForm] = useGithubJsonForm(content.page, {
 		label: 'Page',
-		fields: [{ name: 'HTML Title', component: 'text' }],
+		fields: [{ name: 'htmlTitle', component: 'text' }],
 	});
 	usePlugin(pageForm);
 	const [siteData, siteForm] = useGitHubSiteForm(content.site);
 	usePlugin(siteForm);
 	return (
 		<Layout>
-			<Head>
-				<title>
-					{pageData['HTML Title'] || ''}
-					{(pageData['HTML Title'] && siteData['Site Title'] && '|') || ''}
-					{siteData['Site Title'] || ''}
-				</title>
-			</Head>
+			<Head
+				siteTitle={siteData['siteTitle']}
+				pageTitle={pageData['htmlTitle']}
+			/>
 			<Container textAlign='center'>
 				<PrimaryButton onClick={() => cms.toggle()} size='huge'>
 					{cms.enabled ? 'Exit Editing' : 'Enable Editing'}
