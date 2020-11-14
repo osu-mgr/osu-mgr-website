@@ -21,7 +21,7 @@ const Page: FunctionComponent<{ content: any }> = ({ content }) => {
 	const [siteData, siteForm] = useGitHubSiteForm(content.site);
 	usePlugin(siteForm);
 	return (
-		<Layout>
+		<Layout navigation={siteData.navigation}>
 			<Head
 				siteTitle={siteData['siteTitle']}
 				pageTitle={pageData['htmlTitle']}

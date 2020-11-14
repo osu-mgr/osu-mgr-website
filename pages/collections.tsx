@@ -40,7 +40,7 @@ export const Page: FunctionComponent<{ content: any }> = ({ content }) => {
 	const [siteData, siteForm] = useGitHubSiteForm(content.site);
 	usePlugin(siteForm);
 	return (
-		<Layout fullWidth>
+		<Layout navigation={siteData.navigation} fullWidth>
 			<Head
 				siteTitle={siteData['siteTitle']}
 				pageTitle={pageData['htmlTitle']}

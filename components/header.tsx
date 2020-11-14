@@ -82,10 +82,20 @@ const Header: FunctionComponent<{
 							navigation.map((item) => {
 								if (item.menu)
 									return (
-										<MenuItemDropdown text={item.text} items={item.menu} />
+										<MenuItemDropdown
+											key={item.id}
+											text={item.text}
+											items={item.menu}
+										/>
 									);
 								if (item.link)
-									return <MenuItemLink text={item.text} link={item.link} />;
+									return (
+										<MenuItemLink
+											key={item.id}
+											text={item.text}
+											link={item.link}
+										/>
+									);
 							})}
 					</Container>
 				</Menu>

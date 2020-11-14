@@ -17,9 +17,11 @@ interface GroupListField extends Field {
 }
 
 export interface NavigationData {
+	id: string;
 	text: string;
 	link?: string;
 	menu?: {
+		id: string;
 		text: string;
 		link: string;
 	}[];
@@ -61,7 +63,6 @@ export const useGitHubSiteForm = (file: GithubFile<any>): any => {
 		label: 'Navigation Bar',
 		name: 'navigation',
 		component: 'group-list',
-		description: 'Displayed in the header.',
 		itemProps: (item) => ({
 			key: item.id,
 			label: item.text,

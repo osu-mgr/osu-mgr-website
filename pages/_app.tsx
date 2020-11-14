@@ -1,26 +1,11 @@
 import App, { AppProps } from 'next/app';
 // import { RecoilRoot } from 'recoil';
-import { createMedia } from '@artsy/fresnel';
 import { TinaCMS, TinaProvider } from 'tinacms';
 import { GithubClient, TinacmsGithubProvider } from 'react-tinacms-github';
 import ExitToolbarWidget from '../tina-plugins/exit';
 import 'semantic-ui-css/semantic.min.css';
 import '../tina.css';
 import { NextGithubMediaStore } from 'next-tinacms-github';
-
-const AppMedia = createMedia({
-	breakpoints: {
-		mobile: 320,
-		tablet: 768,
-		computer: 992,
-		largeScreen: 1200,
-		widescreen: 1920,
-	},
-});
-
-const mediaStyles = AppMedia.createMediaStyle();
-const { Media, MediaContextProvider } = AppMedia;
-export { Media };
 
 export default class AppClass extends App {
 	cms: TinaCMS;
@@ -46,18 +31,15 @@ export default class AppClass extends App {
 		const { Component, pageProps } = this.props;
 		return (
 			<>
-				<style>{mediaStyles}</style>
-				<MediaContextProvider>
-					<TinaProvider cms={this.cms}>
-						<TinacmsGithubProvider
-							onLogin={onLogin}
-							onLogout={onLogout}
-							error={pageProps.error}
-						>
-							<Component {...pageProps} />
-						</TinacmsGithubProvider>
-					</TinaProvider>
-				</MediaContextProvider>
+				<TinaProvider cms={this.cms}>
+					<TinacmsGithubProvider
+						onLogin={onLogin}
+						onLogout={onLogout}
+						error={pageProps.error}
+					>
+						<Component {...pageProps} />
+					</TinacmsGithubProvider>
+				</TinaProvider>
 				<style jsx global>{`
 					html,
 					body {
