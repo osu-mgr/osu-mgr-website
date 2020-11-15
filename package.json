@@ -4,8 +4,8 @@
   "license": "MIT",
   "version": "1.0.0",
   "scripts": {
-    "dev": "rimraf .next/static && next dev -p 3005",
-    "debug": "rimraf .next/static && cross-env NODE_OPTIONS='--inspect' next dev -p 3006",
+    "dev": "next dev -p 3005",
+    "debug": "cross-env NODE_OPTIONS='--inspect' next dev -p 3006",
     "build": "next build",
     "start": "next start",
     "type-check": "tsc --pretty --noEmit",

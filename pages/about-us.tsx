@@ -46,7 +46,7 @@ export const getStaticProps: GetStaticProps = async function ({
 				parse: parseJson,
 			},
 			page: {
-				fileRelativePath: 'content/edit.json',
+				fileRelativePath: 'content/about-us.json',
 				parse: parseJson,
 			},
 		},

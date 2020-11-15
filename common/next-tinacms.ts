@@ -28,7 +28,7 @@ export async function getGithubFilesStaticProps<T>({
 			content: {},
 		};
 		const fileKeys = Object.keys(files);
-		const filesProps = await Promise.all(
+		return Promise.all(
 			fileKeys.map((file) =>
 				getGithubPreviewProps({
 					...previewData,
@@ -36,12 +36,16 @@ export async function getGithubFilesStaticProps<T>({
 					parse: files[file].parse,
 				})
 			)
+		).then(
+			(filesProps) =>
+				new Promise((resolve) => {
+					filesProps.forEach((fileProps, idx) => {
+						props.content[fileKeys[idx]] = fileProps.props.file;
+						props['error'] = props['error'] || fileProps.props.error || null;
+					});
+					resolve({ props });
+				})
 		);
-		filesProps.forEach((fileProps, idx) => {
-			props.content[fileKeys[idx]] = fileProps.props.file;
-			props['error'] = props['error'] || fileProps.props.error || null;
-		});
-		return { props };
 	}
 	const props = {
 		sourceProvider: null,
