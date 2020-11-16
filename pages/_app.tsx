@@ -1,5 +1,4 @@
 import App, { AppProps } from 'next/app';
-// import { RecoilRoot } from 'recoil';
 import { TinaCMS, TinaProvider } from 'tinacms';
 import { GithubClient, TinacmsGithubProvider } from 'react-tinacms-github';
 import ExitToolbarWidget from '../tina-plugins/exit';
@@ -207,10 +206,10 @@ const onLogin = async () => {
 		headers.append('Authorization', 'Bearer ' + token);
 	}
 
-	const resp = await fetch(`/api/preview`, { headers: headers });
+	const resp = await fetch(`/api/preview`, { headers });
 	const data = await resp.json();
 
-	if (resp.status == 200) window.location.href = window.location.pathname;
+	if (resp.status == 200) window.location.reload();
 	else throw new Error(data.message);
 };
 

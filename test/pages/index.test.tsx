@@ -4,12 +4,12 @@ import Index from '../../pages/index';
 
 describe('Home page', () => {
 	it('matches snapshot', () => {
-		const { asFragment } = render(<Index content={{}} />, {});
+		const { asFragment } = render(<Index page={{}} site={{}} />, {});
 		expect(asFragment()).toMatchSnapshot();
 	});
 
 	it('clicking button triggers alert', () => {
-		const { getByText } = render(<Index content={{}} />, {});
+		const { getByText } = render(<Index page={{}} site={{}} />, {});
 		window.alert = jest.fn();
 		fireEvent.click(getByText('Test Button'));
 		expect(window.alert).toHaveBeenCalledWith('With typescript and Jest');
