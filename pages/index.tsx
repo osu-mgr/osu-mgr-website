@@ -56,7 +56,7 @@ const ColumnBlock: FunctionComponent<{ data: any; index: number }> = ({
 	);
 };
 
-const blockTemplate: BlockTemplate = {
+const columnBlockTemplate: BlockTemplate = {
 	label: 'Column',
 	defaultItem: {
 		link: '/',
@@ -87,7 +87,66 @@ const blockTemplate: BlockTemplate = {
 const ColumnsBlocks = {
 	column: {
 		Component: ColumnBlock,
-		template: blockTemplate,
+		template: columnBlockTemplate,
+	},
+};
+const RowBlock: FunctionComponent<{ data: any; index: number }> = ({
+	data,
+	index,
+}) => {
+	const cms = useCMS();
+	const block = (
+		<>
+			<Grid stackable padded='horizontally'>
+				<Grid.Column width='13'>
+					<Header>
+						<InlineText name='title' focusRing={false} />
+					</Header>
+					<Container textAlign='justified'>
+						<InlineTextarea name='description' focusRing={false} />
+					</Container>
+				</Grid.Column>
+				<Grid.Column width='3' textAlign='center'>
+					<Image rounded inline size='small' src={data.image} />
+				</Grid.Column>
+			</Grid>
+		</>
+	);
+	return (
+		<Grid.Row index={index}>
+			<BlocksControls index={index}>
+				{(!cms.enabled && <Link href={data.link}>{block}</Link>) || block}
+			</BlocksControls>
+		</Grid.Row>
+	);
+};
+
+const rowBlockTemplate: BlockTemplate = {
+	label: 'Row',
+	defaultItem: {
+		link: '/',
+		image: '',
+		title: 'Title',
+		description: 'Description',
+	},
+	fields: [
+		{
+			label: 'Link URL',
+			name: 'link',
+			component: 'text',
+		},
+		{
+			label: 'Image',
+			name: 'image',
+			component: 'image',
+		},
+	],
+};
+
+const RowsBlocks = {
+	row: {
+		Component: RowBlock,
+		template: rowBlockTemplate,
 	},
 };
 
@@ -101,6 +160,26 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 				component: 'text',
 				description: 'Displayed in the browser tab.',
 			},
+			{
+				label: 'Warning Message Visible',
+				name: 'warningVisible',
+				component: 'toggle',
+			},
+			{
+				label: 'Mission Statement Visible',
+				name: 'missingVisible',
+				component: 'toggle',
+			},
+			{
+				label: 'Columns Content Visible',
+				name: 'columnsVisible',
+				component: 'toggle',
+			},
+			{
+				label: 'Rows Content Visible',
+				name: 'rowsVisible',
+				component: 'toggle',
+			},
 		],
 	});
 	usePlugin(pageForm);
@@ -109,10 +188,7 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 	return (
 		<>
 			<Layout navigation={siteData.navigation}>
-				<Head
-					siteTitle={siteData['siteTitle']}
-					pageTitle={pageData['htmlTitle']}
-				/>
+				<Head siteTitle={siteData.siteTitle} pageTitle={pageData.htmlTitle} />
 				<InlineForm form={pageForm}>
 					<Image fluid rounded>
 						<video autoPlay loop muted>
@@ -143,73 +219,54 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 							</Segment>
 						</div>
 					</Image>
-					<Message
-						warning
-						size='large'
-						icon='warning'
-						header='Current changes due to COVID-19'
-						content={`
-						The repository will remain open and partially operational during the current pandemic.
-						We will still process sample requests and analyze cores as requested. We are currently not accepting visitors or providing tours of our facility. 
-						Thank you for your understanding.`}
-					/>
-					<Segment padded='very' vertical>
-						<Grid stackable>
-							<Grid.Column width='2'>
-								<Icon name='quote left' size='huge' />
-							</Grid.Column>
-							<Grid.Column width='12'>
-								<Header as='h2'>
-									<InlineTextarea name='mission' />
-								</Header>
-							</Grid.Column>
-							<Grid.Column width='2' textAlign='right'>
-								<Icon name='quote right' size='huge' />
-							</Grid.Column>
-						</Grid>
-					</Segment>
-					<Segment padded='very' vertical>
-						<InlineBlocks
-							className='ui stackable divided equal width grid'
-							name='columns'
-							blocks={ColumnsBlocks}
-							direction='horizontal'
-						/>
-					</Segment>
-					<Segment padded='very' vertical>
-						<Link href='education-outreach'>
+					{pageData.warningVisible && (
+						<Message warning size='large' icon>
+							<Icon name='warning' />
+							<Message.Content>
+								<Message.Header>
+									<InlineTextarea name='warning.title' />
+								</Message.Header>
+								<InlineTextarea name='warning.message' />
+							</Message.Content>
+						</Message>
+					)}
+					{pageData.missionVisible && (
+						<Segment padded='very' vertical>
 							<Grid stackable>
-								<Grid.Column width='13'>
-									<Header content='Education and Outreach' />
-									<Container textAlign='justified'>
-										<p>
-											Tours and outreach activities cover a wide variety of
-											topics and can be tailored to the group. Recent activities
-											have hosted both K-12 and undergraduate and postgraduate
-											groups. A typical educational visit lasts approximately 1
-											hour, and begins with a presentation of how we collect the
-											cores in our collection, followed by a tour of the
-											facilities so students can see where we house our
-											collection, including our 10,900 sq-ft refrigerator.
-											Following the facility tour, there are opportunities to
-											view cores from all over the world. Hands-on activities
-											include using microscopes to view microfossils, simulating
-											coring with mini-cores and mud cakes, and mapping
-											exercises. Our collections cover time periods ranging from
-											sediment deposited on the ocean floor in the last few
-											years to sediments that are millions of years old giving
-											students the opportunity to learn about ocean processes
-											occurring in different places and over multiple time
-											scales.
-										</p>
-									</Container>
+								<Grid.Column width='2'>
+									<Icon name='quote left' size='huge' />
 								</Grid.Column>
-								<Grid.Column width='3' textAlign='center'>
-									<Image rounded inline size='small' src='education.png' />
+								<Grid.Column width='12'>
+									<Header as='h2'>
+										<InlineTextarea name='mission' />
+									</Header>
+								</Grid.Column>
+								<Grid.Column width='2' textAlign='right'>
+									<Icon name='quote right' size='huge' />
 								</Grid.Column>
 							</Grid>
-						</Link>
-					</Segment>
+						</Segment>
+					)}
+					{pageData.columnsVisible && (
+						<Segment padded='very' vertical>
+							<InlineBlocks
+								className='ui stackable divided equal width grid'
+								name='columns'
+								blocks={ColumnsBlocks}
+								direction='horizontal'
+							/>
+						</Segment>
+					)}
+					{pageData.rowsVisible && (
+						<Segment vertical>
+							<InlineBlocks
+								className='ui vertically divided grid'
+								name='rows'
+								blocks={RowsBlocks}
+								direction='vertical'
+							/>
+						</Segment>
+					)}
 				</InlineForm>
 			</Layout>
 			<style jsx>{`

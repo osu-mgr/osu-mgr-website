@@ -11,6 +11,7 @@ const PrimaryButton: FunctionComponent<ButtonProps> = ({
 			{...props}
 			style={{
 				backgroundColor: '#D73F09',
+				...props.style,
 			}}
 		>
 			{children}

@@ -1,6 +1,13 @@
 {
   "htmlTitle": "Home",
+  "warningVisible": true,
+  "warning": {
+    "title": "Current changes due to COVID-19",
+    "message": "The repository will remain open and partially operational during the current pandemic. We will still process sample requests and analyze cores as requested. We are currently not accepting visitors or providing tours of our facility. Thank you for your understanding."
+  },
+  "missionVisible": true,
   "mission": "Our mission is to facilitate research, education, and the advancement of scientific knowledge through access and use of our diverse collection of rock, lake, and marine sediment samples.",
+  "columnsVisible": true,
   "columns": [
     {
       "_template": "column",
@@ -25,6 +32,23 @@
       "title": "Facility",
       "description": "The Oregon State University Marine and Geology Repository (OSU-MGR) is a National Science Foundation (NSF) funded repository that hosts the OSU Marine Geology and Geophysics collection and the Antarctic Core Collection. OSU moved its existing collection from storage on campus to the new 33,000 ft² facility that includes 10,900 ft² of refrigerated core storage, 11,600 ft² of dry rock storage and a 550 ft² walk-in freezer. The facility is well equipped to run major sampling parties, research programs, and educational endeavors. Laboratory space is available for analytical activities including scanning tracks for physical properties and elemental analyses.",
       "button": "Virtual Tour"
+    }
+  ],
+  "rowsVisible": true,
+  "rows": [
+    {
+      "_template": "row",
+      "link": "/request-samples",
+      "image": "education.png",
+      "title": "Education and Outreach",
+      "description": "Tours and outreach activities cover a wide variety of topics and can be tailored to the group. Recent activities have hosted both K-12 and undergraduate and postgraduate groups. A typical educational visit lasts approximately 1 hour, and begins with a presentation of how we collect the cores in our collection, followed by a tour of the facilities so students can see where we house our collection, including our 10,900 sq-ft refrigerator. Following the facility tour, there are opportunities to view cores from all over the world. Hands-on activities include using microscopes to view microfossils, simulating coring with mini-cores and mud cakes, and mapping exercises. Our collections cover time periods ranging from sediment deposited on the ocean floor in the last few years to sediments that are millions of years old giving students the opportunity to learn about ocean processes occurring in different places and over multiple time scales."
+    },
+    {
+      "_template": "row",
+      "link": "/request-samples",
+      "image": "education.png",
+      "title": "Education and Outreach",
+      "description": "Tours and outreach activities cover a wide variety of topics and can be tailored to the group. Recent activities have hosted both K-12 and undergraduate and postgraduate groups. A typical educational visit lasts approximately 1 hour, and begins with a presentation of how we collect the cores in our collection, followed by a tour of the facilities so students can see where we house our collection, including our 10,900 sq-ft refrigerator. Following the facility tour, there are opportunities to view cores from all over the world. Hands-on activities include using microscopes to view microfossils, simulating coring with mini-cores and mud cakes, and mapping exercises. Our collections cover time periods ranging from sediment deposited on the ocean floor in the last few years to sediments that are millions of years old giving students the opportunity to learn about ocean processes occurring in different places and over multiple time scales."
     }
   ]
 }

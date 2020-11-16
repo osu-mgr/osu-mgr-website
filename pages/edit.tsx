@@ -3,7 +3,7 @@ import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
 import { useCMS, usePlugin } from 'tinacms';
 import { useGithubJsonForm } from 'react-tinacms-github';
-import { Container } from 'semantic-ui-react';
+import { Container, Icon, Message } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
 import Head from '../components/head';
 import Layout from '../components/layout';
@@ -31,10 +31,26 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 				siteTitle={siteData['siteTitle']}
 				pageTitle={pageData['htmlTitle']}
 			/>
-			<Container textAlign='center'>
-				<PrimaryButton onClick={() => cms.toggle()} size='huge'>
-					{cms.enabled ? 'Exit Editing' : 'Enable Editing'}
-				</PrimaryButton>
+			<Container style={{ display: 'flex', height: '50vh' }}>
+				{!cms.enabled && (
+					<PrimaryButton
+						onClick={() => cms.toggle()}
+						size='huge'
+						style={{ margin: 'auto', width: 'auto' }}
+					>
+						<Icon name={'edit'} />
+						Enable Edit Mode
+					</PrimaryButton>
+				)}
+				{cms.enabled && (
+					<Message
+						size='large'
+						icon='edit'
+						header='Edit Mode Enabled'
+						content='Save changes and exit edit mode with the top menu.'
+						style={{ margin: 'auto', width: 'auto' }}
+					/>
+				)}
 			</Container>
 		</Layout>
 	);
