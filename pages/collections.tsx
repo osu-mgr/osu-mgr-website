@@ -38,8 +38,10 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 		label: 'Page',
 		fields: [
 			{
+				label: 'Page Title',
 				name: 'htmlTitle',
 				component: 'text',
+				description: 'Displayed in the browser tab.',
 			},
 		],
 	});

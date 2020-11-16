@@ -11,7 +11,14 @@ import Layout from '../components/layout';
 const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 	const [pageData, pageForm] = useGithubJsonForm(page, {
 		label: 'Page',
-		fields: [{ name: 'htmlTitle', component: 'text' }],
+		fields: [
+			{
+				label: 'Page Title',
+				name: 'htmlTitle',
+				component: 'text',
+				description: 'Displayed in the browser tab.',
+			},
+		],
 	});
 	usePlugin(pageForm);
 	const [siteData, siteForm] = useGitHubSiteForm(site);

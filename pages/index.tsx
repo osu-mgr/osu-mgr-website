@@ -96,8 +96,10 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 		label: 'Page',
 		fields: [
 			{
+				label: 'Page Title',
 				name: 'htmlTitle',
 				component: 'text',
+				description: 'Displayed in the browser tab.',
 			},
 		],
 	});
@@ -169,7 +171,7 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 					<Segment padded='very' vertical>
 						<InlineBlocks
 							className='ui stackable divided equal width grid'
-							name='Columns'
+							name='columns'
 							blocks={ColumnsBlocks}
 							direction='horizontal'
 						/>

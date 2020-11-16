@@ -5,14 +5,11 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "next dev -p 3005",
-    "debug": "cross-env NODE_OPTIONS='--inspect' next dev -p 3006",
     "build": "next build",
     "start": "next start",
     "type-check": "tsc --pretty --noEmit",
     "format": "prettier --write **/*.{js,ts,tsx}",
-    "lint": "eslint . --ext ts --ext tsx --ext js",
-    "test": "jest",
-    "test-all": "npm run lint && npm run type-check && npm run test"
+    "lint": "eslint . --ext ts --ext tsx --ext js"
   },
   "husky": {
     "hooks": {
@@ -27,47 +24,32 @@
     ]
   },
   "dependencies": {
-    "next": "^10.0.1",
+    "next": "10.0.1",
     "next-tinacms-github": "^0.33.0",
-    "prop-types": "^15.7.2",
-    "prosemirror-tables": "1.1.1",
-    "pure-react-carousel": "^1.27.6",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
-    "react-dropzone": "11.2.4",
-    "react-final-form": "^6",
-    "react-markdown": "^5.0.2",
+    "react": "^16.9.0",
+    "react-dom": "^16.9.0",
+    "react-dropzone": "10.2.1",
     "react-tinacms-editor": "^0.33.0",
     "react-tinacms-github": "^0.33.0",
     "react-tinacms-inline": "^0.33.0",
+    "react-markdown": "^5.0.2",
     "semantic-ui-css": "^2.4.1",
     "semantic-ui-react": "^2.0.1",
     "styled-components": "^5.2.1",
-    "tinacms": "^0.33.0",
-    "uuid": "^8.3.1"
+    "tinacms": "^0.33.0"
   },
   "devDependencies": {
-    "@testing-library/react": "^11.1.2",
-    "@tinacms/core": "^0.33.0",
-    "@tinacms/fields": "^0.33.0",
-    "@types/jest": "^26.0.15",
     "@types/node": "^14.14.7",
     "@types/react": "^16.9.56",
-    "@types/testing-library__react": "^10.2.0",
     "@typescript-eslint/eslint-plugin": "^4.7.0",
     "@typescript-eslint/parser": "^4.7.0",
-    "babel-jest": "^26.6.3",
-    "cross-env": "^7.0.2",
     "dotenv": "^8.2.0",
     "eslint": "^7.13.0",
     "eslint-config-prettier": "^6.15.0",
     "eslint-plugin-react": "^7.21.5",
     "husky": "^4.3.0",
-    "jest": "^26.6.3",
-    "jest-watch-typeahead": "^0.6.1",
     "lint-staged": "^10.5.1",
     "prettier": "^2.1.2",
-    "rimraf": "^3.0.2",
     "typescript": "^4.0.5"
   }
 }

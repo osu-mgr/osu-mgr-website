@@ -15,10 +15,10 @@ export default class AppClass extends App {
 			authCallbackRoute: '/api/create-github-access-token',
 			clientId: process.env.GITHUB_CLIENT_ID,
 			baseRepoFullName: process.env.REPO_FULL_NAME,
-			// baseBranch: props.pageProps.preview && process.env.BASE_BRANCH,
+			baseBranch: process.env.BASE_BRANCH,
 		});
 		this.cms = new TinaCMS({
-			enabled: props.pageProps.preview,
+			enabled: !!props.pageProps.preview,
 			plugins: [ExitToolbarWidget],
 			apis: { github },
 			sidebar: props.pageProps.preview,
@@ -209,7 +209,7 @@ const onLogin = async () => {
 	const resp = await fetch(`/api/preview`, { headers });
 	const data = await resp.json();
 
-	if (resp.status == 200) window.location.reload();
+	if (resp.status == 200) window.location.href = window.location.pathname;
 	else throw new Error(data.message);
 };
 
