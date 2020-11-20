@@ -33,7 +33,7 @@ const ColumnBlock: FunctionComponent<{ data: any; index: number }> = ({
 	const cms = useCMS();
 	const block = (
 		<>
-			<Image centered circular size='small' src={`/images/${data.image}`} />
+			<Image centered circular size='small' src={data.image} />
 			<Header textAlign='center'>
 				<InlineText name='title' focusRing={false} />
 			</Header>
@@ -61,9 +61,6 @@ const columnBlockImageField: AnyField = {
 	label: 'Image',
 	name: 'image',
 	component: 'image',
-	parse: (media) => `/images/${media.filename}`,
-	uploadDir: () => '/public/images/',
-	previewSrc: (fullSrc) => `/images/${fullSrc}`,
 };
 
 const columnBlockTemplate: BlockTemplate = {
@@ -113,7 +110,7 @@ const RowBlock: FunctionComponent<{ data: any; index: number }> = ({
 					</Container>
 				</Grid.Column>
 				<Grid.Column width='3' textAlign='center'>
-					<Image rounded inline size='small' src={`/images/${data.image}`} />
+					<Image rounded inline size='small' src={data.image} />
 				</Grid.Column>
 			</Grid>
 		</>
@@ -145,7 +142,6 @@ const rowBlockTemplate: BlockTemplate = {
 			label: 'Image',
 			name: 'image',
 			component: 'image',
-			parse: (media) => `/images/${media.filename}`,
 		},
 	],
 };
