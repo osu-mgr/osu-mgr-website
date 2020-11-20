@@ -2,6 +2,7 @@ import { FunctionComponent } from 'react';
 import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
 import { useCMS, usePlugin, BlockTemplate } from 'tinacms';
+import { AnyField } from '@tinacms/forms';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import {
 	InlineForm,
@@ -32,7 +33,7 @@ const ColumnBlock: FunctionComponent<{ data: any; index: number }> = ({
 	const cms = useCMS();
 	const block = (
 		<>
-			<Image centered circular size='small' src={data.image} />
+			<Image centered circular size='small' src={`/images/${data.image}`} />
 			<Header textAlign='center'>
 				<InlineText name='title' focusRing={false} />
 			</Header>
@@ -56,6 +57,15 @@ const ColumnBlock: FunctionComponent<{ data: any; index: number }> = ({
 	);
 };
 
+const columnBlockImageField: AnyField = {
+	label: 'Image',
+	name: 'image',
+	component: 'image',
+	parse: (media) => `/images/${media.filename}`,
+	uploadDir: () => '/public/images/',
+	previewSrc: (fullSrc) => `/images/${fullSrc}`,
+};
+
 const columnBlockTemplate: BlockTemplate = {
 	label: 'Column',
 	defaultItem: {
@@ -71,11 +81,7 @@ const columnBlockTemplate: BlockTemplate = {
 			name: 'link',
 			component: 'text',
 		},
-		{
-			label: 'Image',
-			name: 'image',
-			component: 'image',
-		},
+		columnBlockImageField,
 		{
 			label: 'Button Text',
 			name: 'button',
@@ -107,7 +113,7 @@ const RowBlock: FunctionComponent<{ data: any; index: number }> = ({
 					</Container>
 				</Grid.Column>
 				<Grid.Column width='3' textAlign='center'>
-					<Image rounded inline size='small' src={data.image} />
+					<Image rounded inline size='small' src={`/images/${data.image}`} />
 				</Grid.Column>
 			</Grid>
 		</>
@@ -139,6 +145,7 @@ const rowBlockTemplate: BlockTemplate = {
 			label: 'Image',
 			name: 'image',
 			component: 'image',
+			parse: (media) => `/images/${media.filename}`,
 		},
 	],
 };
@@ -167,7 +174,7 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 			},
 			{
 				label: 'Mission Statement Visible',
-				name: 'missingVisible',
+				name: 'missionVisible',
 				component: 'toggle',
 			},
 			{
@@ -192,7 +199,7 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 				<InlineForm form={pageForm}>
 					<Image fluid rounded>
 						<video autoPlay loop muted>
-							<source src='osu-mgr-loop.mp4' type='video/mp4' />
+							<source src='/images/osu-mgr-loop.mp4' type='video/mp4' />
 						</video>
 						<div className='videoCover'>
 							<Segment
