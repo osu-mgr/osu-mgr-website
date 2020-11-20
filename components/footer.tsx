@@ -1,6 +1,10 @@
 import React, { FunctionComponent } from 'react';
 import { Image, Segment, Grid, List, Container } from 'semantic-ui-react';
 import Link from '../components/link';
+import nsf from '../images/nsf.png';
+import osuLogo from '../images/osu-logo.png';
+import nypro from '../images/nypro.png';
+import map from '../images/map.png';
 
 const Footer: FunctionComponent = () => {
 	return (
@@ -14,10 +18,10 @@ const Footer: FunctionComponent = () => {
 								<Link href='/about-us#support'>
 									<Image
 										inline
-										src='nsf.png'
+										src={nsf}
 										style={{ height: '4em', marginRight: '1em' }}
 									/>
-									<Image inline src='osu-logo.png' style={{ height: '4em' }} />
+									<Image inline src={osuLogo} style={{ height: '4em' }} />
 								</Link>
 							</Grid.Column>
 							<Grid.Column width='3'>
@@ -93,7 +97,7 @@ const Footer: FunctionComponent = () => {
 								>
 									<Image
 										rounded
-										src='nypro.png'
+										src={nypro}
 										style={{ height: '8em', margin: 'auto' }}
 									/>
 								</a>
@@ -106,7 +110,7 @@ const Footer: FunctionComponent = () => {
 								>
 									<Image
 										rounded
-										src='map.png'
+										src={map}
 										style={{ height: '8em', margin: 'auto' }}
 									/>
 								</a>

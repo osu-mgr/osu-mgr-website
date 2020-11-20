@@ -2,7 +2,6 @@ import { FunctionComponent } from 'react';
 import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
 import { useCMS, usePlugin, BlockTemplate } from 'tinacms';
-import { AnyField } from '@tinacms/forms';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import {
 	InlineForm,
@@ -10,6 +9,7 @@ import {
 	InlineBlocks,
 	BlocksControls,
 	InlineText,
+	InlineImage,
 } from 'react-tinacms-inline';
 import { useGitHubSiteForm } from '../common/site';
 import Head from '../components/head';
@@ -25,6 +25,7 @@ import {
 	Image,
 	Container,
 } from 'semantic-ui-react';
+import logo from '../images/logo.svg';
 
 const ColumnBlock: FunctionComponent<{ data: any; index: number }> = ({
 	data,
@@ -57,12 +58,6 @@ const ColumnBlock: FunctionComponent<{ data: any; index: number }> = ({
 	);
 };
 
-const columnBlockImageField: AnyField = {
-	label: 'Image',
-	name: 'image',
-	component: 'image',
-};
-
 const columnBlockTemplate: BlockTemplate = {
 	label: 'Column',
 	defaultItem: {
@@ -78,7 +73,12 @@ const columnBlockTemplate: BlockTemplate = {
 			name: 'link',
 			component: 'text',
 		},
-		columnBlockImageField,
+		{
+			label: 'Image',
+			name: 'image',
+			component: 'image',
+			parse: (media) => media.filename,
+		},
 		{
 			label: 'Button Text',
 			name: 'button',
@@ -142,6 +142,7 @@ const rowBlockTemplate: BlockTemplate = {
 			label: 'Image',
 			name: 'image',
 			component: 'image',
+			parse: (media) => media.filename,
 		},
 	],
 };
@@ -194,9 +195,18 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 				<Head siteTitle={siteData.siteTitle} pageTitle={pageData.htmlTitle} />
 				<InlineForm form={pageForm}>
 					<Image fluid rounded>
-						<video autoPlay loop muted>
-							<source src='/images/osu-mgr-loop.mp4' type='video/mp4' />
-						</video>
+						<InlineImage
+							name='video'
+							parse={(media) => media.filename}
+							focusRing={false}
+						>
+							{(props) => (
+								<video autoPlay loop muted>
+									<source src={props.src} type='video/mp4' />
+								</video>
+							)}
+						</InlineImage>
+
 						<div className='videoCover'>
 							<Segment
 								vertical
@@ -204,7 +214,7 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 								textAlign='center'
 								style={{ background: 'none' }}
 							>
-								<img className='videoCoverLogo' src='/logo.svg' />
+								<img className='videoCoverLogo' src={logo} />
 								<Grid relaxed='very' columns='2'>
 									<Grid.Column textAlign='right'>
 										<Link href='samples-request'>

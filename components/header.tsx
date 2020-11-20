@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import React, { FunctionComponent } from 'react';
 import { Menu, Container, Dropdown, Segment } from 'semantic-ui-react';
 import { NavigationData } from '../common/site';
+import osu from '../images/osu.png';
 
 const MenuItemLink: FunctionComponent<{
 	link: string;
@@ -75,7 +76,7 @@ const Header: FunctionComponent<{
 				<Menu secondary pointing stackable inverted>
 					<Container>
 						<div className='logo'>
-							<img className='osu' src='/osu.png' />
+							<img className='osu' src={osu} />
 						</div>
 						<MenuItemLink link='/' text='Home' />
 						{navigation &&
