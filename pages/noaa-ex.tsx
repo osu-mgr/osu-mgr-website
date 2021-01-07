@@ -53,8 +53,23 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 				siteTitle={siteData['siteTitle']}
 				pageTitle={pageData['htmlTitle']}
 			/>
-			<Portal onClose={() => setOpen(false)} open={open}>
+			{!open && (
+				<Button
+					circular
+					size='mini'
+					icon='info'
+					onClick={() => setOpen(true)}
+					style={{
+						position: 'fixed',
+						zIndex: 2400,
+						right: 10,
+						top: 10,
+					}}
+				/>
+			)}
+			<Portal onClose={() => setOpen(false)} open={open} closeOnDocumentClick>
 				<div
+					onClick={() => setOpen(false)}
 					style={{
 						position: 'fixed',
 						zIndex: 2400,
@@ -82,7 +97,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 						/>
 						<Tab
 							defaultActiveIndex={0}
-							menu={{ secondary: true, pointing: true }}
+							menu={{ secondary: true, pointing: true, stackable: true }}
 							panes={[
 								{
 									menuItem: 'Instructions',

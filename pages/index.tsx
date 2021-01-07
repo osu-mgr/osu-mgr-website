@@ -207,7 +207,7 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 								<img className='videoCoverLogo' src={logo} />
 								<Grid relaxed='very' columns='2'>
 									<Grid.Column textAlign='right'>
-										<Link href='samples-request'>
+										<Link href='request-samples'>
 											<PrimaryButton size='huge'>Request Samples</PrimaryButton>
 										</Link>
 									</Grid.Column>
