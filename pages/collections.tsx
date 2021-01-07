@@ -1,11 +1,11 @@
 import { FunctionComponent, useState } from 'react';
 import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
-import { usePlugin } from 'tinacms';
+import { usePlugin, useFormScreenPlugin } from 'tinacms';
 import { useGithubJsonForm } from 'react-tinacms-github';
-import { Portal, Segment, Header, Menu } from 'semantic-ui-react';
+import { Portal, Segment, Button, Tab } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
-import ReactMarkdown from 'react-markdown';
+import MD from 'markdown-to-jsx';
 import Head from '../components/head';
 import Layout from '../components/layout';
 
@@ -47,7 +47,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 	});
 	usePlugin(pageForm);
 	const [siteData, siteForm] = useGitHubSiteForm(site);
-	usePlugin(siteForm);
+	useFormScreenPlugin(siteForm);
 	return (
 		<Layout navigation={siteData.navigation} fullWidth>
 			<Head
@@ -74,36 +74,75 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 							margin: 'auto',
 						}}
 					>
-						<Header>
-							<Menu pointing secondary>
-								<Menu.Item name='overview' active />
-								<Menu.Item name='instructions' />
-								<Menu.Item name='filtering' />
-								<Menu.Menu position='right'>
-									<Menu.Item icon='close' onClick={() => setOpen(false)} />
-								</Menu.Menu>
-							</Menu>
-						</Header>
-						<ReactMarkdown
-							source={`
+						<Button
+							circular
+							size='mini'
+							icon='close'
+							floated='right'
+							onClick={() => setOpen(false)}
+						/>
+						<Tab
+							defaultActiveIndex={0}
+							menu={{ secondary: true, pointing: true }}
+							panes={[
+								{
+									menuItem: 'Overview',
+									render: () => (
+										<Tab.Pane attached={false} basic>
+											<MD>{`
 The marine sediment and rock collection at the OSU Marine Geology Repository comes from all oceans. As of 2020 it contains:
 
-#### The Marine Geology and Geophysics Collection: 
-- Over 16,700 meters (10.4 miles) of marine sediment from over 6,300 core sites
-- 430 meters (0.27 miles) of lake sediment from 172 core sites
+### The Marine Geology and Geophysics Collection: 
+
+- 15,200 meters (9.4 miles) of marine sediment from over 6,600 core sites
+- Over 560 meters (0.35 miles) of lake sediment from 199 core sites
+- 8,060 meters (5.0 miles) of terrestrial drill core from 29 sites
 - 1,600 sediment trap samples
 
-#### The Antarctic Core Collection:
+### The Antarctic Core Collection:
 - Largest collection of geological samples from the Southern Ocean
 - Over 18,500 meters (11.5 miles) of deep sea core sediment from 7,370 core sites
 
-#### Dredge and Dive Rock Collection:
-- More than 10,000 rocks from over 500 dredges
+### Dredge and Dive Rock Collection:
+- More than 16,000 rocks from over 529 dredges
 - 528 manganese nodules
 - Rock samples from 139 ROV dives sampled by NOAA in marine national monuments in the Pacific Ocean
 
-The map contains core, grab, and dredge locations for our searchable holdings listed in the Index to Marine and Lacustrine Geological Samples database. This is a complete list of our holdings but it will be constantly updated with new information as we continue to digitally collate our collection.
-						`}
+The map below contains core, grab, and dredge locations for our searchable holdings listed in the Index to Marine and Lacustrine Geological Samples database. This is a complete list of our holdings but it will be constantly updated with new information as we continue to digitally collate our collection.
+								`}</MD>
+										</Tab.Pane>
+									),
+								},
+								{
+									menuItem: 'Map Instructions',
+									render: () => (
+										<Tab.Pane attached={false} basic>
+											<p>
+												Below is a searchable map of the OSU-MGR sample
+												collections. Follow steps 1-3 to locate a sample and
+												associated data. Want to filter by cruise, core type,
+												water depth, or other parameter? See the How to Filter
+												instructions in the next box. 1) Choose Collection 2)
+												Zoom to a desired location 3) Click on sample to view
+												pop-up box
+											</p>
+										</Tab.Pane>
+									),
+								},
+								{
+									menuItem: 'How to Filter the Map',
+									render: () => (
+										<Tab.Pane attached={false} basic>
+											<p>
+												(1) Click on File icon (bottom right corner) (2) Click
+												tab of desired collection (3) Under Options choose
+												Filter (4) “Add expression” to filter. Be sure to click
+												‘OK’ to see results
+											</p>
+										</Tab.Pane>
+									),
+								},
+							]}
 						/>
 					</Segment>
 				</div>

@@ -1,7 +1,7 @@
 import { FunctionComponent } from 'react';
 import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
-import { useCMS, usePlugin, BlockTemplate } from 'tinacms';
+import { useCMS, usePlugin, useFormScreenPlugin, BlockTemplate } from 'tinacms';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import {
 	InlineForm,
@@ -9,7 +9,6 @@ import {
 	InlineBlocks,
 	BlocksControls,
 	InlineText,
-	InlineImage,
 } from 'react-tinacms-inline';
 import { useGitHubSiteForm } from '../common/site';
 import Head from '../components/head';
@@ -188,25 +187,16 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 	});
 	usePlugin(pageForm);
 	const [siteData, siteForm] = useGitHubSiteForm(site);
-	usePlugin(siteForm);
+	useFormScreenPlugin(siteForm);
 	return (
 		<>
 			<Layout navigation={siteData.navigation}>
 				<Head siteTitle={siteData.siteTitle} pageTitle={pageData.htmlTitle} />
 				<InlineForm form={pageForm}>
 					<Image fluid rounded>
-						<InlineImage
-							name='video'
-							parse={(media) => media.filename}
-							focusRing={false}
-						>
-							{(props) => (
-								<video autoPlay loop muted>
-									<source src={props.src} type='video/mp4' />
-								</video>
-							)}
-						</InlineImage>
-
+						<video autoPlay loop muted>
+							<source src={pageData.video} type='video/mp4' />
+						</video>
 						<div className='videoCover'>
 							<Segment
 								vertical

@@ -1,7 +1,8 @@
 import React, { FunctionComponent } from 'react';
 import { Image, Segment, Grid, List, Container } from 'semantic-ui-react';
 import Link from '../components/link';
-import nsf from '../images/nsf.png';
+import nsfLogo from '../images/nsf-logo.png';
+import noaaLogo from '../images/noaa-logo.png';
 import osuLogo from '../images/osu-logo.png';
 import nypro from '../images/nypro.png';
 import map from '../images/map.png';
@@ -13,12 +14,17 @@ const Footer: FunctionComponent = () => {
 				<Container>
 					<div className='container'>
 						<Grid textAlign='center' stackable>
-							<Grid.Column width='3'>
+							<Grid.Column width='4'>
 								<h3>Supported By</h3>
 								<Link href='/about-us#support'>
 									<Image
 										inline
-										src={nsf}
+										src={nsfLogo}
+										style={{ height: '4em', marginRight: '1em' }}
+									/>
+									<Image
+										inline
+										src={noaaLogo}
 										style={{ height: '4em', marginRight: '1em' }}
 									/>
 									<Image inline src={osuLogo} style={{ height: '4em' }} />
@@ -89,7 +95,7 @@ const Footer: FunctionComponent = () => {
 									</List>
 								</Segment>
 							</Grid.Column>
-							<Grid.Column width='3'>
+							<Grid.Column width='2'>
 								<a
 									href='https://goo.gl/maps/hL3SYJaRDU4189CG7'
 									rel='noreferrer'
@@ -102,7 +108,7 @@ const Footer: FunctionComponent = () => {
 									/>
 								</a>
 							</Grid.Column>
-							<Grid.Column width='3'>
+							<Grid.Column width='2'>
 								<a
 									href='https://goo.gl/maps/xf53rxABNqSvXnjE6'
 									rel='noreferrer'

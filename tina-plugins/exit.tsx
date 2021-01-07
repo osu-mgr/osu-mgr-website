@@ -3,7 +3,7 @@ import { Button } from '@tinacms/styles';
 
 export default {
 	__type: 'toolbar:widget',
-	name: 'howdy',
+	name: 'exit',
 	weight: 5,
 	component: (): JSX.Element => {
 		const cms = useCMS();

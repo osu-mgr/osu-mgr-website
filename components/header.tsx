@@ -102,6 +102,10 @@ const Header: FunctionComponent<{
 				</Menu>
 			</Segment>
 			<style jsx>{`
+				.menu > * {
+					border-left: 1px solid grey;
+				}
+
 				.logo {
 					height: 100%;
 					padding-right: 1em;

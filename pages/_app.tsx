@@ -1,6 +1,7 @@
 import App, { AppProps } from 'next/app';
 import { TinaCMS, TinaProvider } from 'tinacms';
 import { GithubClient, TinacmsGithubProvider } from 'react-tinacms-github';
+import MarkdownPageCreator from '../tina-plugins/md-page-creator';
 import ExitToolbarWidget from '../tina-plugins/exit';
 import 'semantic-ui-css/semantic.min.css';
 import '../tina.css';
@@ -19,7 +20,7 @@ export default class AppClass extends App {
 		});
 		this.cms = new TinaCMS({
 			enabled: !!props.pageProps.preview,
-			plugins: [ExitToolbarWidget],
+			plugins: [MarkdownPageCreator, ExitToolbarWidget],
 			apis: { github },
 			sidebar: props.pageProps.preview,
 			toolbar: props.pageProps.preview,

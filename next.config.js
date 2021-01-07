@@ -6,4 +6,10 @@ module.exports = require('next-images')({
 		REPO_FULL_NAME: process.env.REPO_FULL_NAME,
 		BASE_BRANCH: process.env.BASE_BRANCH,
 	},
+	webpack: function (config) {
+		config.node = {
+			fs: 'empty',
+		};
+		return config;
+	},
 });

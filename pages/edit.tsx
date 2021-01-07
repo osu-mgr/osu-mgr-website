@@ -1,7 +1,7 @@
 import { FunctionComponent } from 'react';
 import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
-import { useCMS, usePlugin } from 'tinacms';
+import { useCMS, usePlugin, useFormScreenPlugin } from 'tinacms';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import { Container, Icon, Message } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
@@ -24,7 +24,7 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 	});
 	usePlugin(pageForm);
 	const [siteData, siteForm] = useGitHubSiteForm(site);
-	usePlugin(siteForm);
+	useFormScreenPlugin(siteForm);
 	return (
 		<Layout navigation={siteData.navigation}>
 			<Head

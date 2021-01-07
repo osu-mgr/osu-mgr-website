@@ -21,6 +21,11 @@
           "link": "/oversight-committee"
         },
         {
+          "id": "96d9c592-54db-44ca-8bf6-9ce2df25d95a",
+          "text": "Policies",
+          "link": "/policies"
+        },
+        {
           "id": "dcd8cb3a-5776-4133-97e7-5af28209bb14",
           "text": "Facility History",
           "link": "/facility-history"
