@@ -86,6 +86,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 						style={{
 							maxWidth: '75vw',
 							margin: 'auto',
+							marginTop: '20vh',
 						}}
 					>
 						<Button
@@ -96,13 +97,20 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 							onClick={() => setOpen(false)}
 						/>
 						<Tab
+							onTabChange={(e) => {
+								e.stopPropagation();
+							}}
 							defaultActiveIndex={0}
 							menu={{ secondary: true, pointing: true, stackable: true }}
 							panes={[
 								{
 									menuItem: 'Instructions',
 									render: () => (
-										<Tab.Pane attached={false} basic>
+										<Tab.Pane
+											attached={false}
+											basic
+											style={{ maxHeight: '60vh', overflowY: 'auto' }}
+										>
 											<p>
 												Welcome to the NOAA Collection. Here you will find tabs
 												consisting of a sample location map and a list of all

@@ -52,9 +52,13 @@ const Footer: FunctionComponent = () => {
 											/>
 											<List.Content>
 												<List.Description>
+													OSU-MGR
+													<br />
 													4700 SW Research Way
 													<br />
 													Corvallis, Oregon 97333
+													<br />
+													United States
 												</List.Description>
 											</List.Content>
 										</List.Item>
@@ -90,6 +94,16 @@ const Footer: FunctionComponent = () => {
 											/>
 											<List.Content>
 												<List.Description>(+1) 541-737-8210</List.Description>
+											</List.Content>
+										</List.Item>
+										<List.Item as='a' href='/repository-calendar'>
+											<List.Icon
+												name='calendar'
+												size='large'
+												verticalAlign='middle'
+											/>
+											<List.Content>
+												<List.Description>Repository Calendar</List.Description>
 											</List.Content>
 										</List.Item>
 									</List>

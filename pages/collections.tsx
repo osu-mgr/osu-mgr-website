@@ -5,7 +5,7 @@ import { usePlugin, useFormScreenPlugin } from 'tinacms';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import { Portal, Segment, Button, Tab } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
-import MD from 'markdown-to-jsx';
+import SemanticMDX from '../components/semantic-mdx';
 import Head from '../components/head';
 import Layout from '../components/layout';
 
@@ -87,6 +87,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 						style={{
 							maxWidth: '75vw',
 							margin: 'auto',
+							marginTop: '20vh',
 						}}
 					>
 						<Button
@@ -97,14 +98,21 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 							onClick={() => setOpen(false)}
 						/>
 						<Tab
+							onTabChange={(e) => {
+								e.stopPropagation();
+							}}
 							defaultActiveIndex={0}
 							menu={{ secondary: true, pointing: true, stackable: true }}
 							panes={[
 								{
 									menuItem: 'Overview',
 									render: () => (
-										<Tab.Pane attached={false} basic>
-											<MD>{`
+										<Tab.Pane
+											attached={false}
+											basic
+											style={{ maxHeight: '60vh', overflowY: 'auto' }}
+										>
+											<SemanticMDX>{`
 The marine sediment and rock collection at the OSU Marine Geology Repository comes from all oceans. As of 2020 it contains:
 
 ### The Marine Geology and Geophysics Collection: 
@@ -123,37 +131,70 @@ The marine sediment and rock collection at the OSU Marine Geology Repository com
 - 528 manganese nodules
 - Rock samples from 139 ROV dives sampled by NOAA in marine national monuments in the Pacific Ocean
 
-The map below contains core, grab, and dredge locations for our searchable holdings listed in the Index to Marine and Lacustrine Geological Samples database. This is a complete list of our holdings but it will be constantly updated with new information as we continue to digitally collate our collection.
-								`}</MD>
+The map contains core, grab, and dredge locations for our searchable holdings listed in the Index to Marine and Lacustrine Geological Samples database. This is a complete list of our holdings but it will be constantly updated with new information as we continue to digitally collate our collection.
+											`}</SemanticMDX>
 										</Tab.Pane>
 									),
 								},
 								{
 									menuItem: 'Map Instructions',
 									render: () => (
-										<Tab.Pane attached={false} basic>
-											<p>
-												Below is a searchable map of the OSU-MGR sample
-												collections. Follow steps 1-3 to locate a sample and
-												associated data. Want to filter by cruise, core type,
-												water depth, or other parameter? See the How to Filter
-												instructions in the next box. 1) Choose Collection 2)
-												Zoom to a desired location 3) Click on sample to view
-												pop-up box
-											</p>
+										<Tab.Pane
+											attached={false}
+											basic
+											style={{ maxHeight: '60vh', overflowY: 'auto' }}
+										>
+											<SemanticMDX>{`
+Follow steps 1-3 to locate a sample and associated data.
+
+Want to filter by cruise, core type, water depth, or other parameter? See the How to Filter instructions in the next tab. 
+
+<Grid columns="3">
+	<GridColumn>
+		<h5>1) Choose Collection</h5>
+		<Image rounded bordered size="medium" src="/map-instructions-1.png"/>
+	</GridColumn>
+	<GridColumn>
+		<h5>2) Zoom to a desired location</h5>
+		<Image rounded bordered size="medium" src="/map-instructions-2.png"/>
+	</GridColumn>
+	<GridColumn>
+		<h5>3) Click to view a sample</h5>
+		<Image rounded bordered size="medium" src="/map-instructions-3.png"/>
+	</GridColumn>
+</Grid>
+											`}</SemanticMDX>
 										</Tab.Pane>
 									),
 								},
 								{
 									menuItem: 'How to Filter the Map',
 									render: () => (
-										<Tab.Pane attached={false} basic>
-											<p>
-												(1) Click on File icon (bottom right corner) (2) Click
-												tab of desired collection (3) Under Options choose
-												Filter (4) “Add expression” to filter. Be sure to click
-												‘OK’ to see results
-											</p>
+										<Tab.Pane
+											attached={false}
+											basic
+											style={{ maxHeight: '60vh', overflowY: 'auto' }}
+										>
+											<SemanticMDX>{`
+<Grid columns="4">
+<GridColumn>
+	<h5>1) Click on File icon (bottom right corner)</h5>
+	<Image rounded bordered size="medium" src="/map-instructions-1.png"/>
+</GridColumn>
+<GridColumn>
+	<h5>2) Click tab of desired collection</h5>
+	<Image rounded bordered size="medium" src="/map-instructions-2.png"/>
+</GridColumn>
+<GridColumn>
+	<h5>3) Under Options choose Filter</h5>
+	<Image rounded bordered size="medium" src="/map-instructions-3.png"/>
+</GridColumn>
+<GridColumn>
+	<h5>4) “Add expression” to filter, click ‘OK’</h5>
+	<Image rounded bordered size="medium" src="/map-instructions-3.png"/>
+</GridColumn>
+</Grid>
+										`}</SemanticMDX>
 										</Tab.Pane>
 									),
 								},

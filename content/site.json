@@ -7,8 +7,8 @@
       "menu": [
         {
           "id": "d4a13f84-58d5-41e4-925b-dbac853df58c",
-          "text": "Contact Information",
-          "link": "/about-us"
+          "text": "Parking Information",
+          "link": "/parking"
         },
         {
           "id": "1be419b7-d2b1-457a-a407-3f88c37b0bbd",
@@ -56,17 +56,39 @@
     {
       "id": "65971037-08ac-4a71-90dc-71b2a9d92808",
       "text": "Facilities, Services",
-      "link": "/services"
+      "menu": [
+        {
+          "id": "df029d4a-3712-4113-978b-f408df17722c",
+          "text": "Facilities, Services",
+          "link": "/services"
+        },
+        {
+          "id": "71d771fb-c107-4d6d-8e52-6fb65cb0645f",
+          "text": "Virtual Tour",
+          "link": "/virtual-tour"
+        }
+      ]
     },
     {
       "id": "2191c7a8-e03e-4a95-827f-60c31abd079f",
       "text": "Request Samples",
-      "link": "/request-samples"
-    },
-    {
-      "id": "df029d4a-3712-4113-978b-f408df17722c",
-      "text": "Repository Calendar",
-      "link": "/repository-calendar"
+      "menu": [
+        {
+          "id": "5ebd79f7-88e2-48b9-9555-3815c25d33bd",
+          "text": "Request Samples",
+          "link": "/request-samples"
+        },
+        {
+          "id": "221a4afd-b7eb-4508-ba7c-ab092bfd1b82",
+          "text": "Sediment and Rock Core Sample Distribution Guidelines",
+          "link": "/core-distribution-guidelines"
+        },
+        {
+          "id": "cab2cc8a-a31d-49f2-8635-d68a72e8c4c2",
+          "text": "Dredge and Dive Sample Distribution Guidelines",
+          "link": "/dredge-distribution-guidelines"
+        }
+      ]
     },
     {
       "id": "0cc6d105-6a0e-43a8-a513-60111ef01353",
@@ -103,7 +125,38 @@
     {
       "id": "4042631c-de3b-489f-a23c-b6bdbce9298b",
       "text": "Publications",
-      "link": "/publications"
+      "menu": [
+        {
+          "id": "d4c08ed5-99de-49ce-80dc-731c8f21ec88",
+          "text": "2020 to Present",
+          "link": "/publications"
+        },
+        {
+          "id": "b895520e-84b4-4acd-bc37-0cd45691ffc2",
+          "text": "2010 to 2019",
+          "link": "/publications-2010-to-2019"
+        },
+        {
+          "id": "a79b01af-5e1e-4d46-8a4f-b2ad86d6ca09",
+          "text": "2000 to 2009",
+          "link": "/publications-2000-to-2009"
+        },
+        {
+          "id": "80f95428-47d4-450d-8710-0a3cb2e45ca4",
+          "text": "1990 to 1999",
+          "link": "/publications-1990-to-1999"
+        },
+        {
+          "id": "836c1059-60d7-466f-ad74-43754efd8273",
+          "text": "1980 to 1989",
+          "link": "/publications-1980-to-1989"
+        },
+        {
+          "id": "7235bc28-481b-4223-ad21-cb939a43ff2f",
+          "text": "Before 1980",
+          "link": "/publications-before-1980"
+        }
+      ]
     }
   ]
 }
