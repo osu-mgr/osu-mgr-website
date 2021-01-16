@@ -179,19 +179,19 @@ Want to filter by cruise, core type, water depth, or other parameter? See the Ho
 <Grid columns="4">
 <GridColumn>
 	<h5>1) Click on File icon (bottom right corner)</h5>
-	<Image rounded bordered size="medium" src="/map-instructions-1.png"/>
+	<Image rounded bordered size="medium" src="/map-filter-1.png"/>
 </GridColumn>
 <GridColumn>
 	<h5>2) Click tab of desired collection</h5>
-	<Image rounded bordered size="medium" src="/map-instructions-2.png"/>
+	<Image rounded bordered size="medium" src="/map-filter-2.png"/>
 </GridColumn>
 <GridColumn>
 	<h5>3) Under Options choose Filter</h5>
-	<Image rounded bordered size="medium" src="/map-instructions-3.png"/>
+	<Image rounded bordered size="medium" src="/map-filter-3.png"/>
 </GridColumn>
 <GridColumn>
 	<h5>4) “Add expression” to filter, click ‘OK’</h5>
-	<Image rounded bordered size="medium" src="/map-instructions-3.png"/>
+	<Image rounded bordered size="medium" src="/map-filter-4.png"/>
 </GridColumn>
 </Grid>
 										`}</SemanticMDX>

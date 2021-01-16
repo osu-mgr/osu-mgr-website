@@ -34,7 +34,7 @@ const Layout: FunctionComponent<{
 			</footer>
 			<style jsx>{`
 				header {
-					position: ${fullWidth ? 'absolute' : 'fixed'};
+					position: ${fullWidth ? 'absolute' : 'absolute' /*'fixed'*/};
 					width: 100%;
 					z-index: 2400;
 					border: none;

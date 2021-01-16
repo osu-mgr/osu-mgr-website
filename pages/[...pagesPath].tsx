@@ -10,6 +10,36 @@ import Layout from '../components/layout';
 import { useRouter } from 'next/router';
 import { Menu, Container, Message } from 'semantic-ui-react';
 
+const AboutUs: FunctionComponent = () => {
+	return (
+		<SemanticMDX>{`
+<Image bordered rounded size='medium' floated='left' src='about-us.jpg' style={{ clear: 'left' }}/>
+<Image bordered rounded size='medium' floated='right' src='drill-cores.jpg' style={{ clear: 'right' }}/>
+<Image bordered rounded size='medium' floated='left' src='rocksplit-EX1504L2.png' style={{ clear: 'left' }}/>
+<Image bordered rounded size='medium' floated='right' src='half-cores.jpg' style={{ clear: 'right' }}/>
+<Image bordered rounded size='medium' floated='right' src='collections.jpg' style={{ clear: 'right' }}/>
+<Image bordered rounded size='medium' floated='left' src='racks.jpg' style={{ clear: 'left' }}/>
+
+The Oregon State University Marine and Geology Repository (OSU-MGR) is an NSF funded repository that hosts the OSU Marine Geology and Geophysics collection and the Antarctic Core Collection. The facility is 33,000 ft2 and includes 10,900 ft2 of refrigerated core storage, 11,600 ft2 of dry rock storage and a 550 ft2 walk-in freezer. The facility is well equipped to run major sampling parties, research programs, and educational endeavors.  Laboratory space is available for analytical activities including scanning tracks for physical properties and elemental analyses.
+		`}</SemanticMDX>
+	);
+};
+
+const Parking: FunctionComponent = () => {
+	return (
+		<SemanticMDX>{`
+<Image bordered rounded size='large' floated='right' src='parking.png' style={{ clear: 'right' }}/>
+
+# Parking
+
+There is ample parking on the west side of the building. 
+The first parking lot is reserved for Printing and Mailing Services. 
+Feel free to park anywhere else in the second parking lot. 
+Parking is free and does not require a campus parking permit.
+		`}</SemanticMDX>
+	);
+};
+
 const Staff: FunctionComponent = () => {
 	return (
 		<SemanticMDX>{`
@@ -451,21 +481,6 @@ Dr. Maureen Walczak, Oregon State University
 	);
 };
 
-const Parking: FunctionComponent = () => {
-	return (
-		<SemanticMDX>{`
-<Image bordered rounded size='large' floated='right' src='parking.png' style={{ clear: 'right' }}/>
-
-# Parking
-
-There is ample parking on the west side of the building. 
-The first parking lot is reserved for Printing and Mailing Services. 
-Feel free to park anywhere else in the second parking lot. 
-Parking is free and does not require a campus parking permit.
-		`}</SemanticMDX>
-	);
-};
-
 const FacilityHistory: FunctionComponent = () => {
 	return (
 		<SemanticMDX>{`
@@ -508,12 +523,47 @@ The grand opening of the new facility was held on January 31, 2020. It was the m
 const VirtualTour: FunctionComponent = () => {
 	return (
 		<SemanticMDX>{`
-<Image bordered rounded size='large' floated='right' src='original-core-fridge.png' style={{ clear: 'right' }}/>
+## Virtual Visit to the Repository
 
-# Facility History
+Explore this page to learn more about the repository, take a self-guided tour through our new facility, watch videos of the coring process, and look up close at some of our Oregon cores with a StoryMap Core Tour.
 
-Since 1960, the College of Earth, Ocean and Atmospheric Sciences (CEOAS) at Oregon State University (OSU) has maintained an active program in Marine Geology, and CEOAS continues to be one of the leading oceanographic institutions involved in exploration, research and the collection of marine samples. To preserve these materials for future research, Drs. Ted C. Moore and LaVerne Kulm in 1971 established the OSU Core Lab, now known as the OSU Marine and Geology Repository.
+<iframe width="450" height="300" src="https://www.youtube.com/embed/xgHrEv6jK18" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style={{ float: 'left', clear: 'left', margin: '0 1em 1em 0' }}></iframe>
 
+## Introduction
+
+The OSU-MGR is the largest facility of its kind in the country. With the 2018 addition of the Antarctic Core Collection (previously housed at Florida State University) the repository now archives over 22 miles of sediment core and more than 10,000 rocks.
+
+Researchers around the world can access these samples to investigate a wide range of questions about Earth’s history and processes.  
+
+In this video, OSU faculty Joe Stoner, Maureen Walczak, and Maziet Cheseby discuss the repository and what can be learned from cores.
+
+<a href="https://poly.google.com/view/f0-8EZGW9xz"><Image bordered rounded size='large' floated='right' src='poly-tour.jpg' style={{ clear: 'right' }}/></a>
+
+## Self-guided Tour
+
+Ready to see the facility? Take a self-guided tour by clicking below. There are six scenes in this tour, with many points of interest that you can click on to learn more about the repository and see additional photos. We begin in the cooler, at a chilly 37°F…
+
+## How to Collect a Core
+
+Box cores, multi cores, piston cores, vibracores, kasten cores, push cores- these are all methods scientists use to collect samples of the seafloor. Which method to use? It depends- where is the coring taking place? what is the scientific goal? what are the capabilities of the ship? Below you can learn more about two of these methods, piston cores and push cores.
+
+## Piston Cores
+
+The majority of the cores in the repository are piston cores because it is the most effective way to collect long cores. Longer cores go further back in time. Here’s how piston coring works.
+
+<iframe width="450" height="300" src="https://www.youtube.com/embed/W8r7ItR2tjU" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style={{ float: 'left', clear: 'left', margin: '0 1em 1em 0' }}></iframe>
+<Image bordered rounded size='medium' src='piston-core.jpg'/>
+
+## “Push Cores”
+
+It is not always possible to take a piston core. The sediment type, the ocean conditions, the water depth- all present challenges to collecting cores. But determined scientists find other ways to get their samples. The video below shows OSU graduate students collecting a core in an Oregon salt marsh.  
+
+## Core Tour
+
+Want to learn more about some of the cores?  You can read about four cores collected around Oregon by clicking on the image below. In the future we plan to highlight additional cores and the stories they tell.
+
+<iframe width="450" height="300" src="https://www.youtube.com/embed/mXHhzlfCKEQ" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style={{ float: 'right', clear: 'right', margin: '0 0 1em 1em' }}></iframe>
+<a href="https://arcg.is/0ziPm01"><Image bordered rounded size='large' src='story-map.jpg'/></a>
 
 		`}</SemanticMDX>
 	);
@@ -2861,6 +2911,7 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 	const [siteData, siteForm] = useGitHubSiteForm(site);
 	useFormScreenPlugin(siteForm);
 	const tempPages = {
+		'/about-us': AboutUs,
 		'/parking': Parking,
 		'/staff': Staff,
 		'/oversight-committee': OversightCommittee,
