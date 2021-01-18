@@ -1,5 +1,6 @@
 {
     "redirects": [
         { "source": "/monitor", "destination": "http://128.193.70.68:3601/d/1veObBoGz/nypro?orgId=1&refresh=10s&from=now-2d&to=now&kiosk" }
+
     ]
 }

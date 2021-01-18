@@ -8,7 +8,7 @@ import SemanticMDX from '../components/semantic-mdx';
 import Head from '../components/head';
 import Layout from '../components/layout';
 import { useRouter } from 'next/router';
-import { Menu, Container, Message } from 'semantic-ui-react';
+import { Menu, Container, Message, Icon } from 'semantic-ui-react';
 
 const AboutUs: FunctionComponent = () => {
 	return (
@@ -2945,6 +2945,20 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 					}
 				});
 		});
+
+	const noaaPath = path.match(/^\/noaa-ex.+$/i);
+	const igsnPath = path.match(/\/OSU-.+$/i);
+	if (typeof window !== 'undefined' && igsnPath) {
+		window.location.replace(
+			'http://core-repository.ceoas.oregonstate.edu' + path
+		);
+	}
+	if (typeof window !== 'undefined' && noaaPath) {
+		window.location.replace(
+			'http://core-repository.ceoas.oregonstate.edu' + path
+		);
+	}
+
 	return (
 		<Layout navigation={siteData.navigation}>
 			<Head siteTitle={siteData['siteTitle']} pageTitle={''} />
@@ -2968,14 +2982,30 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 			)}
 			{!tempPages[path] && (!pagesData.pages || !pagesData.pages[path]) && (
 				<Container style={{ display: 'flex', height: '50vh' }}>
-					<Message
-						error
-						size='large'
-						icon='warning'
-						header='Error 404'
-						content='This page is not found.'
-						style={{ margin: 'auto', width: 'auto' }}
-					/>
+					{(igsnPath || noaaPath) && (
+						<Message
+							icon
+							warning
+							size='large'
+							style={{ margin: 'auto', width: 'auto' }}
+						>
+							<Icon name='circle notched' loading />
+							<Message.Content>
+								<Message.Header>Loading</Message.Header>
+								Please stand by...
+							</Message.Content>
+						</Message>
+					)}
+					{!igsnPath && !noaaPath && (
+						<Message
+							error
+							size='large'
+							icon='warning'
+							header='Error 404'
+							content='This page is not found.'
+							style={{ margin: 'auto', width: 'auto' }}
+						/>
+					)}
 				</Container>
 			)}
 		</Layout>
