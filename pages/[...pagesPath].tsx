@@ -520,6 +520,40 @@ The grand opening of the new facility was held on January 31, 2020. It was the m
 	);
 };
 
+const Repositories: FunctionComponent = () => {
+	return (
+		<SemanticMDX>{`
+### Marine Geologic Databases
+
+[NOAA’s National Centers for Environmental Information](https://www.ncei.noaa.gov/)
+
+[NOAA – Index to Marine and Lacustrine Geological Samples](https://www.ngdc.noaa.gov/geosamples/index.jsp)
+
+[System for Earth Sample Registration](http://www.geosamples.org/)
+
+[Interdisciplinary Earth Data Alliance](https://www.iedadata.org/)
+
+[National Geological and Geophysical Data Preservation Program](https://datapreservation.usgs.gov/page/NDC)
+
+### Other NSF Funded Marine Geologic Repositories
+
+[Woods Hole Oceanographic Institute Seafloor Samples Laboratory](https://www2.whoi.edu/site/seafloorsampleslab/)
+
+[Lamont-Doherty Core Repository](http://www.ldeo.columbia.edu/core-repository)
+
+[Scripps Institution of Oceanography](https://scripps.ucsd.edu/collections/gc)
+
+[Marine Geological Samples Laboratory at the University of Rhode Island](https://web.uri.edu/gso/marine-geological-samples-laboratory/)
+
+[International Ocean Discovery Program](http://iodp.tamu.edu/curation/)
+
+[University of Minnesota National Lacustrine Core Facility](http://lrc.geo.umn.edu/laccore/)
+
+[The Polar Rock Repository – Ohio State University](http://research.bpcrc.osu.edu/rr/)
+		`}</SemanticMDX>
+	);
+};
+
 const VirtualTour: FunctionComponent = () => {
 	return (
 		<SemanticMDX>{`
@@ -2918,6 +2952,7 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 		'/policies': Policies,
 		'/virtual-tour': VirtualTour,
 		'/facility-history': FacilityHistory,
+		'/repositories': Repositories,
 		'/services': Services,
 		'/request-samples': RequestSamples,
 		'/core-distribution-guidelines': CoreDistributionGuidelines,
@@ -2946,13 +2981,13 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 				});
 		});
 
-	const noaaPath = path.match(/^\/noaa-ex.+$/i);
-	const igsnPath = path.match(/\/OSU-.+$/i);
+	const igsnPath = path.match(/^\/OSU-.+$/i);
 	if (typeof window !== 'undefined' && igsnPath) {
 		window.location.replace(
 			'http://core-repository.ceoas.oregonstate.edu' + path
 		);
 	}
+	const noaaPath = path.match(/^\/noaa-ex.+$/i);
 	if (typeof window !== 'undefined' && noaaPath) {
 		window.location.replace(
 			'http://core-repository.ceoas.oregonstate.edu' + path
