@@ -81,6 +81,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 						top: 0,
 						bottom: 0,
 						right: 0,
+						background: 'rgba(1,1,1,0.75)',
 					}}
 				>
 					<Segment

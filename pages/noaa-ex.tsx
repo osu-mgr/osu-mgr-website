@@ -5,6 +5,7 @@ import { usePlugin, useFormScreenPlugin } from 'tinacms';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import { Portal, Segment, Button, Tab } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
+import SemanticMDX from '../components/semantic-mdx';
 import Head from '../components/head';
 import Layout from '../components/layout';
 
@@ -80,6 +81,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 						top: 0,
 						bottom: 0,
 						right: 0,
+						background: 'rgba(1,1,1,0.75)',
 					}}
 				>
 					<Segment
@@ -109,23 +111,19 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 										<Tab.Pane
 											attached={false}
 											basic
-											style={{ maxHeight: '60vh', overflowY: 'auto' }}
+											style={{
+												maxHeight: '60vh',
+												maxWidth: '50vw',
+												overflowY: 'auto',
+											}}
 										>
-											<p>
-												Welcome to the NOAA Collection. Here you will find tabs
-												consisting of a sample location map and a list of all
-												the cruises hosted by the OSU-MGR.
-											</p>
-											<p>
-												For a digital map of cruise locations and goals see the
-												map below or the NOAA Digital Atlas. Dive location dots
-												below may represent multiple collected samples. Please
-												zoom in to see different samples from the same dive.
-											</p>
-											<p>
-												Sample images and descriptions can be found on the
-												individual expedition sites.
-											</p>
+											<SemanticMDX>{`
+Welcome to the NOAA Collection. Here you will find a sample location map of all the cruises hosted by the OSU-MGR.
+
+For a digital map of cruise locations and goals see the map below or the [NOAA Digital Atlas](https://www.ncei.noaa.gov/maps/oer-digital-atlas/mapsOE.htm). Dive location dots below may represent multiple collected samples. Please zoom in to see different samples from the same dive.
+
+Sample images and descriptions can be found on the individual expedition sites.
+											`}</SemanticMDX>
 										</Tab.Pane>
 									),
 								},
