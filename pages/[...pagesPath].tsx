@@ -2950,7 +2950,7 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 		'/staff': Staff,
 		'/oversight-committee': OversightCommittee,
 		'/policies': Policies,
-		'/virtual-tour': VirtualTour,
+		'/virtual-repository-tour': VirtualTour,
 		'/facility-history': FacilityHistory,
 		'/repositories': Repositories,
 		'/services': Services,
