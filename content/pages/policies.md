@@ -1,3 +1,4 @@
+
 <center>
 
 # **Oregon State University**
@@ -62,6 +63,7 @@
 ---
 
 # 1. INTRODUCTION<a name="introduction"/>
+
 
 We are the Marine and Geology Repository, a research facility of Oregon State University (OSU-MGR) that supports Earth, Ocean, and Antarctic sciences. In our facility we host geological collections acquired since the 1960&#39;s of sediment and rock cores, dredge and ROV samples. We provide advanced instrumentation for analyses of these materials.
 
@@ -179,8 +181,8 @@ We require that requestors submit two documents with their sample request:
   
 2. **Sample Request Sheet**  
   The sample request sheet is required for a successful request, as it provides the repository with the necessary context for properly documenting a sampling event.  
-  a. FOR CORE SAMPLES: Please download and use the [Sediment Core Sample Request Sheet](http://osu-mgr.org/wp-content/uploads/2020/08/Sample-Request-Form.xlsx) to detail the samples you are requesting.  
-  b. FOR ROCK SAMPLES: Please download, fill out and submit the [Rock Sample Request Form](http://osu-mgr.org/wp-content/uploads/2020/05/Rock-Request-Form.xlsx) to detail the samples you are requesting.  
+  a. FOR CORE SAMPLES: Please download and use the [Sediment Core Sample Request Sheet](/Sample-Request-Form.xlsx) to detail the samples you are requesting.  
+  b. FOR ROCK SAMPLES: Please download, fill out and submit the [Rock Sample Request Form](/Rock-Request-Form.xlsx) to detail the samples you are requesting.  
     i. _Note about Thin Sections_  
       Some samples contain a prepared petrographic thin section. These sections are available to borrow upon request. Given that high resolution plane-polarized and cross-polarized photos of these thin sections are already available in the OSU-MGR database, we ask that thin sections only be requested if SEM, EMP, FTIR or similar experiments are to be undertaken. Indicate if the thin sections will be coated and with what material in the sample request letter. We require that thin sections will be returned to the repository within two years or upon completion of the proposed research project.
 
@@ -311,4 +313,4 @@ Dr. Maureen Walczak, Oregon State University
 
 # 20. OUTREACH<a name="outreach"/>
 
-Outreach is an important part of what we do at the OSU-MGR. Educational visits (including K-12 field trips and OSU undergraduate/graduate labs) may be scheduled by request with the MGR staff subject to availability of the staff and facility. These visits typically include touring the facility as well as viewing representative cores. These representative &quot;tour cores&quot; have been chosen to show a variety of ocean sediments and must remain at the MGR to ensure proper care. The repository has [several outreach activities](http://osu-mgr.org/education-outreach/) that may be used off-site, either by MGR staff or loaned out upon request for use in classrooms or at public events. Additionally, there are virtual online options on the MGR website that provide videos and core information for use when in-person visits are not possible.
+Outreach is an important part of what we do at the OSU-MGR. Educational visits (including K-12 field trips and OSU undergraduate/graduate labs) may be scheduled by request with the MGR staff subject to availability of the staff and facility. These visits typically include touring the facility as well as viewing representative cores. These representative &quot;tour cores&quot; have been chosen to show a variety of ocean sediments and must remain at the MGR to ensure proper care. The repository has [several outreach activities](/education-outreach) that may be used off-site, either by MGR staff or loaned out upon request for use in classrooms or at public events. Additionally, there are virtual online options on the MGR website that provide videos and core information for use when in-person visits are not possible.

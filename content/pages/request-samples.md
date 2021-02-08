@@ -1,0 +1,15 @@
+At the OSU Marine and Geology Repository (OSU-MGR) we distribute thousands of sediment and hard rock samples on an annual basis to researchers all over the world. Instructions on how to request these samples from the OSU-MGR and our Sample and Data Policies are detailed below. Please go step-by-step through the following six steps:
+
+**Step 1:** Decide which samples you wish to study and request. You can find an inventory of OSU holdings on the <a href="http://www.ngdc.noaa.gov/geosamples/index.jsp?inst=OSU">Index to Marine and Lacustrine Geological Samples (IMLGS)</a> website and on our <a href="/collections">Main OSU collection</a> and <a href="noaa-ex">NOAA collections</a> pages.
+
+**Step 2:** Read and familiarize yourself with the sample distribution policies and guidelines on how to request samples. Note that these are slightly different for sediment and hard rock requests.
+
+**Step 3:** Download and complete the Sediment and Rock Core Sample Request Form or Dredge and Dive Sample Request Form
+
+**Step 4:** Send the completed form with appropriate documentation (see guidelines above) to the curator at osu-mgr@oregonstate.edu via email.
+
+**Step 5:** If you publish on the samples you request from the OSU-MGR then please acknowledge the OSU-MGR in your manuscript.
+
+**Step 6:** Please send us copies (PDF’s), or links to published content that use samples hosted in our collection.
+
+For more information on how to request samples or how to request samples other than sediments and rocks, please contact us via email at osu-mgr@oregonstate.edu.

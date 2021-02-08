@@ -1,0 +1,243 @@
+The OSU-MGR has a long history of assisting with scientific research resulting in over 400 scientific publications. These are also listed  in a [Google Scholar Citation](https://scholar.google.com/citations?hl=en&user=x5lYe50AAAAJ&view_op=list_works) page. If you use our cores and publish the data on them then please drop us an email to keep this page updated!
+
+- Corliss, John B, JDymond, LIGordon, etal (1979) Submarine Thermal Springs on the Galapagos Rift, Science, 203, 1073-1083.
+
+
+- DeVries, Thomas J (1979) Nekton Remains, Diatoms, and Holocene Upwelling off Peru, MS thesis, Oregon State University, 85pp.
+
+
+- Heath, GRoss and Nicklas G Pisias (1979) A Method for the Quantitative Estimation of Clay Minerals in North Pacific Deep-Sea Sediments, Clays and Clay Minerals, 27, 175-184.
+
+
+- Heusser, Linda E and Nicholas J Shackleton (1979) Direct Marine-Continental Correlation:  150,000-Year Oxygen Isotope–Pollen Record from the North Pacific, Science, 204, 837-839.
+
+
+- Hongve, Dag and Arne H Erlandsen (1979) Shortening of Surface Sediment Cores During Sampling, Hydrobiologia, 65, 283-287.
+
+
+- Karlin, Robert (1979) Sediment Sources and Clay MIneral Distribution off the Oregon Coast:  Evidence for a Poleward Slope Undercurrent, MS Thesis, Oregon State University, 88pp.
+
+
+- Kulm, LD and KF Scheidegger (1979) Quarternary Sedimentation on the Tectonically Active Oregon Continental Slope, SEPM Special Publication No.27, August 1979, 247-263.
+
+
+- Moser, John Christian (1979) Sedimentation and Accumulation Rates of Nazca Plate Metalliferous Sediments by High Resoltn Ge(Li) Gamma-Ray Spectrometry of U-Series Isotopes., MS Thesis, Oregon State University, 65 pp.
+
+
+- Muller, PJ and E Suess (1979) Productivity, sedimentation rate, and sedimentary organic matter in the oceans–I.  Organic carbon   preservation, Deep-Sea Research, 26A, 1347-1362.
+
+
+- Sancetta, Constance (1979) Oceanography of the North Pacific During the Last 18,000 Years:  Evidence From Fossil Diatoms, Marine Micropaleontology, 4, 103-123.
+
+
+- Stakes, Debra S (1979) Submarine Hydrothermal Systems: Variations in Mineralogy, Chemistry, Temperatures and the Alteration of Oceanic Layer II, pHd Thesis, Oregon State University, 189pp.
+
+
+- Corliss, John B, Mitchell Lyle, and Jack Dymond (1978) The Chemistry of Hydrothermal Mounds near the Galapagos Rift, Earth and Planetary Science Letters, 40, 41997.
+
+
+- Lyle, Mitchell (1978) The Formation and Growth of Ferromanganese oxides on the Nazca Plate, pHd thesis, Oregon State University, 172.
+
+
+- Molina-Cruz, Adolfo (1978) Late Quaternary Oceanic Circulation Along the Pacific Coast of South America, pHd thesis, Oregon State University, 246pp.
+
+
+- Pisias, Nicklas G (1978) Paleoceanography of the Santa Barbara Basin during the Last 8000 Years, Quaternary Research, 10, 366-384.
+
+
+- Scheidegger, KF, LD Kulm, JB Corliss, WJ Schweller, RA Prince (1978) Fractionation and Mantle Heterogeneity in Basalts from the Peru-Chile Trench, Earth and Planetary Science Letters, 37, 409-420.
+
+
+- Schweller, William J and LaVerne D Kulm (1978) Depositional Patterns and Channelized Sedimentation in Active Eastern Pacific Trenches, Sedimentation in Submarine Canyons, Fans and Trenches Eds. DJ Stanley and G. Kelling, 311-324.
+
+
+- Schweller, William J and LD Kulm (1978) Extensional Rupture of Oceanic Crust in the Chile Trench, Marine Geology, 28, 271-291.
+
+
+- Wakeham, Susan E (1978) Petrochemical Patterns in Young Pillow Basalts Dredged from Juan de Fuca and Gorda Ridges, MS Thesis, Oregon State University, 95 pp.
+
+
+- Clark, James G, and Jack Dymond (1977) Geochronology and Petrochemistry of Easter and Sala Y Gomez Islands:  Implications for the Origin of the Sala Y Gomez Ridge, Journal of Volcanology and Geothermal Research, 2, 29-48.
+
+
+- Dowding, Lynn (1977) Sediment Dispersal within the Cocos Gap, Panama Basin, Journal of Sedimentary Petrology, 47, 1132-1156.
+
+
+- Graham, Rhea Lydia (1977) A Paleomagnetic Study of Recent Sediments in the Santa Barbara Basin, MS thesis, Oregon State University, 39 pp.
+
+
+- Heath, G Ross and Jack Dymond (1977) Genesis and transformation of metalliferous sediments from the East Pacific Rise, Bauer Deep, and Central Basin northwest Nazca plate, Geological Society of America Bulletin, 88, 723-733.
+
+
+- Heath, G Ross, Ted C Moore, Jr, and J Paul Dauphin (1977) Organic Carbon in Deep-Sea Sediments, in The Fate of Fossil Fuel CO2 in the Oceans, Andersen, Neil R. and Malahoff, Alexander, eds., Plenum Publishing Corp., 605-625.
+
+
+- Heusser, Linda and William L Balsam (1977) Pollen Distribution in the Northeast Pacifc Ocean, Quaternary Research, 7, 45-62.
+
+
+- Lyle, Mitchell, Jack Dymond, G Ross Heath (1977) Copper-Nickel-enriched Ferromanganese nodules and associated crusts from the Bauer basin, Northwest Nazca Plate, Earth and Planetary Science Letters, 35, 55-64.
+
+
+- Molina-Cruz, Adolfo and Patricia Price (1977) Distribution of opal and quartz on the ocean florr of the subropical southeastern Pacific, Geology, 5, 81-84. doi: https://dx.doi.org/10.1130/0091-7613(1977)52.0.CO;2
+
+
+- Moore, Ted C, Jr, NG Pisias, and GR Heath (1977) Climate Changes and Lags in Pacific Carbonate Preservation, Sea Surface Temperature and Global Ice Volume, in The Fate of Fossil Fuel CO2 in the Oceans, Andersen, Neil R. and Malahoff, Alexander, eds., Plenum Publishing Corp., 145-165.
+
+
+- Scheidegger, KF & Debra S Stakes (1977) Mineralogy, Chemistry and Crystallization Sequence of Clay Minerals in Altered Tholeiitic Basalts from the Peru Trench, Earth and Planetary Science Letters, 36, 413-422.
+
+
+- Selk, Bruce W (1977) The Manganese-enriched sediments of the Blanco trough:  Evidence for hydrothermal activity in a fracture zone., MS thesis, Oregon State University, 137 pp..
+
+
+- Toth, John R (1977) Deposition of Submarine Hydrothermal Manganese and Iron and Evidence for Hydrothermal Input of Volatile Elements to the Ocean, Ms Thesis, Oregon State University, 79pp.
+
+
+- Wenkam, Chiye (1977) Late Quaternary Changes in the Oceanography of the Eastern Tropical Pacific, MS thesis, Oregon State University, 143 pp.
+
+
+- Dowding, Lynn G (1976) Sedimentation Within the Cocos Gap, Panama Basin, MS thesis, Oregon State University, 69 pp.
+
+
+- Echegaray, Juan Antonio Masias (1976) Morphology, Shallow Structure and Evolution of the Peruvian Continental Margin 6° to 18°S, MS thesis, Oregon State University, 92 pp.
+
+
+- Field, CW, JR Dymond, JB Corliss, EJ Dasch, GR Heath, RG Senechal (1976) Metallogenesis in Southeast Pacific Ocean: Nazca Plate Project, Circum-Pacific Energy and Mineral Resources The American Association of Petroleum Geologists, Memoir No. 25, 539-550.
+
+
+- Heath, G Ross, TC Moore, Jr, and J Paul Dauphin (1976) Late Quaternary Accumulation rates of Opal, Quartz, Organic Carbon, and Calcium Carbonate in the Cascadia Basin Area, Northeast Pacific, Geological Society of America Memoir , 145, 393-409.
+
+
+- Lyle, Mitchell W and Jack Dymond (1976) Metal Accumulation rates in the Southeast Pacific–Errors introduced from assumed bulk densities., Earth and Planetary Science Letters, 30, 164-168.
+
+
+- Nelson, Hans (1976) Late Pleistocene and Holocene Depositional Trends, Processes, and History of Astoria Deep-Sea Fan, Northeast Pacific, Marine Geology, 20, 129-173.
+
+
+- Schweller, William J (1976) Chile Trench:  Extensional Rupture of Oceanic Crust and the influence of Tectonics on Sediment Distribution, MS thesis, Oregon State University, 90 pp.
+
+
+- Dymond, Jack and HH Veeh (1975) Metal Accumulation rates in the southeast Pacific and the Origin of Metalliferous Sediments, Earth and Planetary Science Letters, 28, 13-22.
+
+
+- Florer-Heusser, Linda E (1975) Late-Cenozoic Marine Palynology of Noertheast Pacific Ocean Cores, Quaternary Studies R.P. Suggate, M.M. Cresswell, eds.  The Royal Society of New Zealand, Wellington, 133-138.
+
+
+- Molina-Cruz, Adolfo (1975) Paleo-Oceanography of the Subtropical Southeastern Pacific during Late Quarternary:  A Study of Radiolaria, Opal and Quartz Contents of Deep-Sea Sediments, MS Thesis, Oregon State University,
+
+
+- Prince, Roger A, and LD Kulm (1975) Crustal rupture and the initiation of imbricate thrusting in the Peru-Chile Trench, Geological Society of America Bulletin, 86, 1639-1653.
+
+
+- Heath, G Ross, TC Moore, Jr, and G Louis Roberts (1974) Mineralogy of Surface Sediments from the Panama Basin, Eastern Equatorial Pacific, Journal of Geology, 82, 145-160.
+
+
+- Holmes, ML and JS Creager (1974) Holocene History of the Laptev Sea Continental Shelf, in Marine Geology and Oceanography of the Arctic Seas, Yvonne Rosenberg-Herman, ed., 211-229.
+
+
+- Kendrick, John William (1974) Trace Element Studies of Metalliferous Sediments in Cores from the East Pacific Rise and Bauer Deep, 10°S, MS Thesis, Oregon State University,
+
+
+- Knebel, Harley J, Joe S Creager, & Ronald J Echols (1974) Holocene Sedimentary Framework, East-Central Bering Sea Continental Shelf, in Marine Geology and Oceanography of the Arctic Seas, Yvonne Rosenberg-Herman, ed., 157-172.
+
+
+- Kulm, LD, JM Resig, TC Moore, VJ Rosato (1974) Transfer of Nazca Ridge Pelagic Sediments to the Peru Continental Margin, Geological Society of America Bulletin, 85, 767-780.
+
+
+- Malfait, Bruce Terry (1974) The Carnegie Ridge Near 86deg W.:  Structure, Sedimentation, and Near Bottom Observations, pHd Thesis, Oregon State University, 131 pp.
+
+
+- Naugler, Frederic P, Norman Silverberg, and Joe s Creager (1974) Recent Sediments of the East Siberian Sea, in Marine Geology and Oceanography of the Arctic Seas, Yvonne Rosenberg-Herman, ed., 191-210.
+
+
+- Phipps, James Benjamin (1974) Sediments and tectonics of the Gorda-Juan de Fuca Plate, pHd Thesis, Oregon State University, 118pp.
+
+
+- Prince, RA, JM Resig, LD Kulm, TC Moore, Jr (1974) Uplifted Turbidite Basins on the Seaward Wall of the Peru Trench, Geology, 2, 607-611.
+
+
+- Rosato, Victor J (1974) Peruvian Deep-Sea Sediments:  Evidence for Continental Accretion, MS Thesis, Oregon State University, 93 pp.
+
+
+- Yamashiro, Chiye (1974) Differentiating Dissolution and Transport Effects in Foraminiferal Sediments from the Panama Basin, Dissolution of Deep-Sea Carbonates Special Publication No.13, Cushman Foundation for Foraminiferal Research, USA,
+
+
+- Heath, GR and J Dymond (1973) Interstitial Silica in Deep-Sea Sediments from the North Pacific, Geology, 181-184.
+
+
+- Kowsmann, Renato Oscar (1973) Surface Sediments of the Panama Basin: Coarse Components, MS Thesis, Oregon State University,
+
+
+- Kowsmann, Renato Oscar (1973) Coarse Components in Surface Sediments of the Panama Basin, Eastern Equatorial Pacific, Journal of Geology, 81, 473-494.
+
+
+- Kulm, LD, KF Scheidegger, RA Prince, J Dymond, TC Moore, JR, DM Hussong (1973) Tholeiitic Basalt Ridge in the Peru Trench, Geology, 1, 41957.
+
+
+- Moore, TC, GR Heath and RO Kowsmann (1973) Biogenic Sediments of the Panama Basin, Journal of Geology, 81, 458-472.
+
+
+- Moore, Ted C, Jr (1973) Late Pleistocene-Holocene Oceanographic Changes in the Northeastern Pacific, Journal of Quarternary Research, 3, 99-109.
+
+
+- vanAndel, Tjeerd H (1973) Texture and Dispersal of Sediments in the Panama Basin, Journal of Geology, 81, 434-457.
+
+
+- Ellis, David Burl (1972) Holocene Sediments of the South Atlantic Ocean:  The Calcite Compensation Depth and Concentrations of Calcite, Opal and Quartz, MS Thesis, Oregon State University,
+
+
+- Carson, Bobb (1971) Stratigraphy and Depositional History of Quaternary Sediments in Northern Cascadia Basin and Juan de Fuca Abyssal Plain, Northeast Pacific Ocean, pHd thesis, University of Washington,
+
+
+- Fowler, GA, WN Orr, and LD Kulm (1971) An Upper Miocene Diatomaceous Rock Unit on the Oregon Continental Shelf , The Journal of Geology, 79, 603-608.
+
+
+- Kummer, John T and Joe S Creager (1971) Marine Geology and Cenozoic History of the Gulf of Anadyr, Marine Geology, 10, 257-280.
+
+
+- Muehlberg, GE (1971) Structure and Stratigraphy of Tertiary and Quaternary Strata, Heceta Bank, Central Oregon Shelf, MS thesis, Oregon State University, 78pp.
+
+
+- Spigai, JJ (1971) Marine Geology of the Continental Margin off Southern Oregon, pHD thesis, Oregon State University, 214pp.
+
+
+- Fowler, GA and LD Kulm (1970) Foraminiferal and Sedimentological Evidence for Uplift of the Deep-sea Floor, Gorda Rise, Northeastern Pacific, Journal of Marine Research, 28, 321-329.
+
+
+- Roush, RC (1970) Sediment Textures and Internal Structures:  A Comparison Betweem Central Oregon Continental Shelf Sediments and Adjacent Coastal Sediments, MS Thesis, Oregon State University, 75pp.
+
+
+- Carlson, Paul R and C Hans Nelson (1969) Sediments and Sedimentary Structures of the Astoria Submarine Canyon-Fan System, Northeast Pacific, Journal of Sedimentary Petrology, 39 (4), 1269-1282.
+
+
+- Chambers, DM (1969) Holocene Sedimentation and Potential placer deposits on the Continental Shelf off the Rogue River, Oregon, MS thesis, Oregon State University, 103pp.
+
+
+- Griggs, GB (1969) Cascadia Channel: the anatomy of a Deep-Sea Channel, phD thesis, Oregon State University, 183pp.
+
+
+- Peterson, RE (1969) Calcium Carbonate, Organic Carbon, and Quartz in Hemipelagic Sediments off Oregon:  A Preliminary Investigation, MS Thesis, Oregon State University, 44pp.
+
+
+- Duncan, JR (1968) Late Pleistocene and Postglacial Sedimentation and Stratigraphy of Deep-Sea Environments off Oregon, pHd thesis, Oregon State University, 222pg.
+
+
+- Nelson, CH (1968) Marine Geology of Astoria Deep-Sea Fan, pHd thesis, Oregon State University, 287 pp.
+
+
+- Nelson, CH, LD Kulm, PR Carlson, and JR Duncan (1968) Mazama Ash in the Northeastern Pacific, Science, 161, 47-49.
+
+
+- Boettcher, RS (1967) Foraminiferal Trends of the Central Oregon Shelf, MS thesis, Oregon State University, 134 pp.
+
+
+- Carlson, PR (1967) Marine Geology of Astoria Submarine Canyon, pHd Thesis, Oregon State University, 259 pp.
+
+
+- Runge, EJ (1966) Continental Shelf Sediments, Columbia River to Cape Blanco, Oregon, pHd Thesis, Oregon State University, 143pp.
+
+
+- Emery, KO and J Hulsemann (1964) Shortening of Sediment Cores Collected in Open Barrel Gravity Cores, Sedimentology, 3, 144-154.
+
+
+- Bushnell, DC (1963) Continental Shelf Sediments in the Vicinity of Newport, Oregon, MS thesis, Oregon State University, 107 pp.
