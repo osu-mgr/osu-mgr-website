@@ -11,14 +11,14 @@
           "link": "/about-us"
         },
         {
-          "id": "1be419b7-d2b1-457a-a407-3f88c37b0bbd",
-          "text": "Staff",
-          "link": "/staff"
-        },
-        {
           "id": "d4a13f84-58d5-41e4-925b-dbac853df58c",
           "text": "Parking Information",
           "link": "/parking"
+        },
+        {
+          "id": "1be419b7-d2b1-457a-a407-3f88c37b0bbd",
+          "text": "Staff",
+          "link": "/staff"
         },
         {
           "id": "c317c21f-5872-4952-aac9-c520f3cecc93",
