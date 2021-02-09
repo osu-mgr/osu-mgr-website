@@ -13,6 +13,8 @@ import Head from '../components/head';
 import Layout from '../components/layout';
 import Link from '../components/link';
 
+const shouldRedirect = (path) => path.match(/^\/(OSU-|noaa-ex).+$/i);
+
 const MarkdownBlock: FunctionComponent<{ data: any; index: number }> = ({
 	data,
 	index,
@@ -154,6 +156,34 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 		? pagesPath
 		: [pagesPath];
 	const path = `/${pagesPaths.join('/')}`;
+
+	const [siteData, siteForm] = useGitHubSiteForm(site);
+	useFormScreenPlugin(siteForm);
+
+	if (typeof window !== 'undefined' && shouldRedirect(path)) {
+		window.location.replace(
+			'http://core-repository.ceoas.oregonstate.edu' + path
+		);
+		return (
+			<Layout navigation={siteData.navigation}>
+				<Container style={{ display: 'flex', height: '50vh' }}>
+					<Message
+						icon
+						warning
+						size='large'
+						style={{ margin: 'auto', width: 'auto' }}
+					>
+						<Icon name='circle notched' loading />
+						<Message.Content>
+							<Message.Header>Loading</Message.Header>
+							Please stand by...
+						</Message.Content>
+					</Message>
+				</Container>
+			</Layout>
+		);
+	}
+
 	const [pagesData, pagesForm] = useGithubJsonForm(pagesContent, {
 		label: 'Page',
 		fields: [
@@ -166,8 +196,6 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 		],
 	});
 	usePlugin(pagesForm);
-	const [siteData, siteForm] = useGitHubSiteForm(site);
-	useFormScreenPlugin(siteForm);
 
 	let navSiblings;
 	siteData &&
@@ -181,19 +209,6 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 					}
 				});
 		});
-
-	const igsnPath = path.match(/^\/OSU-.+$/i);
-	if (typeof window !== 'undefined' && igsnPath) {
-		window.location.replace(
-			'http://core-repository.ceoas.oregonstate.edu' + path
-		);
-	}
-	const noaaPath = path.match(/^\/noaa-ex.+$/i);
-	if (typeof window !== 'undefined' && noaaPath) {
-		window.location.replace(
-			'http://core-repository.ceoas.oregonstate.edu' + path
-		);
-	}
 
 	return (
 		<Layout navigation={siteData.navigation}>
@@ -223,30 +238,14 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 			)}
 			{!pagesData.blocks && (
 				<Container style={{ display: 'flex', height: '50vh' }}>
-					{(igsnPath || noaaPath) && (
-						<Message
-							icon
-							warning
-							size='large'
-							style={{ margin: 'auto', width: 'auto' }}
-						>
-							<Icon name='circle notched' loading />
-							<Message.Content>
-								<Message.Header>Loading</Message.Header>
-								Please stand by...
-							</Message.Content>
-						</Message>
-					)}
-					{!igsnPath && !noaaPath && (
-						<Message
-							error
-							size='large'
-							icon='warning'
-							header='Error 404'
-							content='This page is not found.'
-							style={{ margin: 'auto', width: 'auto' }}
-						/>
-					)}
+					<Message
+						error
+						size='large'
+						icon='warning'
+						header='Error 404'
+						content='This page is not found.'
+						style={{ margin: 'auto', width: 'auto' }}
+					/>
 				</Container>
 			)}
 		</Layout>
@@ -279,7 +278,9 @@ export const getStaticProps: GetStaticProps = async function ({
 	const pagesPaths: string[] = Array.isArray(pagesPath)
 		? pagesPath
 		: [pagesPath];
-	const fileRelativePath = `content/pages/${pagesPaths.join('/')}.json`;
+	const path = pagesPaths.join('/');
+	const redirecting = shouldRedirect(path);
+	const fileRelativePath = redirecting ? 'content/redirect.json' : `content/pages/${path}.json`;
 
 	if (preview) {
 		const pagesContent = await getGithubPreviewProps({
@@ -310,7 +311,7 @@ export const getStaticProps: GetStaticProps = async function ({
 			preview: false,
 			pagesContent: {
 				fileRelativePath,
-				data: (await import(`../content/pages/${pagesPaths.join('/')}.json`)).default
+				data: (redirecting ? await import('../content/redirect.json') : await import(`../content/pages/${path}.json`)).default
 			},
 			site: {
 				fileRelativePath: 'content/site.json',
