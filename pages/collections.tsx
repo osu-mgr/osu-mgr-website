@@ -22,9 +22,8 @@ const Map: FunctionComponent = () => {
 			<style jsx>{`
 				.map {
 					border: none;
-					position: absolute;
-					width: 100%;
-					height: 100%;
+					width: 100vw;
+					height: 80vh;
 				}
 			`}</style>
 		</>

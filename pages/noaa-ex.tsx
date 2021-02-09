@@ -22,9 +22,8 @@ const Map: FunctionComponent = () => {
 			<style jsx>{`
 				.map {
 					border: none;
-					position: absolute;
-					width: 100%;
-					height: 100%;
+					width: 100vw;
+					height: 80vh;
 				}
 			`}</style>
 		</>
@@ -87,21 +86,21 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 						background: 'rgba(1,1,1,0.75)',
 					}}
 				>
-					<InlineForm form={pageForm}>
-						<Segment
-							style={{
-								maxWidth: '75vw',
-								margin: 'auto',
-								marginTop: '20vh',
-							}}
-						>
-							<Button
-								circular
-								size='mini'
-								icon='close'
-								floated='right'
-								onClick={() => setOpen(false)}
-							/>
+					<Segment
+						style={{
+							maxWidth: '75vw',
+							margin: 'auto',
+							marginTop: '20vh',
+						}}
+					>
+						<Button
+							circular
+							size='mini'
+							icon='close'
+							floated='right'
+							onClick={() => setOpen(false)}
+						/>
+							<InlineForm form={pageForm}>
 							<Tab
 								onTabChange={(e) => {
 									e.stopPropagation();
@@ -132,8 +131,8 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 									},
 								]}
 							/>
-						</Segment>
-					</InlineForm>
+							</InlineForm>
+					</Segment>
 				</div>
 			</Portal>
 			<Map />
