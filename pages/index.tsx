@@ -92,6 +92,7 @@ const ColumnsBlocks = {
 		template: columnBlockTemplate,
 	},
 };
+
 const RowBlock: FunctionComponent<{ data: any; index: number }> = ({
 	data,
 	index,

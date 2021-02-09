@@ -1,0 +1,12 @@
+{
+  "htmlTitle": "Parking",
+  "blocks": [{
+    "_template": "image",
+    "image": "parking.png",
+    "size": "Large",
+    "floated": "Right"
+  }, {
+    "_template": "markdown",
+    "body": "# Parking\n\nThere is ample parking on the west side of the building. \nThe first parking lot is reserved for Printing and Mailing Services. \nFeel free to park anywhere else in the second parking lot. \nParking is free and does not require a campus parking permit."
+  }]
+}

@@ -1,0 +1,37 @@
+{
+  "htmlTitle": "About Us",
+  "blocks": [{
+    "_template": "image",
+    "image": "about-us.jpg",
+    "size": "Medium",
+    "floated": "Left"
+  }, {
+    "_template": "image",
+    "image": "drill-cores.jpg",
+    "size": "Medium",
+    "floated": "Right"
+  }, {
+    "_template": "image",
+    "image": "rocksplit-EX1504L2.png",
+    "size": "Medium",
+    "floated": "Left"
+  }, {
+    "_template": "image",
+    "image": "half-cores.jpg",
+    "size": "Medium",
+    "floated": "Right"
+  }, {
+    "_template": "image",
+    "image": "collections.jpg",
+    "size": "Medium",
+    "floated": "Right"
+  }, {
+    "_template": "image",
+    "image": "racks.jpg",
+    "size": "Medium",
+    "floated": "Left"
+  }, {
+    "_template": "markdown",
+    "body": "The Oregon State University Marine and Geology Repository (OSU-MGR) is an NSF funded repository that hosts the OSU Marine Geology and Geophysics collection and the Antarctic Core Collection. The facility is 33,000 ft2 and includes 10,900 ft2 of refrigerated core storage, 11,600 ft2 of dry rock storage and a 550 ft2 walk-in freezer. The facility is well equipped to run major sampling parties, research programs, and educational endeavors.  Laboratory space is available for analytical activities including scanning tracks for physical properties and elemental analyses."
+  }]
+}
