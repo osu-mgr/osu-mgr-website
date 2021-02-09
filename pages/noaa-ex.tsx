@@ -1,7 +1,9 @@
 import { FunctionComponent, useState } from 'react';
 import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
-import { usePlugin, useFormScreenPlugin } from 'tinacms';
+import { useCMS, usePlugin, useFormScreenPlugin } from 'tinacms';
+import { InlineForm } from 'react-tinacms-inline';
+import { InlineWysiwyg } from 'react-tinacms-editor';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import { Portal, Segment, Button, Tab } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
@@ -33,6 +35,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 	page,
 	site,
 }) => {
+	const cms = useCMS();
 	const [open, setOpen] = useState(true);
 	const [pageData, pageForm] = useGithubJsonForm(page, {
 		label: 'Page',
@@ -64,7 +67,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 						position: 'fixed',
 						zIndex: 2400,
 						right: 10,
-						top: 10,
+						top: cms.enabled ? 'calc(10px + var(--tina-toolbar-height))' : 10,
 					}}
 				/>
 			)}
@@ -84,52 +87,53 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 						background: 'rgba(1,1,1,0.75)',
 					}}
 				>
-					<Segment
-						style={{
-							maxWidth: '75vw',
-							margin: 'auto',
-							marginTop: '20vh',
-						}}
-					>
-						<Button
-							circular
-							size='mini'
-							icon='close'
-							floated='right'
-							onClick={() => setOpen(false)}
-						/>
-						<Tab
-							onTabChange={(e) => {
-								e.stopPropagation();
+					<InlineForm form={pageForm}>
+						<Segment
+							style={{
+								maxWidth: '75vw',
+								margin: 'auto',
+								marginTop: '20vh',
 							}}
-							defaultActiveIndex={0}
-							menu={{ secondary: true, pointing: true, stackable: true }}
-							panes={[
-								{
-									menuItem: 'Instructions',
-									render: () => (
-										<Tab.Pane
-											attached={false}
-											basic
-											style={{
-												maxHeight: '60vh',
-												maxWidth: '50vw',
-												overflowY: 'auto',
-											}}
-										>
-											<SemanticMDX>{`
-Welcome to the NOAA Collection. Here you will find a sample location map of all the cruises hosted by the OSU-MGR.
-
-For a digital map of cruise locations and goals see the map below or the [NOAA Digital Atlas](https://www.ncei.noaa.gov/maps/oer-digital-atlas/mapsOE.htm). Dive location dots below may represent multiple collected samples. Please zoom in to see different samples from the same dive.
-
-Sample images and descriptions can be found on the individual expedition sites.
-											`}</SemanticMDX>
-										</Tab.Pane>
-									),
-								},
-							]}
-						/>
-					</Segment>
+						>
+							<Button
+								circular
+								size='mini'
+								icon='close'
+								floated='right'
+								onClick={() => setOpen(false)}
+							/>
+							<Tab
+								onTabChange={(e) => {
+									e.stopPropagation();
+								}}
+								defaultActiveIndex={0}
+								menu={{ secondary: true, pointing: true, stackable: true }}
+								panes={[
+									{
+										menuItem: 'Instructions',
+										render: () => (
+											<Tab.Pane
+												attached={false}
+												basic
+												style={{
+													maxHeight: '60vh',
+													maxWidth: '50vw',
+													overflowY: 'auto',
+												}}
+											>
+												<InlineWysiwyg
+													name='info.instructions'
+													format='markdown'
+												>
+													<SemanticMDX>{pageData.info.instructions}</SemanticMDX>
+												</InlineWysiwyg>
+											</Tab.Pane>
+										),
+									},
+								]}
+							/>
+						</Segment>
+					</InlineForm>
 				</div>
 			</Portal>
 			<Map />

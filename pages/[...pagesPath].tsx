@@ -18,17 +18,14 @@ const MarkdownBlock: FunctionComponent<{ data: any; index: number }> = ({
 	index,
 }) => {
 	return (
-		<div key={`content block ${index}`}>
+		<BlocksControls index={index}>
 			<InlineWysiwyg
 				name='body'
 				format='markdown'
-				focusRing={{
-					offset: 1,
-				}}
 			>
 				<SemanticMDX>{data.body}</SemanticMDX>
 			</InlineWysiwyg>
-		</div>
+		</BlocksControls>
 	);
 };
 
@@ -168,7 +165,6 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 			},
 		],
 	});
-	// console.log(pagesData);
 	usePlugin(pagesForm);
 	const [siteData, siteForm] = useGitHubSiteForm(site);
 	useFormScreenPlugin(siteForm);

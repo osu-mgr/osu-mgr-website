@@ -1,3 +1,6 @@
 {
-  "htmlTitle": "NOAA Hosted Collection"
+  "htmlTitle": "NOAA Hosted Collection",
+  "info": {
+    "instructions": "Welcome to the NOAA Collection. Here you will find a sample location map of all the cruises hosted by the OSU-MGR.\n\nFor a digital map of cruise locations and goals see the map below or the [NOAA Digital Atlas](https://www.ncei.noaa.gov/maps/oer-digital-atlas/mapsOE.htm). Dive location dots below may represent multiple collected samples. Please zoom in to see different samples from the same dive.\n\nSample images and descriptions can be found on the individual expedition sites."
+  }
 }
