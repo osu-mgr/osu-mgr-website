@@ -279,7 +279,7 @@ export const getStaticProps: GetStaticProps = async function ({
 		? pagesPath
 		: [pagesPath];
 	const path = pagesPaths.join('/');
-	const redirecting = shouldRedirect(path);
+	const redirecting = shouldRedirect(`/${path}`);
 	const fileRelativePath = redirecting ? 'content/redirect.json' : `content/pages/${path}.json`;
 
 	if (preview) {
