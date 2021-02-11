@@ -42,10 +42,11 @@ export const useGitHubSiteForm = (file: GithubFile<any>): any => {
 			key: item.id,
 			label: item.text,
 		}),
-		defaultItem: () => ({
-			name: 'New Navigation Menu Item',
+		defaultItem: {
+			text: 'New Navigation Menu Item',
 			id: uuidv4(),
-		}),
+			link: ''
+		},
 		fields: [
 			{
 				label: 'Navigation Menu Item Text',
@@ -67,10 +68,10 @@ export const useGitHubSiteForm = (file: GithubFile<any>): any => {
 			key: item.id,
 			label: item.text,
 		}),
-		defaultItem: () => ({
-			name: 'New Navigation Bar Item',
+		defaultItem: {
+			text: 'New Navigation Bar Item',
 			id: uuidv4(),
-		}),
+		},
 		fields: [
 			{
 				label: 'Navigation Bar Text',
