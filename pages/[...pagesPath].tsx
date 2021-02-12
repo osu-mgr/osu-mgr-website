@@ -60,20 +60,20 @@ const ImageBlock: FunctionComponent<{ data: any; index: number }> = ({
 				size={
 					data.size !== 'Default' &&
 					data.size !== 'Full Width' &&
-					data.size.toLowerCase()
+					data.size.toLowerCase() || undefined
 				}
 				src={data.image}
 				centered={data.floated === 'Center'}
 				floated={
 					data.floated !== 'None' &&
 					data.floated !== 'Center' &&
-					data.floated.toLowerCase()
+					data.floated.toLowerCase() || undefined
 				}
 				style={{
 					clear:
 						data.floated !== 'None' &&
 						data.floated !== 'Center' &&
-						data.floated.toLowerCase(),
+						data.floated.toLowerCase() || undefined,
 				}}
 			/>
 		</>
