@@ -1,7 +1,9 @@
 {
   "htmlTitle": "Oversight Committee",
-  "blocks": [{
-    "_template": "markdown",
-    "body": "**Antarctic Core Collection Advisory Committee (ACCAC):**\n\nDr. Carlota Escutia, University of Granada, Spain  \nDr. David Harwood, University of Nebraska  \nDr. Alan Mix, Oregon State University (liaison: Marine Geology and Geophysics Advisory Committee)  \nDr. Amelia Shevenell, University of South Florida  \nDr. Reed Scherer, Northern Illinois University  \n\n**Marine Geology and Geophysics Advisory Committee (MGGAC):**\n\nDr. Alan Mix, Oregon State University  \nDr. Elisabeth Sikes, Rutgers University  \nDr. Marta Torres, Oregon State University  \nDr. Frank Tepley, Oregon State University  \nDr. Mitch Lyle, Oregon State University  \nDr. Maureen Walczak, Oregon State University"
-  }]
+  "blocks": [
+    {
+      "_template": "markdown",
+      "body": "Members of the advisory board provide input and oversight on policy development and implementation, direction of the repository, as well as general operational feedback. Specifically, the board may also provide guidance in the event of conflicting sample and/or data-related requests, archive half requests, moratorium inquiries, or deaccession efforts.\n\n**Antarctic Core Collection Advisory Committee (ACCAC):**\n\nDr. Carlota Escutia, University of Granada, Spain  \nDr. David Harwood, University of Nebraska  \nDr. Alan Mix, Oregon State University (liaison: Marine Geology and Geophysics Advisory Committee)  \nDr. Amelia Shevenell, University of South Florida  \nDr. Reed Scherer, Northern Illinois University\n\n**Marine Geology and Geophysics Advisory Committee (MGGAC):**\n\nDr. Alan Mix, Oregon State University  \nDr. Elisabeth Sikes, Rutgers University  \nDr. Marta Torres, Oregon State University  \nDr. Frank Tepley, Oregon State University  \nDr. Mitch Lyle, Oregon State University  \nDr. Maureen Walczak, Oregon State University"
+    }
+  ]
 }
