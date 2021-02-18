@@ -3,6 +3,7 @@
         { "source": "/monitor", "destination": "http://128.193.70.68:3601/d/1veObBoGz/nypro?orgId=1&refresh=10s&from=now-2d&to=now&kiosk" }
     ],
     "rewrites": [
+        { "source": "/core-activity", "destination": "http://core-repository.coas.oregonstate.edu/core-activity" },
         { "source": "/collection/holdings/:match*", "destination": "http://core-repository.coas.oregonstate.edu/collection/holdings/:match*" }
     ]
 }
