@@ -34,6 +34,11 @@
           "id": "d4a13f84-58d5-41e4-925b-dbac853df58c",
           "text": "Parking Information",
           "link": "/parking"
+        },
+        {
+          "id": "8087f5ed-de66-4e53-a159-c0586623bf51",
+          "text": "2017 Curators Meeting",
+          "link": "/2017-meeting-of-the-curators-of-marine-lacustrine-and-geological-samples"
         }
       ]
     },
@@ -61,18 +66,7 @@
     {
       "id": "65971037-08ac-4a71-90dc-71b2a9d92808",
       "text": "Facilities, Services",
-      "menu": [
-        {
-          "id": "df029d4a-3712-4113-978b-f408df17722c",
-          "text": "Facilities, Services",
-          "link": "/services"
-        },
-        {
-          "id": "71d771fb-c107-4d6d-8e52-6fb65cb0645f",
-          "text": "Virtual Tour",
-          "link": "/virtual-repository-tour"
-        }
-      ]
+      "link": "/services"
     },
     {
       "id": "2191c7a8-e03e-4a95-827f-60c31abd079f",
@@ -117,13 +111,28 @@
       "menu": [
         {
           "id": "b4871553-961b-4c7d-abc7-567e099fae44",
-          "text": "Education & Outreach",
-          "link": "/education-outreach"
+          "text": "In Person Tours",
+          "link": "/in-person-tours"
         },
         {
-          "id": "8087f5ed-de66-4e53-a159-c0586623bf51",
-          "text": "2017 Curators Meeting",
-          "link": "/2017-meeting-of-the-curators-of-marine-lacustrine-and-geological-samples"
+          "id": "71d771fb-c107-4d6d-8e52-6fb65cb0645f",
+          "text": "Virtual Tour",
+          "link": "/virtual-tour"
+        },
+        {
+          "id": "df029d4a-3712-4113-978b-f408df17722c",
+          "text": "Learn About Cores",
+          "link": "/learn-about-cores"
+        },
+        {
+          "id": "5011d7b8-85c3-4cea-8c25-6ca79d8a12d4",
+          "text": "Learn About Coring",
+          "link": "/learn-about-coring"
+        },
+        {
+          "id": "607bac29-d8b0-4dce-a55b-c40630def015",
+          "text": "Activities",
+          "link": "/activities"
         }
       ]
     },
