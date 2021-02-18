@@ -6,6 +6,7 @@ import { InlineForm, InlineBlocks, BlocksControls } from 'react-tinacms-inline';
 import { InlineWysiwyg } from 'react-tinacms-editor';
 import { useGithubJsonForm } from 'react-tinacms-github';
 import { useRouter } from 'next/router';
+import fg from 'fast-glob';
 import { Menu, Container, Message, Icon, Image } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
 import SemanticMDX from '../components/semantic-mdx';
@@ -14,6 +15,12 @@ import Layout from '../components/layout';
 import Link from '../components/link';
 
 const shouldRedirect = (path) => path.match(/^\/(OSU-|noaa-ex).+$/i);
+
+const pagesContentPaths = async () => {
+	const contentDir = "content/pages";
+  const files = await fg(`${contentDir}**/*.json`);
+  return files.map((file) => file.substring(contentDir.length + 1, file.length - 5));
+};
 
 const MarkdownBlock: FunctionComponent<{ data: any; index: number }> = ({
 	data,
@@ -255,17 +262,10 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 export default Page;
 
 export const getStaticPaths: GetStaticPaths = async function () {
-  const fg = require("fast-glob");
-  const contentDir = "content/pages";
-  const files = await fg(`${contentDir}**/*.json`);
-  const paths = files
-    .map((file) => {
-      const path = file.substring(contentDir.length + 1, file.length - 5);
-      return { params: { pagesPath: [path] } };
-    });
+  const contentPaths = await pagesContentPaths()
   return {
     fallback: true,
-    paths,
+    paths: contentPaths.map(x => { return { params: { pagesPath: [x] }}}),
   };
 }
 
@@ -280,14 +280,16 @@ export const getStaticProps: GetStaticProps = async function ({
 		: [pagesPath];
 	const path = pagesPaths.join('/');
 	const redirecting = shouldRedirect(`/${path}`);
-	const fileRelativePath = redirecting ? 'content/redirect.json' : `content/pages/${path}.json`;
+  const contentPaths = await pagesContentPaths();
+	const notFound = !contentPaths.some(x => path === x);
+	const fileRelativePath = notFound ? '404.json' : redirecting ? 'content/redirect.json' : `content/pages/${path}.json`;
 
 	if (preview) {
 		const pagesContent = await getGithubPreviewProps({
-			...previewData,
-			fileRelativePath,
-			parse: parseJson,
-		});
+				...previewData,
+				fileRelativePath,
+				parse: parseJson,
+			});
 		const site = await getGithubPreviewProps({
 			...previewData,
 			fileRelativePath: 'content/site.json',
@@ -311,7 +313,7 @@ export const getStaticProps: GetStaticProps = async function ({
 			preview: false,
 			pagesContent: {
 				fileRelativePath,
-				data: (redirecting ? await import('../content/redirect.json') : await import(`../content/pages/${path}.json`)).default
+				data: (notFound ? await import('../content/404.json') : redirecting ? await import('../content/redirect.json') : await import(`../content/pages/${path}.json`)).default
 			},
 			site: {
 				fileRelativePath: 'content/site.json',
