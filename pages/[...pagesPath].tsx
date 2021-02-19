@@ -280,16 +280,26 @@ export const getStaticProps: GetStaticProps = async function ({
 		: [pagesPath];
 	const path = pagesPaths.join('/');
 	const redirecting = shouldRedirect(`/${path}`);
-  const contentPaths = await pagesContentPaths();
-	const notFound = !contentPaths.some(x => path === x);
-	const fileRelativePath = notFound ? '404.json' : redirecting ? 'content/redirect.json' : `content/pages/${path}.json`;
+	let fileRelativePath;
 
 	if (preview) {
-		const pagesContent = await getGithubPreviewProps({
+		let pagesContent;
+		try {
+			fileRelativePath = redirecting ? 'content/redirect.json' : `content/pages/${path}.json`;
+			pagesContent = await getGithubPreviewProps({
 				...previewData,
 				fileRelativePath,
 				parse: parseJson,
 			});
+		} catch {
+			fileRelativePath = 'content/404.json';
+			pagesContent = await getGithubPreviewProps({
+				...previewData,
+				fileRelativePath,
+				parse: parseJson,
+			});
+		}
+
 		const site = await getGithubPreviewProps({
 			...previewData,
 			fileRelativePath: 'content/site.json',
@@ -306,6 +316,15 @@ export const getStaticProps: GetStaticProps = async function ({
 		};
 	}
 	
+	let data;
+	try {
+		fileRelativePath = redirecting ? 'content/redirect.json' : `content/pages/${path}.json`;
+		data = (redirecting ? await import('../content/redirect.json') : await import(`../content/pages/${path}.json`)).default;
+	} catch {
+		fileRelativePath = 'content/404.json';
+		data = (await import('../content/404.json')).default;
+	}
+
 	return {
 		props: {
 			sourceProvider: null,
@@ -313,7 +332,7 @@ export const getStaticProps: GetStaticProps = async function ({
 			preview: false,
 			pagesContent: {
 				fileRelativePath,
-				data: (notFound ? await import('../content/404.json') : redirecting ? await import('../content/redirect.json') : await import(`../content/pages/${path}.json`)).default
+				data
 			},
 			site: {
 				fileRelativePath: 'content/site.json',

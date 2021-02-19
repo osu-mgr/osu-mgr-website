@@ -1,7 +1,3 @@
 {
-  "paths": {
-    "about-us": {
-      "htmlTitle": "Redirecting"
-    }
-  }
+  "htmlTitle": "Redirecting"
 }
