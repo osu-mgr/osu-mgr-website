@@ -3,10 +3,6 @@
   "blocks": [
     {
       "_template": "markdown",
-      "body": "<Message warning size='large' icon>\n  <Icon name='warning' />\n  <MessageContent>\n    <MessageHeader>\n      We are currently not accepting visitors or providing tours of our facility.\n    </MessageHeader>\n    You can however find new virtual interactive tours of the repository here. Feel free to email staff with any questions (osu-mgr@oregonstate.edu).*\n  </MessageContent>\n</Message>\n<br/>"
-    },
-    {
-      "_template": "markdown",
       "body": "# **How to Collect a Core**\n\nBox cores, multi cores, piston cores, vibracores, kasten cores, push cores- these are all methods scientists use to collect samples of the seafloor. Which method to use? It depends- where is the coring taking place? what is the scientific goal? what are the capabilities of the ship? Below you can learn more about two of these methods, piston cores and push cores."
     },
     {
@@ -16,7 +12,7 @@
     {
       "_template": "image",
       "size": "Medium",
-      "floated": "Right",
+      "floated": "Center",
       "image": "piston-core.jpg"
     },
     {
@@ -25,9 +21,10 @@
     },
     {
       "_template": "image",
-      "size": "Medium",
+      "size": "Large",
       "floated": "Center",
-      "image": "piston-core.jpg"
+      "link": "https://www.youtube.com/embed/mXHhzlfCKEQ",
+      "image": "PushCoreyoutube.JPG"
     }
   ]
 }
