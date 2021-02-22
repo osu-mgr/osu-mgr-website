@@ -6,12 +6,6 @@
       "body": "<Message warning size='large' icon>\n  <Icon name='warning' />\n  <MessageContent>\n    <MessageHeader>\n      We are currently not accepting visitors or providing tours of our facility.\n    </MessageHeader>\n    You can however find new virtual interactive tours of the repository here. Feel free to email staff with any questions (osu-mgr@oregonstate.edu).*\n  </MessageContent>\n</Message>\n<br/>"
     },
     {
-      "_template": "image",
-      "image": "cara-demo.jpg",
-      "size": "Medium",
-      "floated": "Right"
-    },
-    {
       "_template": "markdown",
       "body": "# **How to Collect a Core**\n\nBox cores, multi cores, piston cores, vibracores, kasten cores, push cores- these are all methods scientists use to collect samples of the seafloor. Which method to use? It depends- where is the coring taking place? what is the scientific goal? what are the capabilities of the ship? Below you can learn more about two of these methods, piston cores and push cores."
     },
@@ -21,19 +15,19 @@
     },
     {
       "_template": "image",
-      "image": "core-lab-tour.jpg",
       "size": "Medium",
-      "floated": "Right"
-    },
-    {
-      "_template": "image",
-      "image": "core-lab-tour-students.jpg",
-      "size": "Medium",
-      "floated": "Right"
+      "floated": "Right",
+      "image": "piston-core.jpg"
     },
     {
       "_template": "markdown",
-      "body": "Our collections cover time periods ranging from sediment deposited on the ocean floor in the last few years to sediments that are millions of years old giving students the opportunity to learn about ocean processes occurring in different places and over multiple time scales.\n\n# Testimonials\n\n“Dear Core Lab. Thank you again for presenting at the Midsummer Conference. The students found your workshop informative and really interesting. They liked the chance to do hands-on activities, your workshop in particular got great reviews and one student called it one of the best highlights of his whole summer! Way to go!”  \n–Apprenticeships in Science and Engineering Coordinator\n\n“Dear Core Lab. On behalf of the SED 513/514 class I would like to thank you for your discussion, tour, and hands on activity for the class. This opportunity allowed the class to grasp the enormity of data collection and analysis when conducting scientific research.”  \n–SED 513/514 Instructor"
+      "body": "## **Push Cores**\n\nIt is not always possible to take a piston core. The sediment type, the ocean conditions, the water depth- all present challenges to collecting cores. But determined scientists find other ways to get their samples. The video below shows OSU graduate students collecting a core in an Oregon salt marsh."
+    },
+    {
+      "_template": "image",
+      "size": "Medium",
+      "floated": "Center",
+      "image": "piston-core.jpg"
     }
   ]
 }
