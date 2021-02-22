@@ -2,18 +2,10 @@
   "htmlTitle": "Activities",
   "blocks": [
     {
-      "_template": "markdown",
-      "body": "<Message warning size='large' icon>\n  <Icon name='warning' />\n  <MessageContent>\n    <MessageHeader>\n      We are currently not accepting visitors or providing tours of our facility.\n    </MessageHeader>\n    You can however find new virtual interactive tours of the repository here. Feel free to email staff with any questions (osu-mgr@oregonstate.edu).*\n  </MessageContent>\n</Message>\n<br/>"
-    },
-    {
       "_template": "image",
       "image": "cara-demo.jpg",
       "size": "Medium",
       "floated": "Right"
-    },
-    {
-      "_template": "markdown",
-      "body": "# Education and Outreach\nOutreach is an important part of what we do at the OSU-MGR. Housing 22 miles of cores and 10,000 rocks from around the world’s oceans allows us to use this unique resource to ignite the imagination of the next generation of earth and ocean scientists."
     },
     {
       "_template": "image",
@@ -23,17 +15,13 @@
     },
     {
       "_template": "markdown",
-      "body": "Please email the OSU-MGR staff (osu-mgr@oregonstate.edu) if you are interested in a tour of the repository.\n\nTours and outreach activities cover a wide variety of topics and can be tailored to the group. Recent activities have hosted both K-12 and undergraduate and postgraduate groups.\n\nA typical educational visit lasts approximately 1 hour, and begins with a presentation of how we collect the cores in our collection, followed by a tour of the facilities so students can see where we house our collection, including our 10,900 sq-ft refrigerator. Following the facility tour, there are opportunities to view cores from all over the world. Hands-on activities include using microscopes to view microfossils, simulating coring with mini-cores and mud cakes, and mapping exercises."
+      "body": "# Activities\n\nBelow are several activities that have been used for classes and events at OSU-MGR.\n\n* Partnering with the Girl Scouts of Oregon and Southwest Washington (GSOSW) OSU-MGR participated in the “STEMapalooza” event in November 2020. [This activity]() is aimed at K-8th graders, using supplies from home or available at craft stores.\n* In April 2019, OSU’s [SMILE ](https://smile.oregonstate.edu/)program participants (middle and high school students from around Oregon) toured the OSU-MGR and participated in hands-on experiments looking at records of tsunamis in marine sediments. This activity was developed by CEOAS grad student Erin Peck and is aimed at middle and high school and early college students.\n* Designed for undergrad students, this core lab activity is a virtual lesson that uses cores from the OSU-MGR to explore sediments of the world’s oceans.\n\n### Additional Activities\n\nCEOAS has numerous activities for students to explore earth sciences. View the list [here](https://ceoas.oregonstate.edu/virtual-learning-resources)."
     },
     {
       "_template": "image",
       "image": "core-lab-tour-students.jpg",
       "size": "Medium",
       "floated": "Right"
-    },
-    {
-      "_template": "markdown",
-      "body": "Our collections cover time periods ranging from sediment deposited on the ocean floor in the last few years to sediments that are millions of years old giving students the opportunity to learn about ocean processes occurring in different places and over multiple time scales.\n\n# Testimonials\n\n“Dear Core Lab. Thank you again for presenting at the Midsummer Conference. The students found your workshop informative and really interesting. They liked the chance to do hands-on activities, your workshop in particular got great reviews and one student called it one of the best highlights of his whole summer! Way to go!”  \n–Apprenticeships in Science and Engineering Coordinator\n\n“Dear Core Lab. On behalf of the SED 513/514 class I would like to thank you for your discussion, tour, and hands on activity for the class. This opportunity allowed the class to grasp the enormity of data collection and analysis when conducting scientific research.”  \n–SED 513/514 Instructor"
     }
   ]
 }
