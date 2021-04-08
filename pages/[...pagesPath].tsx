@@ -1,13 +1,15 @@
-import { FunctionComponent } from 'react';
+import { FunctionComponent, useState } from 'react';
 import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
 import { GetStaticPaths, GetStaticProps } from 'next';
 import { useCMS, usePlugin, useFormScreenPlugin } from 'tinacms';
-import { InlineForm, InlineBlocks, BlocksControls } from 'react-tinacms-inline';
+import { InlineForm, InlineBlocks, BlocksControls, InlineText } from 'react-tinacms-inline';
 import { InlineWysiwyg } from 'react-tinacms-editor';
 import { useGithubJsonForm } from 'react-tinacms-github';
+import ReactMarkdown from 'react-markdown';
+import gfm from 'remark-gfm';
 import { useRouter } from 'next/router';
 import fg from 'fast-glob';
-import { Menu, Container, Message, Icon, Image } from 'semantic-ui-react';
+import { Menu, Container, Message, Icon, Image, Accordion } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
 import SemanticMDX from '../components/semantic-mdx';
 import Head from '../components/head';
@@ -20,6 +22,58 @@ const pagesContentPaths = async () => {
 	const contentDir = "content/pages";
   const files = await fg(`${contentDir}**/*.json`);
   return files.map((file) => file.substring(contentDir.length + 1, file.length - 5));
+};
+
+const AccordionBlock: FunctionComponent<{ data: any; index: number }> = () => {
+	const [active, setActive] = useState(0);
+	return (
+		<InlineBlocks
+			className="accordion ui"
+			name='panels'
+			blocks={AccordionPanelBlocks}
+			direction='vertical'
+			itemProps={{active, setActive}}
+		/>
+	);
+};
+
+const accordionBlockTemplate = {
+	label: 'Accordion',
+	defaultItem: {
+		title: '',
+		body: '',
+	},
+};
+
+const AccordionPanelBlock = (props) => {
+	return <BlocksControls index={props.index}>
+		<Accordion.Title 
+			active={props.active === props.index}
+			index={props.index}
+			onClick={() => props.setActive(props.active === props.index ? -1 : props.index)}
+		>
+			<h3><table><tr><td><Icon name='dropdown' /></td><td style={{ width: '100%' }}><InlineText name='title'/></td></tr></table></h3>
+		</Accordion.Title>
+		<Accordion.Content
+			active={props.active === props.index}
+			style={{ marginLeft: '2em' }}
+		>
+			<InlineWysiwyg
+				name='body'
+				format='markdown'
+			>
+				<ReactMarkdown plugins={[gfm]} source={props.data.body} />
+			</InlineWysiwyg>
+		</Accordion.Content>
+	</BlocksControls>
+};
+
+const accordionPanelBlockTemplate = {
+	label: 'Accordion',
+	defaultItem: {
+		title: '',
+		body: '',
+	},
 };
 
 const MarkdownBlock: FunctionComponent<{ data: any; index: number }> = ({
@@ -141,10 +195,21 @@ const imageBlockTemplate = {
 	],
 };
 
+const AccordionPanelBlocks = {
+	accordionPanel: {
+		Component: AccordionPanelBlock,
+		template: accordionPanelBlockTemplate,
+	},
+};
+
 const ContentBlocks = {
 	markdown: {
 		Component: MarkdownBlock,
 		template: markdownBlockTemplate,
+	},
+	accordion: {
+		Component: AccordionBlock,
+		template: accordionBlockTemplate,
 	},
 	image: {
 		Component: ImageBlock,

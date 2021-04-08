@@ -11,7 +11,7 @@ const MenuItemLink: FunctionComponent<{
 }> = ({ link, text }) => {
 	const router = useRouter();
 	return (
-		<Link href={link}>
+		<Link href={link} as={link} passHref>
 			<Menu.Item
 				active={router.pathname === link}
 				as='a'
@@ -58,7 +58,7 @@ const MenuItemDropdown: FunctionComponent<{
 		>
 			<Dropdown.Menu>
 				{items.map((x) => (
-					<Link href={x.link} key={x.text}>
+					<Link href={x.link} key={x.text} as={x.link} passHref>
 						<Dropdown.Item text={x.text} active={x.link === router.pathname} />
 					</Link>
 				))}
