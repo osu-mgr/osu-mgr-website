@@ -66,7 +66,28 @@
     {
       "id": "65971037-08ac-4a71-90dc-71b2a9d92808",
       "text": "Facilities, Services",
-      "link": "/services"
+      "menu": [
+        {
+          "id": "f2622427-63ab-4082-bba1-3d5afdfbe871",
+          "text": "Facility Instrumentation",
+          "link": "/facility-instrumentation"
+        },
+        {
+          "id": "fd31f9c5-66f7-44e3-ab3d-99e5fc0de2eb",
+          "text": "Fees",
+          "link": "/fees"
+        },
+        {
+          "id": "b21a37bc-8827-404a-ad00-fd833a334d56",
+          "text": "Coring and Dredging Services",
+          "link": "/services"
+        },
+        {
+          "id": "10763235-8482-40eb-92b5-ff7b0e6ef29b",
+          "text": "Other OSU Laboratory Facilities",
+          "link": "/other-facilities"
+        }
+      ]
     },
     {
       "id": "2191c7a8-e03e-4a95-827f-60c31abd079f",
