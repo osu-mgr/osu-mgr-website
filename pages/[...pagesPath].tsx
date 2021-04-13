@@ -52,7 +52,10 @@ const AccordionPanelBlock = (props) => {
 			index={props.index}
 			onClick={() => props.setActive(props.active === props.index ? -1 : props.index)}
 		>
-			<h3><table><tr><td><Icon name='dropdown' /></td><td style={{ width: '100%' }}><InlineText name='title'/></td></tr></table></h3>
+			<h3><table><tr>
+				<td><Icon name='dropdown' /></td>
+				<td style={{ width: '100%' }}><InlineText name='title'/></td>
+			</tr></table></h3>
 		</Accordion.Title>
 		<Accordion.Content
 			active={props.active === props.index}
