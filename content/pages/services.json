@@ -3,7 +3,7 @@
   "blocks": [
     {
       "_template": "markdown",
-      "body": "The OSU MGR offers numerous services from curation, sample measurement, coring and complementary analyses.\n\nThe OSU MGR is bound by NSF OCE <a href=\"http://www.nsf.gov/pubs/2011/nsf11060/nsf11060.pdf\">data policy</a> for all NSF/OCE/MGG funded projects (please refer to parts III and VII).\n<hr/>"
+      "body": "The OSU MGR offers numerous services from curation, sample measurement, coring and complementary analyses.\n\nThe OSU MGR is bound by NSF OCE <a href=\"http://www.nsf.gov/pubs/2011/nsf11060/nsf11060.pdf\">data policy</a> for all NSF/OCE/MGG funded projects (please refer to parts III and VII).\n\n---"
     },
     {
       "_template": "markdown",
