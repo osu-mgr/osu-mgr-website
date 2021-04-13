@@ -16,7 +16,7 @@ const MenuItemLink: FunctionComponent<{
 			as='a'
 			name={text}
 			href={link}
-			style={{ textAlign: 'center', height: '100%', flexShrink: 1 }}
+			style={{ textAlign: 'center', height: '100%', flexShrink: 1, paddingTop: 0 }}
 		>
 			{text}
 		</Menu.Item>
@@ -81,6 +81,7 @@ const MenuItemDropdown: FunctionComponent<{
 						textAlign: 'center',
 						height: '100%',
 						flexShrink: 1,
+						paddingTop: 0
 					}}
 				>
 					{text}
