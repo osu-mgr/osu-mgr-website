@@ -94,6 +94,11 @@
       "text": "Request Samples",
       "menu": [
         {
+          "text": "Sample Types",
+          "id": "5ff58634-799e-4030-a34c-9dccc5bb7879",
+          "link": ""
+        },
+        {
           "id": "5ebd79f7-88e2-48b9-9555-3815c25d33bd",
           "text": "Request Samples",
           "link": "/request-samples"
