@@ -3,10 +3,6 @@
   "blocks": [
     {
       "_template": "markdown",
-      "body": "The OSU MGR offers numerous services from curation, sample measurement, coring and complementary analyses.\n\nThe OSU MGR is bound by NSF OCE <a href=\"http://www.nsf.gov/pubs/2011/nsf11060/nsf11060.pdf\">data policy</a> for all NSF/OCE/MGG funded projects (please refer to parts III and VII).\n\n---"
-    },
-    {
-      "_template": "markdown",
       "body": "The OSU Marine Sediment Sampling (MARSSAM) facility provides coring and dredging services for NSF groups and investigators using the UNOLS fleet as well as the USCG ice breaker R/V Healy. Funding for these services to United States NSF-funded investigators is provided by the Ship Facilities Program, and MARSSAM is also available on a contract basis to non-NSF investigators. The OSU coring gear is among the best available in the United States, including large-volume and small-volume piston corers, a variety of box and kasten corers, as well as multi- and slow corers for undisturbed recovery of the sediment-water interface. Seagoing technicians from the facility have operated coring and dredging gear on most UNOLS vessels.\n\nServices are customized to fit your needs, and can include use of hardware, personnel, deck handling gear, refrigerated shipping vans, sample describing materials, and permanent archival in the OSU Marine and Geology Repository.\n\nFor more information or to contract coring or dredging services, visit the dedicated [Marine Sediment Sampling (MARSSAM) group website](http://marssam.ceoas.oregonstate.edu).\n"
     }
   ]
