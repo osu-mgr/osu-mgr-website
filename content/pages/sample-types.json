@@ -3,7 +3,7 @@
   "blocks": [
     {
       "_template": "markdown",
-      "body": "Sample Types..."
+      "body": "| Name | Abbreviation |\n| --- | --- |\n| Piston Core | PC |\n"
     }
   ]
 }
