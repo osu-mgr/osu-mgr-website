@@ -136,6 +136,11 @@
       "text": "Education and Outreach",
       "menu": [
         {
+          "text": "In the News",
+          "id": "f29cd144-9901-4b65-a09f-55e217c51f13",
+          "link": "/in-the-news"
+        },
+        {
           "id": "b4871553-961b-4c7d-abc7-567e099fae44",
           "text": "In Person Tours",
           "link": "/in-person-tours"
@@ -144,11 +149,6 @@
           "id": "71d771fb-c107-4d6d-8e52-6fb65cb0645f",
           "text": "Virtual Tour",
           "link": "/virtual-tour"
-        },
-        {
-          "text": "In the Media",
-          "id": "f29cd144-9901-4b65-a09f-55e217c51f13",
-          "link": "/in-the-media"
         },
         {
           "id": "df029d4a-3712-4113-978b-f408df17722c",
