@@ -136,6 +136,11 @@
       "text": "Education and Outreach",
       "menu": [
         {
+          "text": "In the Media",
+          "id": "f29cd144-9901-4b65-a09f-55e217c51f13",
+          "link": "in-the-media"
+        },
+        {
           "id": "b4871553-961b-4c7d-abc7-567e099fae44",
           "text": "In Person Tours",
           "link": "/in-person-tours"
