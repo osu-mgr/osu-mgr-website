@@ -65,7 +65,14 @@
     },
     {
       "text": "Plan Your Visit",
-      "id": "2e9dd79c-cf15-4369-9405-8722eeb811ba"
+      "id": "2e9dd79c-cf15-4369-9405-8722eeb811ba",
+      "menu": [
+        {
+          "text": "Plan Your Visit",
+          "id": "e10af56e-0458-40ac-b302-803c37eb5416",
+          "link": "plan-your-visit"
+        }
+      ]
     },
     {
       "id": "65971037-08ac-4a71-90dc-71b2a9d92808",
