@@ -2,10 +2,6 @@
   "siteTitle": "OSU Marine and Geology Repository",
   "navigation": [
     {
-      "text": "Plan Your Visit",
-      "id": "2e9dd79c-cf15-4369-9405-8722eeb811ba"
-    },
-    {
       "id": "f5210168-b4ff-417a-a16b-94bc7f3536bb",
       "text": "About Us",
       "menu": [
@@ -66,6 +62,10 @@
           "link": "/repositories"
         }
       ]
+    },
+    {
+      "text": "Plan Your Visit",
+      "id": "2e9dd79c-cf15-4369-9405-8722eeb811ba"
     },
     {
       "id": "65971037-08ac-4a71-90dc-71b2a9d92808",
