@@ -71,6 +71,21 @@
           "text": "Plan Your Visit",
           "id": "e10af56e-0458-40ac-b302-803c37eb5416",
           "link": "plan-your-visit"
+        },
+        {
+          "text": "Calendar",
+          "id": "e3a28685-b7c7-40cc-97c6-6fd11b0b7f61",
+          "link": "calendar"
+        },
+        {
+          "text": "Visitor Request Form",
+          "id": "e3a28685-b7c7-40cc-97c6-6fd11b0b7f61",
+          "link": "visitor-request-form"
+        },
+        {
+          "text": "New Navigation Menu Item",
+          "id": "e3a28685-b7c7-40cc-97c6-6fd11b0b7f61",
+          "link": ""
         }
       ]
     },
