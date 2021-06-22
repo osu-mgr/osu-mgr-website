@@ -1,0 +1,9 @@
+{
+  "htmlTitle": "In the News",
+  "blocks": [
+    {
+      "_template": "markdown",
+      "body": "Coming Soon..."
+    }
+  ]
+}

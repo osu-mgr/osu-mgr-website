@@ -31,11 +31,6 @@
           "link": "/facility-history"
         },
         {
-          "id": "d4a13f84-58d5-41e4-925b-dbac853df58c",
-          "text": "Parking Information",
-          "link": "/parking"
-        },
-        {
           "id": "8087f5ed-de66-4e53-a159-c0586623bf51",
           "text": "2017 Curators Meeting",
           "link": "/2017-meeting-of-the-curators-of-marine-lacustrine-and-geological-samples"
@@ -70,22 +65,22 @@
         {
           "text": "Plan Your Visit",
           "id": "e10af56e-0458-40ac-b302-803c37eb5416",
-          "link": "plan-your-visit"
+          "link": "/plan-your-visit"
         },
         {
-          "text": "Calendar",
+          "text": "Repository Calendar",
           "id": "e3a28685-b7c7-40cc-97c6-6fd11b0b7f61",
-          "link": "calendar"
+          "link": "/repository-calendar"
         },
         {
           "text": "Visitor Request Form",
           "id": "e3a28685-b7c7-40cc-97c6-6fd11b0b7f61",
-          "link": "visitor-request-form"
+          "link": "/visitor-request-form"
         },
         {
-          "text": "New Navigation Menu Item",
-          "id": "e3a28685-b7c7-40cc-97c6-6fd11b0b7f61",
-          "link": ""
+          "id": "d4a13f84-58d5-41e4-925b-dbac853df58c",
+          "text": "Parking Information",
+          "link": "/parking"
         }
       ]
     },

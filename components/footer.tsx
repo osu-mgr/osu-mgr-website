@@ -96,14 +96,14 @@ const Footer: FunctionComponent = () => {
 												<List.Description>(+1) 541-737-8210</List.Description>
 											</List.Content>
 										</List.Item>
-										<List.Item as='a' href='/repository-calendar'>
+										<List.Item as='a' href='https://twitter.com/osumgr'>
 											<List.Icon
-												name='calendar'
+												name='twitter'
 												size='large'
 												verticalAlign='middle'
 											/>
 											<List.Content>
-												<List.Description>Repository Calendar</List.Description>
+												<List.Description>Twitter Feed</List.Description>
 											</List.Content>
 										</List.Item>
 									</List>
