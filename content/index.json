@@ -1,7 +1,7 @@
 {
   "htmlTitle": "Home",
   "video": "osu-mgr-loop.mp4",
-  "warningVisible": true,
+  "warningVisible": false,
   "warning": {
     "title": "Current changes due to COVID-19",
     "message": "The repository will remain open and partially operational during the current pandemic. We will still process sample requests and analyze cores as requested. We are currently not accepting visitors or providing tours of our facility. Thank you for your understanding."
