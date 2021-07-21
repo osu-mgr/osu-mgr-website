@@ -2,10 +2,6 @@
   "htmlTitle": "In Person Tours",
   "blocks": [
     {
-      "_template": "markdown",
-      "body": "<Message warning size='large' icon>\n  <Icon name='warning' />\n  <MessageContent>\n    <MessageHeader>\n      We are currently not accepting visitors or providing tours of our facility.\n    </MessageHeader>\n    You can however find new virtual interactive tours of the repository here. Feel free to email staff with any questions (osu-mgr@oregonstate.edu).*\n  </MessageContent>\n</Message>\n<br/>"
-    },
-    {
       "_template": "image",
       "image": "cara-demo.jpg",
       "size": "Medium",
