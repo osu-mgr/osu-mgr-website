@@ -54,8 +54,9 @@ const Layout: FunctionComponent<{
 
 				.content {
 					flex: 1;
+					display: flex;
 					position: relative;
-					min-height: 50vmax;
+					min-height: 25vmax;
 				}
 
 				footer {

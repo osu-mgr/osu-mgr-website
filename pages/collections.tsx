@@ -23,7 +23,7 @@ const Map: FunctionComponent = () => {
 				.map {
 					border: none;
 					width: 100vw;
-					height: 80vh;
+					flex-grow: 1;
 				}
 			`}</style>
 		</>
