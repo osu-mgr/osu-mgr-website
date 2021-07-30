@@ -43,18 +43,11 @@
     },
     {
       "_template": "markdown",
-      "body": "## Self-guided Tour\n\nReady to see the facility? Take a self-guided tour by clicking below. There are six scenes in this tour, with many points of interest that you can click on to learn more about the repository and see additional photos. We begin in the cooler, at a chilly 37°F…"
+      "body": "## Self-guided Tour\n\nUpdates coming soon..."
     },
     {
       "_template": "markdown",
       "body": "                                              "
-    },
-    {
-      "_template": "image",
-      "image": "poly-tour.jpg",
-      "size": "Large",
-      "floated": "Center",
-      "link": "https://poly.google.com/view/f0-8EZGW9xz"
     }
   ]
 }
