@@ -1,10 +1,10 @@
 {
   "htmlTitle": "Home",
   "video": "osu-mgr-loop.mp4",
-  "warningVisible": false,
+  "warningVisible": true,
   "warning": {
-    "title": "Current changes due to COVID-19",
-    "message": "The repository will remain open and partially operational during the current pandemic. We will still process sample requests and analyze cores as requested. We are currently not accepting visitors or providing tours of our facility. Thank you for your understanding."
+    "title": "GLAcial Sedimentation School (GLASS) 2022",
+    "message": "OSU-MGR will be hosting GLASS, 23-27 May 2022. Applications are now open! Deadline to apply is 7 January 2022.\nFor more information, visit the webpage: https://osu-mgr.org/glacial_sedimentation_school_2022"
   },
   "missionVisible": true,
   "mission": "Our mission is to facilitate research, education, and the advancement of scientific knowledge through access and preservation of our diverse collection of rock, lake, and marine sediment samples from around the world's oceans, including the Arctic and the Southern Oceans.",
