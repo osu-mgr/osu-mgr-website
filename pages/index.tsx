@@ -10,6 +10,8 @@ import {
 	BlocksControls,
 	InlineText,
 } from 'react-tinacms-inline';
+import { InlineWysiwyg } from 'react-tinacms-editor';
+import SemanticMDX from '../components/semantic-mdx';
 import { useGitHubSiteForm } from '../common/site';
 import Head from '../components/head';
 import Layout from '../components/layout';
@@ -170,6 +172,11 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 				component: 'toggle',
 			},
 			{
+				label: 'Announcement Message Visible',
+				name: 'announcementVisible',
+				component: 'toggle',
+			},
+			{
 				label: 'Mission Statement Visible',
 				name: 'missionVisible',
 				component: 'toggle',
@@ -230,7 +237,21 @@ const Page: FunctionComponent<{ page: any; site: any }> = ({ page, site }) => {
 								<Message.Header>
 									<InlineTextarea name='warning.title' />
 								</Message.Header>
-								<InlineTextarea name='warning.message' />
+								<InlineWysiwyg name='warning.message' format='markdown' >
+									<SemanticMDX>{pageData.warning.message}</SemanticMDX>
+								</InlineWysiwyg>
+							</Message.Content>
+						</Message>
+					)}
+					{pageData.announcementVisible && (
+						<Message size='large'>
+							<Message.Content>
+								<Message.Header>
+									<InlineTextarea name='announcement.title' />
+								</Message.Header>
+								<InlineWysiwyg name='announcement.message' format='markdown' >
+									<SemanticMDX>{pageData.announcement.message}</SemanticMDX>
+								</InlineWysiwyg>
 							</Message.Content>
 						</Message>
 					)}
