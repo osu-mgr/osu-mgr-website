@@ -1,16 +1,16 @@
 {
     "redirects": [
-        { "source": "/core-activity", "destination": "http://core-repository.coas.oregonstate.edu/core-activity" },
-        { "source": "/coreactivity-corea", "destination": "http://core-repository.coas.oregonstate.edu/coreactivity-corea" },
-        { "source": "/coreactivity-coreb", "destination": "http://core-repository.coas.oregonstate.edu/coreactivity-coreb" },
-        { "source": "/coreactivity-corec", "destination": "http://core-repository.coas.oregonstate.edu/coreactivity-corec" },
+        { "source": "/core-activity", "destination": "http://core-repository.ceoas.oregonstate.edu/core-activity" },
+        { "source": "/coreactivity-corea", "destination": "http://core-repository.ceoas.oregonstate.edu/coreactivity-corea" },
+        { "source": "/coreactivity-coreb", "destination": "http://core-repository.ceoas.oregonstate.edu/coreactivity-coreb" },
+        { "source": "/coreactivity-corec", "destination": "http://core-repository.ceoas.oregonstate.edu/coreactivity-corec" },
         { "source": "/education-outreach", "destination": "/in-person-tours" },
         { "source": "/virtual-repository-tour", "destination": "/virtual-tour" },
         { "source": "/monitor", "destination": "http://haviside.ceoas.oregonstate.edu:3601/d/1veObBoGz/nypro?orgId=1&refresh=10s&from=now-2d&to=now&kiosk" }
     ],
     "rewrites": [
-        { "source": "/collection/holdings/:match*", "destination": "http://core-repository.coas.oregonstate.edu/collection/holdings/:match*" },
-        { "source": "/collection/CoreActivity/:match*", "destination": "http://core-repository.coas.oregonstate.edu/collection/CoreActivity/:match*" },
-        { "source": "/Collection/CoreActivity/:match*", "destination": "http://core-repository.coas.oregonstate.edu/collection/CoreActivity/:match*" }
+        { "source": "/collection/holdings/:match*", "destination": "http://core-repository.ceoas.oregonstate.edu/collection/holdings/:match*" },
+        { "source": "/collection/CoreActivity/:match*", "destination": "http://core-repository.ceoas.oregonstate.edu/collection/CoreActivity/:match*" },
+        { "source": "/Collection/CoreActivity/:match*", "destination": "http://core-repository.ceoas.oregonstate.edu/collection/CoreActivity/:match*" }
     ]
 }
