@@ -15,6 +15,17 @@
       "floated": "Center",
       "link": "https://storymaps.arcgis.com/stories/2288571cc9704818886d7aa7419ed8c6",
       "image": "story-map.jpg"
+    },
+    {
+      "_template": "markdown",
+      "body": "Learn more about cores in general (ice and sediment) from this StoryMap created by CEOAS communications."
+    },
+    {
+      "_template": "image",
+      "size": "Huge",
+      "floated": "Center",
+      "link": "https://storymaps.arcgis.com/stories/54297d90829c4ac6b460c496af02f641",
+      "image": "WhatsACoreFor.JPG"
     }
   ]
 }
