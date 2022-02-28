@@ -18,7 +18,10 @@
     },
     {
       "_template": "markdown",
-      "body": "Learn more about cores in general (ice and sediment) from this StoryMap created by CEOAS communications."
+      "body": "\nLearn more about cores in general (ice and sediment) from this StoryMap created by CEOAS communications."
+    },
+    {
+      "_template": "markdown"
     },
     {
       "_template": "image",
