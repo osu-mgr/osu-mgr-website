@@ -46,14 +46,42 @@
     },
     {
       "_template": "markdown",
-      "body": "\n## **OSU Alumni Association \"Knowledge Breaks\"**\n\n[Knowledge Break | Tour the Seafloor: Digging into Earth’s Climate History - YouTube](https://www.youtube.com/watch?v=W00SrspQzrc)"
+      "body": ""
+    },
+    {
+      "_template": "markdown",
+      "body": ""
+    },
+    {
+      "_template": "markdown",
+      "body": ""
+    },
+    {
+      "_template": "markdown",
+      "body": ""
     },
     {
       "_template": "image",
       "link": "https://www.youtube.com/watch?v=W00SrspQzrc",
       "size": "Medium",
-      "floated": "Left",
+      "floated": "Right",
       "image": "KnowledgeBreak.png"
+    },
+    {
+      "_template": "markdown",
+      "body": "\n## **OSU Alumni Association \"Knowledge Breaks\"**\n\n[Knowledge Break | Tour the Seafloor: Digging into Earth’s Climate History - YouTube](https://www.youtube.com/watch?v=W00SrspQzrc)"
+    },
+    {
+      "_template": "markdown",
+      "body": ""
+    },
+    {
+      "_template": "markdown",
+      "body": ""
+    },
+    {
+      "_template": "markdown",
+      "body": ""
     },
     {
       "_template": "markdown",
@@ -62,6 +90,14 @@
     {
       "_template": "markdown",
       "body": "## **Grand Opening 2020**"
+    },
+    {
+      "_template": "markdown",
+      "body": ""
+    },
+    {
+      "_template": "markdown",
+      "body": ""
     },
     {
       "_template": "markdown",
