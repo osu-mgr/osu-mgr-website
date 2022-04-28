@@ -59,6 +59,10 @@ const MenuItemDropdown: FunctionComponent<{
 	}[];
 }> = ({ text, items }) => {
 	const router = useRouter();
+	const active = items.reduce(
+		(tf, x) => tf || x.link === router.pathname,
+		false
+	);
 	return <>
 		<Dropdown
 			item
@@ -66,15 +70,12 @@ const MenuItemDropdown: FunctionComponent<{
 			style={{ flexShrink: 1, height: '100%', padding: 0, border: 0 }}
 			icon={
 				<div className="menu-item-dropdown-icon">
-					<Icon name='dropdown' style={{ margin: 0 }} />
+					<Icon name='dropdown' style={{ margin: 0, visibility: active ? 'hidden' : '' }} />
 				</div>
 			}
 			trigger={
 				<Menu.Item
-					active={items.reduce(
-						(tf, x) => tf || x.link === router.pathname,
-						false
-					)}
+					active={active}
 					as='a'
 					name={text}
 					style={{
