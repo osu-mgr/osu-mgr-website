@@ -152,7 +152,8 @@ const Header: FunctionComponent<{
 			}
 
 			.osu {
-				height: 3em;
+				width: 131.4px;
+				height: 42px;
 			}
 
 			@media only screen and (max-width: 991px) {
@@ -166,7 +167,8 @@ const Header: FunctionComponent<{
 				}
 
 				.osu {
-					height: 4em;
+					width: 175.2px
+					height: 56px;
 					margin: auto;
 				}
 			}

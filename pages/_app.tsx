@@ -4,7 +4,7 @@ import { GithubClient, TinacmsGithubProvider } from 'react-tinacms-github';
 import MarkdownPageCreator from '../tina-plugins/md-page-creator';
 import ExitToolbarWidget from '../tina-plugins/exit';
 import 'semantic-ui-css/semantic.min.css';
-import '../tina.css';
+import '../styles/tina.css';
 import { NextGithubMediaStore } from 'next-tinacms-github';
 
 export default class AppClass extends App {
