@@ -61,10 +61,16 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 				pageTitle={pageData['htmlTitle']}
       />
 			<h1>{osuID}</h1>
+			{data && <Image bordered size='tiny' floated='right' style={{ border: '2px solid white', zIndex: 1, margin: '-2px -2px 0 -100%' }}
+				src={
+					`https://maps.google.com/maps/api/staticmap?maptype=hybrid&center=${doc.latitudeStart},${doc.longitudeStart}&` +
+					`zoom=2&size=640x640&markers=color:0xD73F09|${doc.latitudeStart},${doc.longitudeStart}&key=AIzaSyCINNnWmAK07o0DG3DYEAKx6Bf1SHrSMHw`
+				} />}
 			{data && <Image bordered size='medium' floated='right'
-				src={`https://i.stack.imgur.com/dApg7.png`} />}
-			{false && data && <Image bordered size='large' floated='right'
-				src={`https://maps.google.com/maps/api/staticmap?center=${doc.latitudeStart},${doc.longitudeStart}&zoom=15&size=400x400&markers=color:red|37.7833,-122.4167`} />}
+				src={
+					`https://maps.google.com/maps/api/staticmap?maptype=hybrid&center=${doc.latitudeStart},${doc.longitudeStart}&` +
+					`zoom=5&size=640x640&markers=color:0xD73F09|${doc.latitudeStart},${doc.longitudeStart}&key=AIzaSyCINNnWmAK07o0DG3DYEAKx6Bf1SHrSMHw`
+				} />}
 			{data && _.keys(itemFieldNames).map((label, i) =>
 				label[0] != '_' &&
 				doc[label.replace('.substring', '')] ? (

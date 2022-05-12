@@ -9,7 +9,7 @@ import { useGithubJsonForm } from 'react-tinacms-github';
 import {
 	InlineForm
 } from 'react-tinacms-inline';
-import { Input, Icon, Button, Dropdown, List, Label, Loader } from 'semantic-ui-react';
+import { Input, Icon, Button, Dropdown, List, Label, Loader, Image, Header, Segment } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
 import Head from '../components/head';
 import Link from '../components/link';
@@ -26,7 +26,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 		sortOrder: 'alpha asc',
 		searchString: '',
 		from: 0,
-		size: 10,
+		size: 20,
 		types: ['core', 'dive'],
 	});
 	const [searchString, setSearchString] = useState(search.searchString || '');
@@ -84,6 +84,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 		(results && results.hits && results.hits.hits || [])
 	)) || [];
 	const matchesFields = _.keys(matches).map((x) => itemFieldNames[x]);
+	console.log('matches', matches);
 	return <>
 		<Layout navigation={siteData.navigation}>
 			<Head
@@ -183,14 +184,8 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 						<Link href={`landing-page?${match._source._osuid}`}>
 							<List.Content style={{ padding: '.25rem 0 .5rem' }}>
 								<List.Header as="h3">{match._source._osuid}</List.Header>
-								{false && <List.Description>
-									<a href={`http://core-repository.ceoas.oregonstate.edu/${match._source._osuid}`} target="_blank" rel="noreferrer">
-										<Button icon floated='right'><Icon name="file pdf outline"/> PDF Metadata Sheet</Button>
-									</a>
-								</List.Description>
-								}
 								<List.Description>
-									{match.hightlight &&	_.keys(match.hightlight).map((field) => (
+									{match.highlight &&	_.keys(match.highlight).map((field) => (
 										<Label
 											circular
 											size="mini"
@@ -200,7 +195,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 											<Icon name="search" />
 											{itemFieldNames[field]}:
 											<Label.Detail>
-												{match._source[field][0]
+												{match.highlight[field][0]
 													.split(reMatchSplit)
 													.map((x: string, i: number) =>
 														searchStrings.includes(x.toLowerCase()) ? (
@@ -271,6 +266,30 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 										) : undefined
 									)}
 								</List.Description>
+								<List.Description style={{marginTop: '.5rem'}}>
+									<div className='map'>
+										<Image
+											bordered
+											src={`https://maps.google.com/maps/api/staticmap?maptype=hybrid&center=${match._source.latitudeStart},${match._source.longitudeStart}&zoom=4&size=640x640&markers=color:0xD73F09|${match._source.latitudeStart},${match._source.longitudeStart}&key=AIzaSyCINNnWmAK07o0DG3DYEAKx6Bf1SHrSMHw`}
+										/>
+									</div>
+									<div className='file'>
+										<Segment>
+											<Header size='tiny' icon>
+												<Icon name="file pdf outline" />
+												Metadata Sheet
+											</Header>
+										</Segment>
+									</div>
+									<div className='file'>
+										<Segment>
+											<Header size='tiny' icon>
+												<Icon name="file pdf outline" />
+												Cruise Report
+											</Header>
+										</Segment>
+									</div>
+								</List.Description>
 							</List.Content>
 						</Link>
 					</List.Item>
@@ -278,6 +297,25 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 			</List>
 			{matches.length && <div ref={ref} /> || undefined}
 			{pages === undefined && <Loader active /> || undefined}
+			<style jsx>{`
+				.map {
+					display: inline-block;
+					float: left;
+					margin: 0.5rem 0 0.5rem 0;
+					height: 100px;
+					width: 100px;
+				}
+				.file {
+					display: inline-block;
+					float: left;
+					margin: 0.5rem 0 0.5rem 0.5rem;
+					height: 100px;
+					width: 150px;
+				}
+				.highlight {
+					color: #D73F09 !important;
+				}
+			`}</style>
 		</Layout>
 	</>;
 };
