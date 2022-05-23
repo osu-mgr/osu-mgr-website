@@ -182,7 +182,7 @@ export const getStaticProps: GetStaticProps = async function ({
 	if (preview) {
 		const page = await getGithubPreviewProps({
 			...previewData,
-			fileRelativePath: 'content/collections.json',
+			fileRelativePath: 'content/map.json',
 			parse: parseJson,
 		});
 		const site = await getGithubPreviewProps({
@@ -206,8 +206,8 @@ export const getStaticProps: GetStaticProps = async function ({
 			error: null,
 			preview: false,
 			page: {
-				fileRelativePath: 'content/collections.json',
-				data: (await import('../content/collections.json')).default,
+				fileRelativePath: 'content/map.json',
+				data: (await import('../content/map.json')).default,
 			},
 			site: {
 				fileRelativePath: 'content/site.json',

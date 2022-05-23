@@ -34,80 +34,104 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
   const search = JSON.parse(req.body);
   if (!search) return res.status(500).send('Missing search query');
   let resp = { body: {} };
-  if (req.query.search !== undefined && search.searchString !== undefined && search.types !== undefined) {
+  if (req.query.search !== undefined && (search.terms !== undefined || search.searchString !== undefined) && search.types !== undefined) {
     resp = await client.search({
       from: search.from,
       size: search.size,
       index,
       body: {
         sort: sortOrders[search.sortOrder],
-        query: search.searchString === '' ? { terms: { '_docType.keyword': search.types } } : {
-          bool: {
-            must: [
-              { terms: { '_docType.keyword': search.types } }],
-            should: [
-              {
-                multi_match: {
-                  query: search.searchString.toLowerCase(),
-                  type: 'bool_prefix',
-                  fields: ['*.substring'],
-                  operator: 'and',
-                  analyzer: 'whitespace',
-                },
-              },
-              {
-                prefix: {
-                  '_osuid.keyword': {
-                    value: search.searchString.toUpperCase(),
-                  },
-                },
-              },
-            ],
-            minimum_should_match: 1,
-          }
-        },
         highlight: {
           pre_tags: '',
           post_tags: '',
           fields: { '*.substring': {} },
-        }
+        },
+        query:
+          search.terms !== undefined ? {
+            bool: {
+              must: [
+                { terms: { '_docType.keyword': search.types } },
+                { terms: search.terms }
+              ]
+            }
+          } :
+            search.searchString === '' ? {
+              terms: { '_docType.keyword': search.types }
+            } :
+              {
+                bool: {
+                  must: [
+                    { terms: { '_docType.keyword': search.types } }],
+                  should: [
+                    {
+                      multi_match: {
+                        query: search.searchString.toLowerCase(),
+                        type: 'bool_prefix',
+                        fields: ['*.substring'],
+                        operator: 'and',
+                        analyzer: 'whitespace',
+                      },
+                    },
+                    {
+                      prefix: {
+                        '_osuid.keyword': {
+                          value: search.searchString.toUpperCase(),
+                        },
+                      },
+                    },
+                  ],
+                  minimum_should_match: 1,
+                }
+              }
       }
     });
   }
-  else if (req.query.count !== undefined && search.searchString !== undefined && search.types !== undefined) {
+  else if (req.query.count !== undefined && (search.terms !== undefined || search.searchString !== undefined) && search.types !== undefined) {
     resp = await client.count({
       index,
       body: {
-        query: search.searchString === '' ? { terms: { '_docType.keyword': search.types } } : {
-          bool: {
-            must: [
-              { terms: { '_docType.keyword': search.types } }],
-            should: [
+        query:
+          search.terms !== undefined ? {
+            bool: {
+              must: [
+                { terms: { '_docType.keyword': search.types } },
+                { terms: search.terms }
+              ]
+            }
+          } :
+            search.searchString === '' ? {
+              terms: { '_docType.keyword': search.types }
+            } :
               {
-                multi_match: {
-                  query: search.searchString.toLowerCase(),
-                  type: 'bool_prefix',
-                  fields: ['*.substring'],
-                  operator: 'and',
-                  analyzer: 'whitespace',
-                },
-              },
-              {
-                prefix: {
-                  '_osuid.keyword': {
-                    value: search.searchString.toUpperCase(),
-                  },
-                },
-              },
-            ],
-            minimum_should_match: 1,
-          }
-        }
+                bool: {
+                  must: [
+                    { terms: { '_docType.keyword': search.types } }],
+                  should: [
+                    {
+                      multi_match: {
+                        query: search.searchString.toLowerCase(),
+                        type: 'bool_prefix',
+                        fields: ['*.substring'],
+                        operator: 'and',
+                        analyzer: 'whitespace',
+                      },
+                    },
+                    {
+                      prefix: {
+                        '_osuid.keyword': {
+                          value: search.searchString.toUpperCase(),
+                        },
+                      },
+                    },
+                  ],
+                  minimum_should_match: 1,
+                }
+              }
       }
     });
   }
   else {
-    return res.status(500).send('Missing request parameters');
+    return res.status(204).send([]);
   }
   return res.status(200).send(resp.body);
 };

@@ -15,8 +15,10 @@ import SemanticMDX from '../components/semantic-mdx';
 import Head from '../components/head';
 import Layout from '../components/layout';
 import Link from '../components/link';
+import SearchLandingPage from '../components/search.landingPage';
 
-const shouldRedirect = (path) => path.match(/^\/(OSU-|noaa-ex).+$/i);
+const shouldRedirect = (path) => path.match(/^\/OSU-.+\/.+$/i) || path.match(/^\/noaa-ex.+$/i);
+const isLandingPage = (path) => path.match(/^\/OSU-[^/]+$/i);
 
 const pagesContentPaths = async () => {
 	const contentDir = "content/pages";
@@ -255,6 +257,14 @@ const Page: FunctionComponent<{ pagesContent: any; site: any }> = ({
 						</Message.Content>
 					</Message>
 				</Container>
+			</Layout>
+		);
+	}
+
+	if (isLandingPage(path)) {
+		return (
+			<Layout navigation={siteData.navigation}>
+				<SearchLandingPage/>
 			</Layout>
 		);
 	}

@@ -9,7 +9,7 @@ import { useGithubJsonForm } from 'react-tinacms-github';
 import {
 	InlineForm
 } from 'react-tinacms-inline';
-import { Input, Icon, Button, Dropdown, List, Label, Loader, Image, Header, Segment } from 'semantic-ui-react';
+import { Input, Icon, Button, Dropdown, List, Label, Loader } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
 import Head from '../components/head';
 import Link from '../components/link';
@@ -17,6 +17,8 @@ import Layout from '../components/layout';
 import ItemsCount from '../components/items.count';
 import useLocalStorage from '../common/useLocalStorage';
 import { itemFieldNames } from '../common/items';
+import CollectionFileButton from '../components/search.collectionFilesButton';
+import CollectionMapThumbnail from '../components/search.collectionMapThumbnail';
 
 export const Page: FunctionComponent<{ page: any; site: any }> = ({
 	page,
@@ -83,8 +85,6 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 	const matches = pages && _.flatten(pages.map(results =>
 		(results && results.hits && results.hits.hits || [])
 	)) || [];
-	const matchesFields = _.keys(matches).map((x) => itemFieldNames[x]);
-	console.log('matches', matches);
 	return <>
 		<Layout navigation={siteData.navigation}>
 			<Head
@@ -96,7 +96,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 				<Input
 					fluid
 					action
-					iconPosition="left"
+					iconPosition='left'
 					type='search'
 					value={searchString}
 					placeholder='Search Collections...'
@@ -105,11 +105,11 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 						debounce(data.value);
 					}}
 				>
-					<Icon name="search" />
+					<Icon name='search' />
 					<input />
 					<Button
 						basic={searchString !== ''}
-						icon="close"
+						icon='close'
 						disabled={searchString === ''}
 						onClick={() => {
 							setSearch({ ...search, searchString: '' });
@@ -121,23 +121,23 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 					button
 					options={[
 						{
-							key: 'ids asc',
-							value: 'ids asc',
-							text: 'Names (Ordered)',
-						},
-						{
-							key: 'ids desc',
-							value: 'ids desc',
-							text: 'Names (Reverse)',
-						},
-						{
 							key: 'alpha asc',
 							value: 'alpha asc',
-							text: 'IDs (Ordered)',
+							text: 'Names (Ordered)',
 						},
 						{
 							key: 'alpha desc',
 							value: 'alpha desc',
+							text: 'Names (Reverse)',
+						},
+						{
+							key: 'ids asc',
+							value: 'ids asc',
+							text: 'IDs (Ordered)',
+						},
+						{
+							key: 'ids desc',
+							value: 'ids desc',
 							text: 'IDs (Reverse)',
 						},
 						{
@@ -168,38 +168,38 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 					<ItemsCount
 						searchString={search.searchString}
 						types={search.types}
-						pluralLabel="Cores and Dives"
-						singularLabel="Core or Dive"
+						pluralLabel='Cores and Dives'
+						singularLabel='Core or Dive'
 					/>
 					{" from "}
 					<ItemsCount
 						searchString={search.searchString}
 						types={['cruise']}
-						pluralLabel="Cruises"
-						singularLabel="Cruise"
+						pluralLabel='Cruises'
+						singularLabel='Cruise'
 					/>
 				</List.Item>
 				{matches.map((match: any) => (
 					<List.Item key={match._source._osuid}>
-						<Link href={`landing-page?${match._source._osuid}`}>
+						<Link href={`${match._source._osuid}`}>
 							<List.Content style={{ padding: '.25rem 0 .5rem' }}>
-								<List.Header as="h3">{match._source._osuid}</List.Header>
+								<List.Header as='h3'>{match._source._osuid}</List.Header>
 								<List.Description>
 									{match.highlight &&	_.keys(match.highlight).map((field) => (
 										<Label
 											circular
-											size="mini"
+											size='tiny'
 											key={field}
 											style={{ margin: '.5rem .5rem 0 0' }}
 										>
-											<Icon name="search" />
+											<Icon name='search' />
 											{itemFieldNames[field]}:
 											<Label.Detail>
 												{match.highlight[field][0]
 													.split(reMatchSplit)
 													.map((x: string, i: number) =>
 														searchStrings.includes(x.toLowerCase()) ? (
-															<span key={i} className="highlight">
+															<span key={i} className='highlight'>
 																{x}
 															</span>
 														) : (
@@ -213,7 +213,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 										<Label
 												basic
 												circular
-												size="mini"
+												size='tiny'
 												style={{
 													margin: '.5rem .5rem 0 0',
 												}}
@@ -222,8 +222,8 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 											<Label.Detail><ItemsCount
 												searchString={match._source._osuid}
 												types={['section']}
-												pluralLabel=""
-												singularLabel=""
+												pluralLabel=''
+												singularLabel=''
 											/></Label.Detail>
 										</Label>
 									}
@@ -231,7 +231,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 										<Label
 												basic
 												circular
-												size="mini"
+												size='tiny'
 												style={{
 													margin: '.5rem .5rem 0 0',
 												}}
@@ -240,20 +240,21 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 											<Label.Detail><ItemsCount
 												searchString={match._source._osuid}
 												types={['diveSample']}
-												pluralLabel=""
-												singularLabel=""
+												pluralLabel=''
+												singularLabel=''
 											/></Label.Detail>
 										</Label>
 									}
 									{_.keys(itemFieldNames).map((label, i) =>
-										label[0] != '_' &&
-										match._source[label.replace('.substring', '')] &&
-										!matchesFields.includes(label.replace('.substring', '')) ? (
+										label[0] !== '_' &&
+											label !== 'id.substring' &&
+											match._source[label.replace('.substring', '')] &&
+											(!match.highlight || !match.highlight[label]) ? (
 											<Label
 												key={i}
 												basic
 												circular
-												size="mini"
+												size='tiny'
 												style={{
 													margin: '.5rem .5rem 0 0',
 												}}
@@ -266,30 +267,15 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 										) : undefined
 									)}
 								</List.Description>
-								<List.Description style={{marginTop: '.5rem'}}>
-									<div className='map'>
-										<Image
-											bordered
-											src={`https://maps.google.com/maps/api/staticmap?maptype=hybrid&center=${match._source.latitudeStart},${match._source.longitudeStart}&zoom=4&size=640x640&markers=color:0xD73F09|${match._source.latitudeStart},${match._source.longitudeStart}&key=AIzaSyCINNnWmAK07o0DG3DYEAKx6Bf1SHrSMHw`}
-										/>
-									</div>
-									<div className='file'>
-										<Segment>
-											<Header size='tiny' icon>
-												<Icon name="file pdf outline" />
-												Metadata Sheet
-											</Header>
-										</Segment>
-									</div>
-									<div className='file'>
-										<Segment>
-											<Header size='tiny' icon>
-												<Icon name="file pdf outline" />
-												Cruise Report
-											</Header>
-										</Segment>
-									</div>
-								</List.Description>
+								{match._source._cruiseID && 
+									<List.Description style={{ margin: '0.5rem 0 -0.5rem' }}>
+										<CollectionMapThumbnail lat={match._source.latitudeStart}  lon={match._source.longitudeStart} />
+										<CollectionFileButton name='Cruise Report' icon='file pdf outline' file={`${match._source._cruiseID}/cruisereport/OSU-${match._source._cruiseID}-cruisereport.pdf`} />
+										<CollectionFileButton name='Publications' icon='file pdf outline' file={`${match._source._cruiseID}/publications/OSU-${match._source._cruiseID}-publications.pdf`} />
+										<CollectionFileButton name='Coring Data Sheet' icon='file pdf outline' file={`${match._source._cruiseID}/coringdatasheet/OSU-${match._source._cruiseID}-${match._source._coreNumber}-coringdatasheet.pdf`} />
+										<CollectionFileButton name='MST Data' icon='file pdf outline' file={`${match._source._cruiseID}/mstdata/${match._source._osuid}-mstdata.dat`} />
+									</List.Description> || undefined
+								}
 							</List.Content>
 						</Link>
 					</List.Item>
@@ -300,15 +286,13 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 			<style jsx>{`
 				.map {
 					display: inline-block;
-					float: left;
-					margin: 0.5rem 0 0.5rem 0;
+					margin-right: 0.5rem;
 					height: 100px;
 					width: 100px;
 				}
 				.file {
 					display: inline-block;
-					float: left;
-					margin: 0.5rem 0 0.5rem 0.5rem;
+					margin-right: 0.5rem;
 					height: 100px;
 					width: 150px;
 				}

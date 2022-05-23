@@ -42,13 +42,23 @@
       "text": "Collections",
       "menu": [
         {
-          "id": "76225412-00da-4809-b1e7-3e306bedf514",
-          "text": "OSU Main Collection",
+          "id": "76225412-00da-4809-b1e7-3e306bedf511",
+          "text": "OSU Collections",
           "link": "/collections"
         },
         {
+          "id": "02d7a887-cdc5-4277-aff3-9c376d1a93b1",
+          "text": "Search OSU Collections",
+          "link": "/search"
+        },
+        {
+          "id": "76225412-00da-4809-b1e7-3e306bedf514",
+          "text": "OSU Main Collection Map",
+          "link": "/map"
+        },
+        {
           "id": "02d7a887-cdc5-4277-aff3-9c376d1a93b5",
-          "text": "NOAA Hosted Collection",
+          "text": "NOAA Hosted Collection Map",
           "link": "/noaa-ex"
         },
         {

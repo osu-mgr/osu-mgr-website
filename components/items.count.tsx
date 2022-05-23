@@ -2,7 +2,7 @@ import numeral from 'numeral';
 import { FunctionComponent } from 'react';
 import { Loader } from 'semantic-ui-react';
 import { ItemType, itemTypesPlural, itemTypesSingular } from '../common/items';
-import useSWR from 'swr';
+import useSWRImmutable from 'swr/immutable';
 import css from 'styled-jsx/css'
 
 const { className, styles } = css.resolve`
@@ -28,7 +28,7 @@ const ItemsCount: FunctionComponent<{
   singularLabel?: string;
   pluralLabel?: string;
 }> = ({ types, searchString, inverted, singularLabel, pluralLabel }) => {
-	const { data: count } = useSWR(
+	const { data: count } = useSWRImmutable(
     () => ({ url: `/api/es?count`, payload: { types, searchString } }),
 		async ({ url, payload }) => {
 			const res = await fetch(url, { method: 'POST', body: JSON.stringify(payload) });
