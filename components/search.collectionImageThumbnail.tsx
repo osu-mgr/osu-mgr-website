@@ -49,7 +49,7 @@ const CollectionImageThumbnail: FunctionComponent<{ file: string, name: string }
 										maxWidth: 'auto',
 										objectFit: 'cover',
 									}}
-									src={`https://haviside.ceoas.oregonstate.edu:8443/collection/${folder}${file}?${rotate[folder] ? 'srotate=90&' : ''}height=95`}
+									src={`https://haviside.ceoas.oregonstate.edu:8443/collection/${folder}${file}?${rotate[folder] ? 'srotate=-90&' : ''}height=95`}
 								/>
 							</Grid.Column>
 						</Grid>
@@ -65,7 +65,7 @@ const CollectionImageThumbnail: FunctionComponent<{ file: string, name: string }
 							maxWidth: 'auto',
 							objectFit: 'cover',
 						}}
-						src={`https://haviside.ceoas.oregonstate.edu:8443/collection/${folder}${file}?${rotate[folder] ? 'srotate=90&' : ''}height=95`}
+						src={`https://haviside.ceoas.oregonstate.edu:8443/collection/${folder}${file}?${rotate[folder] ? 'srotate=-90&' : ''}height=95`}
 					/>
 				}
 			</a> || undefined
