@@ -6,11 +6,6 @@
       "text": "About Us",
       "menu": [
         {
-          "id": "8d921f98-a3a3-46c1-b7e9-f6a8d2d8d989",
-          "text": "About Us",
-          "link": "/about-us"
-        },
-        {
           "id": "1be419b7-d2b1-457a-a407-3f88c37b0bbd",
           "text": "Staff",
           "link": "/staff"
