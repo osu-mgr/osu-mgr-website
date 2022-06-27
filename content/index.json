@@ -51,10 +51,10 @@
     },
     {
       "_template": "row",
-      "link": "https://youtu.be/0F7ymbW3wcI ",
-      "image": "",
-      "title": "NSF MG&G Geological Samples Repositories Virtual Town Hall",
-      "description": "An informational town hall was held on Sept 8, 2021. If you are were interested but unable to attend please click here for a recording of the virtual town hall."
+      "link": "https://www.sciencedirect.com/science/article/pii/S0277379122000919",
+      "title": "Research In the News",
+      "description": "Jennings, A., Reilly, B., Andrews, J., Hogan, K., Walczak, M., Jakobsson, M., Stoner, J., Mix, A., Nicholls, K.W., O'Regan, M. and Prins, M.A., 2022. Modern and early holocene ice shelf sediment facies from Petermann Fjord and northern Nares Strait, northwest Greenland. Quaternary Science Reviews, 283, p.107460.",
+      "image": "Jenningsetal2022.jpg"
     }
   ]
 }
