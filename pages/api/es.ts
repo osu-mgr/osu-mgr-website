@@ -65,7 +65,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
                   should: [
                     {
                       multi_match: {
-                        query: search.searchString.toLowerCase(),
+                        query: search.searchString.toLowerCase().replace('-', ' '),
                         type: 'bool_prefix',
                         fields: ['*.substring'],
                         operator: 'and',
@@ -109,7 +109,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
                   should: [
                     {
                       multi_match: {
-                        query: search.searchString.toLowerCase(),
+                        query: search.searchString.toLowerCase().replace('-', ' '),
                         type: 'bool_prefix',
                         fields: ['*.substring'],
                         operator: 'and',

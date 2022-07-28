@@ -16,7 +16,7 @@ import Link from '../components/link';
 import Layout from '../components/layout';
 import ItemsCount from '../components/items.count';
 import useLocalStorage from '../common/useLocalStorage';
-import { itemFieldNames } from '../common/items';
+import { itemFieldNames, itemTypesSingular } from '../common/items';
 import CollectionFileButton from '../components/search.collectionFilesButton';
 import CollectionMapThumbnail from '../components/search.collectionMapThumbnail';
 
@@ -27,9 +27,6 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
   const [search, setSearch] = useLocalStorage('search', {
 		sortOrder: 'alpha asc',
 		searchString: '',
-		from: 0,
-		size: 20,
-		types: ['core', 'dive'],
 	});
 	const [searchString, setSearchString] = useState(search.searchString || '');
   const [ref, isVisible] = useInView({
@@ -57,12 +54,18 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 	
 	const { data: pages, size, setSize } = useSWRInfinite(
 		(pageIndex) => {
-			return { url: `/api/es?search`, payload: { ...search, from: search.size * pageIndex } };
+			return {
+				url: `/api/es?search`, payload: {
+					...search,
+					from: search.size * pageIndex,
+					size: 20,
+					types: ['cruise', 'core', 'dive']
+				}
+			};
 		},
 		async ({ url, payload }) => {
 			const res = await fetch(url, { method: 'POST', body: JSON.stringify(payload) });
 			const data = await res.json();
-
 			if (res.status !== 200) {
 				throw new Error(data.message)
 			}
@@ -81,7 +84,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
       .map((x) => x.replace(/([.?*+^$[\]\\(){}|-])/g, '\\$1'))
       .join('|')})`,
     'ig'
-  );
+	);
 	const matches = pages && _.flatten(pages.map(results =>
 		(results && results.hits && results.hits.hits || [])
 	)) || [];
@@ -167,23 +170,25 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 				<List.Item>
 					<ItemsCount
 						searchString={search.searchString}
-						types={search.types}
-						pluralLabel='Cores and Dives'
-						singularLabel='Core or Dive'
+						types={['cruise']}
 					/>
-					{" from "}
+					{" and "}
 					<ItemsCount
 						searchString={search.searchString}
-						types={['cruise']}
-						pluralLabel='Cruises'
-						singularLabel='Cruise'
+						types={['core', 'dive']}
+						pluralLabel='Cores/Dives'
+						singularLabel='Core/Dive'
 					/>
 				</List.Item>
 				{matches.map((match: any) => (
 					<List.Item key={match._source._osuid}>
 						<Link href={`${match._source._osuid}`}>
 							<List.Content style={{ padding: '.25rem 0 .5rem' }}>
-								<List.Header as='h3'>{match._source._osuid}</List.Header>
+								<List.Header as='h3'>
+									{itemTypesSingular[match._source._docType]}
+									{" "}
+									{match._source._osuid.replace('OSU-', '')}
+								</List.Header>
 								<List.Description>
 									{match.highlight &&	_.keys(match.highlight).map((field) => (
 										<Label
@@ -273,7 +278,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 										<CollectionFileButton name='Cruise Report' icon='file pdf outline' file={`${match._source._cruiseID}/cruisereport/OSU-${match._source._cruiseID}-cruisereport.pdf`} />
 										<CollectionFileButton name='Publications' icon='file pdf outline' file={`${match._source._cruiseID}/publications/OSU-${match._source._cruiseID}-publications.pdf`} />
 										<CollectionFileButton name='Coring Data Sheet' icon='file pdf outline' file={`${match._source._cruiseID}/coringdatasheet/OSU-${match._source._cruiseID}-${match._source._coreNumber}-coringdatasheet.pdf`} />
-										<CollectionFileButton name='MST Data' icon='file pdf outline' file={`${match._source._cruiseID}/mstdata/${match._source._osuid}-mstdata.dat`} />
+										<CollectionFileButton name='MST Data' icon='file pdf outline' file={`${match._source._cruiseID}/mstdata/${match._source._osuid}-mstdata.csv`} />
 									</List.Description> || undefined
 								}
 							</List.Content>

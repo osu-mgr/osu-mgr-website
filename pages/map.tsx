@@ -1,6 +1,7 @@
 import { FunctionComponent, useState } from 'react';
 import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
+import { useRouter } from 'next/router';
 import { useCMS, usePlugin, useFormScreenPlugin } from 'tinacms';
 import { InlineForm } from 'react-tinacms-inline';
 import { InlineWysiwyg } from 'react-tinacms-editor';
@@ -11,13 +12,13 @@ import SemanticMDX from '../components/semantic-mdx';
 import Head from '../components/head';
 import Layout from '../components/layout';
 
-const Map: FunctionComponent = () => {
+const Map: FunctionComponent<{ find }> = ({ find }) => {
 	return (
 		<>
 			<iframe
 				className='map'
 				scrolling='no'
-				src='https://osugisci.maps.arcgis.com/apps/webappviewer/index.html?id=56819d2b62674659aab2f67d793cebc8'
+				src={`https://osugisci.maps.arcgis.com/apps/webappviewer/index.html?id=56819d2b62674659aab2f67d793cebc8${find ? `&find=${find}` : ''}`}
 			/>
 			<style jsx>{`
 				.map {
@@ -50,6 +51,8 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 	usePlugin(pageForm);
 	const [siteData, siteForm] = useGitHubSiteForm(site);
 	useFormScreenPlugin(siteForm);
+	const router = useRouter();
+	const { find } = router.query;
 	return (
 		<Layout navigation={siteData.navigation} fullWidth>
 			<Head
@@ -168,7 +171,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 					</Segment>
 				</div>
 			</Portal>
-			<Map />
+			<Map find={find}/>
 		</Layout>
 	);
 };
