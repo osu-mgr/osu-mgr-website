@@ -1,7 +1,8 @@
 import _ from 'lodash';
+import numeral from 'numeral';
 import { FunctionComponent } from 'react';
 import { useRouter } from 'next/router';
-import { Grid, Image, List, Loader, Label, Container, Message, Button, Icon } from 'semantic-ui-react';
+import { Grid, Image, List, Loader, Label, Container, Message, Button, Icon, Menu } from 'semantic-ui-react';
 import useSWR from 'swr';
 import CollectionFileButton from './search.collectionFilesButton';
 import CollectionImageThumbnail from './search.collectionImageThumbnail';
@@ -55,6 +56,26 @@ const useSearch = (types, searchString) => {
 	return data && data.hits.hits.map(x => x._source);
 }
 
+const FieldLabel: FunctionComponent<{ doc, label }> = ({ doc, label }) => {
+	if (label[0] !== '_' &&
+		label !== 'id.substring' &&
+		doc[label.replace('.substring', '')])
+		return <Label
+			basic
+			circular
+			size='tiny'
+			style={{
+				margin: '.5rem .5rem 0 0',
+			}}
+		>
+			&nbsp;&nbsp;{itemFieldNames[label]}:
+			<Label.Detail>
+				{label === 'weight.substring' ? numeral( doc[label.replace('.substring', '')]).format('0,0.0') : doc[label.replace('.substring', '')]}
+			</Label.Detail>
+		</Label>;
+	return null;
+}
+
 const CruiseLandingPage: FunctionComponent<{ cruiseDoc }> = ({ cruiseDoc }) => {
 	const osuID = cruiseDoc._osuid;
 	const coreDocs = useSearch(['core'], cruiseDoc._cruiseID && `OSU-${cruiseDoc._cruiseID}` || undefined);
@@ -74,12 +95,17 @@ const CruiseLandingPage: FunctionComponent<{ cruiseDoc }> = ({ cruiseDoc }) => {
 
 	const osuIDs = {};
 	return <>
-		<Link href='/search'>
-			<Button icon>
-				<Icon name='arrow left' />
-				{" "} Search
-			</Button>
-		</Link>
+		<Menu secondary pointing stackable>
+			<Menu.Item>
+				<a href='/search'>
+					Return to Search
+				</a>
+			</Menu.Item>
+			<Menu.Item active>
+				Cruise/Program {osuID.replace('OSU-', '')}
+			</Menu.Item>
+		</Menu>
+		
 		<h1>{osuID.replace('OSU-', '')}</h1>
 			<Grid columns={2}>
 				<Grid.Column>
@@ -135,26 +161,10 @@ const CruiseLandingPage: FunctionComponent<{ cruiseDoc }> = ({ cruiseDoc }) => {
 									<List.Content style={{ padding: '.25rem 0 .5rem' }}>
 										<List.Header as='h3'>{doc._osuid}</List.Header>
 										<List.Description>
-											{_.keys(itemFieldNames).map((label, i) =>
-												label[0] !== '_' &&
-													label !== 'id.substring' &&
-													doc[label.replace('.substring', '')]  ? (
-													<Label
-														key={i}
-														basic
-														circular
-														size='tiny'
-														style={{
-															margin: '.5rem .5rem 0 0',
-														}}
-													>
-														&nbsp;&nbsp;{itemFieldNames[label]}:
-														<Label.Detail>
-															{doc[label.replace('.substring', '')]}
-														</Label.Detail>
-													</Label>
-												) : undefined
-											)}
+											{_.keys(itemFieldNames).map((label, i) => <FieldLabel
+												key={i}
+												label={label}
+												doc={doc} />)}
 										</List.Description>
 									</List.Content>
 								</Link>
@@ -174,26 +184,10 @@ const CruiseLandingPage: FunctionComponent<{ cruiseDoc }> = ({ cruiseDoc }) => {
 									<List.Content style={{ padding: '.25rem 0 .5rem' }}>
 										<List.Header as='h3'>{doc._osuid}</List.Header>
 										<List.Description>
-											{_.keys(itemFieldNames).map((label, i) =>
-												label[0] !== '_' &&
-													label !== 'id.substring' &&
-													doc[label.replace('.substring', '')]  ? (
-													<Label
-														key={i}
-														basic
-														circular
-														size='tiny'
-														style={{
-															margin: '.5rem .5rem 0 0',
-														}}
-													>
-														&nbsp;&nbsp;{itemFieldNames[label]}:
-														<Label.Detail>
-															{doc[label.replace('.substring', '')]}
-														</Label.Detail>
-													</Label>
-												) : undefined
-											)}
+											{_.keys(itemFieldNames).map((label, i) => <FieldLabel
+												key={i}
+												label={label}
+												doc={doc} />)}
 										</List.Description>
 									</List.Content>
 								</Link>
@@ -209,16 +203,28 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
 	const osuID = coreDoc._osuid;
 	const cruiseDocs =  useTerms(['cruise'], coreDoc._cruiseUUID && { '_cruiseUUID.keyword': [coreDoc._cruiseUUID] } || undefined);
 	const sectionDocs =  useTerms(['section'], coreDoc._coreUUID && { '_coreUUID.keyword': [coreDoc._coreUUID] } || undefined);
-	const otherCoreDocs = useSearch(['core'], coreDoc._coreUUID && { '_coreUUID.keyword': [coreDoc._coreUUID] } || undefined);
+	const otherCoreDocs = useTerms(['core'], coreDoc._cruiseUUID && { '_cruiseUUID.keyword': [coreDoc._cruiseUUID] } || undefined);
 	
 	const osuIDs = {};
 	return <>
-		<Link href='/search'>
-			<Button icon>
-				<Icon name='arrow left' />
-				{" "} Search
-			</Button>
-		</Link>
+		<Menu secondary pointing stackable>
+			<Menu.Item>
+				<a href='/search'>
+					Return to Search
+				</a>
+			</Menu.Item>
+			{cruiseDocs && cruiseDocs[0] &&
+				<Menu.Item>
+					<a href={`/${cruiseDocs[0]._osuid}`}>
+						Cruise/Program {cruiseDocs[0]._osuid.replace('OSU-', '')}
+					</a>
+				</Menu.Item> || undefined
+			}
+			<Menu.Item active>
+				Core {osuID.replace('OSU-', '')}
+			</Menu.Item>
+		</Menu>
+
 		<h1>{osuID.replace('OSU-', '')}</h1>
 			<Grid columns={2}>
 				<Grid.Column>
@@ -287,26 +293,10 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
 								<List.Content style={{ padding: '.25rem 0 .5rem' }}>
 									<List.Header as='h3'>{doc._osuid}</List.Header>
 									<List.Description>
-										{_.keys(itemFieldNames).map((label, i) =>
-											label[0] !== '_' &&
-												label !== 'id.substring' &&
-												doc[label.replace('.substring', '')]  ? (
-												<Label
-													key={i}
-													basic
-													circular
-													size='tiny'
-													style={{
-														margin: '.5rem .5rem 0 0',
-													}}
-												>
-													&nbsp;&nbsp;{itemFieldNames[label]}:
-													<Label.Detail>
-														{doc[label.replace('.substring', '')]}
-													</Label.Detail>
-												</Label>
-											) : undefined
-										)}
+										{_.keys(itemFieldNames).map((label, i) => <FieldLabel
+												key={i}
+												label={label}
+												doc={doc} />)}
 									</List.Description>
 									<List.Description style={{ margin: '0.5rem 0 -0.5rem'}}>
 										<CollectionMapThumbnail lat={doc.latitudeStart} lon={doc.longitudeStart} />
@@ -336,26 +326,10 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
 									<List.Content style={{ padding: '.25rem 0 .5rem' }}>
 										<List.Header as='h3'>{doc._osuid}</List.Header>
 										<List.Description>
-											{_.keys(itemFieldNames).map((label, i) =>
-												label[0] !== '_' &&
-													label !== 'id.substring' &&
-													doc[label.replace('.substring', '')]  ? (
-													<Label
-														key={i}
-														basic
-														circular
-														size='tiny'
-														style={{
-															margin: '.5rem .5rem 0 0',
-														}}
-													>
-														&nbsp;&nbsp;{itemFieldNames[label]}:
-														<Label.Detail>
-															{doc[label.replace('.substring', '')]}
-														</Label.Detail>
-													</Label>
-												) : undefined
-											)}
+											{_.keys(itemFieldNames).map((label, i) => <FieldLabel
+												key={i}
+												label={label}
+												doc={doc} />)}
 										</List.Description>
 									</List.Content>
 								</Link>
@@ -370,8 +344,8 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
 const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 	const osuID = diveDoc._osuid;
 	const cruiseDocs =  useTerms(['cruise'], diveDoc._cruiseUUID && { '_cruiseUUID.keyword': [diveDoc._cruiseUUID] } || undefined);
-	const diveSampleDocs = useSearch(['diveSample'], diveDoc._coreUUID && { '_coreUUID.keyword': [diveDoc._coreUUID] } || undefined);
-	const otherDiveDocs = useSearch(['dive'], diveDoc._coreUUID && { '_coreUUID.keyword': [diveDoc._coreUUID] } || undefined);
+	const diveSampleDocs = useTerms(['diveSample'], diveDoc._diveUUID && { '_diveUUID.keyword': [diveDoc._diveUUID] } || undefined);
+	const otherDiveDocs = useTerms(['dive'], diveDoc._cruiseUUID && { '_cruiseUUID.keyword': [diveDoc._cruiseUUID] } || undefined);
 	
 	const mapMarkers = [];
 	[].concat(diveSampleDocs).forEach(doc => {
@@ -386,12 +360,24 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 
 	const osuIDs = {};
 	return <>
-		<Link href='/search'>
-			<Button icon>
-				<Icon name='arrow left' />
-				{" "} Search
-			</Button>
-		</Link>
+		<Menu secondary pointing stackable>
+			<Menu.Item>
+				<a href='/search'>
+					Return to Search
+				</a>
+			</Menu.Item>
+			{cruiseDocs && cruiseDocs[0] &&
+				<Menu.Item>
+					<a href={`/${cruiseDocs[0]._osuid}`}>
+						Cruise/Program {cruiseDocs[0]._osuid.replace('OSU-', '')}
+					</a>
+				</Menu.Item> || undefined
+			}
+			<Menu.Item active>
+				Dive {osuID.replace('OSU-', '')}
+			</Menu.Item>
+		</Menu>
+
 		<h1>{osuID.replace('OSU-', '')}</h1>
 			<Grid columns={2}>
 				<Grid.Column>
@@ -457,26 +443,10 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 								<List.Content style={{ padding: '.25rem 0 .5rem' }}>
 									<List.Header as='h3'>{doc._osuid}</List.Header>
 									<List.Description>
-										{_.keys(itemFieldNames).map((label, i) =>
-											label[0] !== '_' &&
-												label !== 'id.substring' &&
-												doc[label.replace('.substring', '')]  ? (
-												<Label
-													key={i}
-													basic
-													circular
-													size='tiny'
-													style={{
-														margin: '.5rem .5rem 0 0',
-													}}
-												>
-													&nbsp;&nbsp;{itemFieldNames[label]}:
-													<Label.Detail>
-														{doc[label.replace('.substring', '')]}
-													</Label.Detail>
-												</Label>
-											) : undefined
-										)}
+										{_.keys(itemFieldNames).map((label, i)  => <FieldLabel
+												key={i}
+												label={label}
+												doc={doc} />)}
 									</List.Description>
 									<List.Description style={{ margin: '0.5rem 0 -0.5rem'}}>
 										<CollectionMapThumbnail lat={doc.latitudeStart} lon={doc.longitudeStart} />
@@ -505,26 +475,10 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 									<List.Content style={{ padding: '.25rem 0 .5rem' }}>
 										<List.Header as='h3'>{doc._osuid}</List.Header>
 										<List.Description>
-											{_.keys(itemFieldNames).map((label, i) =>
-												label[0] !== '_' &&
-													label !== 'id.substring' &&
-													doc[label.replace('.substring', '')]  ? (
-													<Label
-														key={i}
-														basic
-														circular
-														size='tiny'
-														style={{
-															margin: '.5rem .5rem 0 0',
-														}}
-													>
-														&nbsp;&nbsp;{itemFieldNames[label]}:
-														<Label.Detail>
-															{doc[label.replace('.substring', '')]}
-														</Label.Detail>
-													</Label>
-												) : undefined
-											)}
+											{_.keys(itemFieldNames).map((label, i) => <FieldLabel
+												key={i}
+												label={label}
+												doc={doc} />)}
 										</List.Description>
 									</List.Content>
 								</Link>

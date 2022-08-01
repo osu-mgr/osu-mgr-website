@@ -6,12 +6,19 @@ const client: Client = new Client({
 });
 const index = 'osu-mgr';
 
+const cruisesFirst = {
+  "_script": {
+    "order": "asc",
+    "type": "number",
+    "script": "return doc['_docType.keyword'].value == 'cruise' ? 0 : 1"
+  }
+};
 const sortOrders = {
-	'modified asc': [{ _modified: 'asc' }],
-  'modified desc': [{ _modified: 'desc' }],
-  'alpha asc': [{ '_osuid.keyword': 'asc' }],
-  'alpha desc': [{ '_osuid.keyword': 'desc' }],
-  'ids asc': [
+	//'modified asc': [cruisesFirst, { _modified: 'asc' }],
+  //'modified desc': [cruisesFirst, { _modified: 'desc' }],
+  'alpha asc': [cruisesFirst, { '_osuid.keyword': 'asc' }],
+  'alpha desc': [cruisesFirst, { '_osuid.keyword': 'desc' }],
+  'ids asc': [cruisesFirst, 
     { 'cruise.keyword': 'asc' },
     { _coreNumber: 'asc' },
     { _sectionNumber: 'asc' },
@@ -19,7 +26,7 @@ const sortOrders = {
     { _diveSampleNumber: 'asc' },
     { '_osuid.keyword': 'asc' },
   ],
-  'ids desc': [
+  'ids desc': [cruisesFirst, 
     { 'cruise.keyword': 'desc' },
     { _coreNumber: 'desc' },
     { _sectionNumber: 'desc' },

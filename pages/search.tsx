@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import numeral from 'numeral';
 import { FunctionComponent, useState, useCallback, useEffect } from 'react';
 import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
@@ -9,7 +10,7 @@ import { useGithubJsonForm } from 'react-tinacms-github';
 import {
 	InlineForm
 } from 'react-tinacms-inline';
-import { Input, Icon, Button, Dropdown, List, Label, Loader } from 'semantic-ui-react';
+import { Input, Icon, Button, Dropdown, List, Label, Loader, Segment } from 'semantic-ui-react';
 import { useGitHubSiteForm } from '../common/site';
 import Head from '../components/head';
 import Link from '../components/link';
@@ -20,10 +21,146 @@ import { itemFieldNames, itemTypesSingular } from '../common/items';
 import CollectionFileButton from '../components/search.collectionFilesButton';
 import CollectionMapThumbnail from '../components/search.collectionMapThumbnail';
 
+const MatchListItem: FunctionComponent<{ match, search }> = ({ match, search }) => {
+	const searchStrings = search.searchString.toLowerCase().split(/\s+/);
+	const reMatchSplit = new RegExp(
+    `(${searchStrings
+      .map((x) => x.replace(/([.?*+^$[\]\\(){}|-])/g, '\\$1'))
+      .join('|')})`,
+    'ig'
+	);
+	return (<>
+		<List.Item key={match._source._osuid}>
+			<Link href={`${match._source._osuid}`}>
+				<List.Content style={{ padding: '.25rem 0 .5rem' }}>
+					<List.Header as='h3'>
+						{itemTypesSingular[match._source._docType]}
+						{" "}
+						{match._source._osuid.replace('OSU-', '')}
+					</List.Header>
+					<List.Description>
+						{match.highlight &&	_.keys(match.highlight).map((field) => (
+							<Label
+								circular
+								size='tiny'
+								key={field}
+								style={{ margin: '.5rem .5rem 0 0' }}
+							>
+								<Icon name='search' />
+								{itemFieldNames[field]}:
+								<Label.Detail>
+									{match.highlight[field][0]
+										.split(reMatchSplit)
+										.map((x: string, i: number) =>
+											searchStrings.includes(x.toLowerCase()) ? (
+												<span key={i} className='highlight'>
+													{x}
+												</span>
+											) : (
+												<span key={i}>{x}</span>
+											)
+										)}
+								</Label.Detail>
+							</Label>
+						))}
+						{match._source._docType === 'core' &&
+							<Label
+									basic
+									circular
+									size='tiny'
+									style={{
+										margin: '.5rem .5rem 0 0',
+									}}
+							>
+								Sections:
+								<Label.Detail><ItemsCount
+									searchString={match._source._osuid}
+									types={['section']}
+									pluralLabel=''
+									singularLabel=''
+								/></Label.Detail>
+							</Label>
+						}
+						{match._source._docType === 'dive' &&
+							<Label
+									basic
+									circular
+									size='tiny'
+									style={{
+										margin: '.5rem .5rem 0 0',
+									}}
+							>
+								Samples:
+								<Label.Detail><ItemsCount
+									searchString={match._source._osuid}
+									types={['diveSample']}
+									pluralLabel=''
+									singularLabel=''
+								/></Label.Detail>
+							</Label>
+						}
+						{_.keys(itemFieldNames).map((label, i) =>
+							label[0] !== '_' &&
+								label !== 'id.substring' &&
+								match._source[label.replace('.substring', '')] &&
+								(!match.highlight || !match.highlight[label]) ? (
+								<Label
+									key={i}
+									basic
+									circular
+									size='tiny'
+									style={{
+										margin: '.5rem .5rem 0 0',
+									}}
+								>
+									&nbsp;&nbsp;{itemFieldNames[label]}:
+										<Label.Detail>
+											{label === 'weight.substring' ? 
+												numeral(match._source[label.replace('.substring', '')]).format('0,0.0') : 
+												match._source[label.replace('.substring', '')]
+											}
+									</Label.Detail>
+								</Label>
+							) : undefined
+						)}
+					</List.Description>
+					{match._source._cruiseID && 
+						<List.Description style={{ margin: '0.5rem 0 -0.5rem' }}>
+							<CollectionMapThumbnail lat={match._source.latitudeStart}  lon={match._source.longitudeStart} />
+							<CollectionFileButton name='Cruise Report' icon='file pdf outline' file={`${match._source._cruiseID}/cruisereport/OSU-${match._source._cruiseID}-cruisereport.pdf`} />
+							<CollectionFileButton name='Publications' icon='file pdf outline' file={`${match._source._cruiseID}/publications/OSU-${match._source._cruiseID}-publications.pdf`} />
+							<CollectionFileButton name='Coring Data Sheet' icon='file pdf outline' file={`${match._source._cruiseID}/coringdatasheet/OSU-${match._source._cruiseID}-${match._source._coreNumber}-coringdatasheet.pdf`} />
+							<CollectionFileButton name='MST Data' icon='file pdf outline' file={`${match._source._cruiseID}/mstdata/${match._source._osuid}-mstdata.csv`} />
+						</List.Description> || undefined
+					}
+				</List.Content>
+			</Link>
+		</List.Item>
+		<style jsx>{`
+			.map {
+				display: inline-block;
+				margin-right: 0.5rem;
+				height: 100px;
+				width: 100px;
+			}
+			.file {
+				display: inline-block;
+				margin-right: 0.5rem;
+				height: 100px;
+				width: 150px;
+			}
+			.highlight {
+				color: #D73F09 !important;
+			}
+		`}</style>
+	</>)
+}
+
 export const Page: FunctionComponent<{ page: any; site: any }> = ({
 	page,
 	site,
 }) => {
+	const pageSize = 10;
   const [search, setSearch] = useLocalStorage('search', {
 		sortOrder: 'alpha asc',
 		searchString: '',
@@ -58,7 +195,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 				url: `/api/es?search`, payload: {
 					...search,
 					from: search.size * pageIndex,
-					size: 20,
+					size: pageSize,
 					types: ['cruise', 'core', 'dive']
 				}
 			};
@@ -72,22 +209,19 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 			return data
 		}
 	);
-	useEffect(() => {
-    if (isVisible) setSize(size + 1);
-  }, [isVisible]);
-	usePlugin(pageForm);
-	const [siteData, siteForm] = useGitHubSiteForm(site);
-	useFormScreenPlugin(siteForm);
-	const searchStrings = search.searchString.toLowerCase().split(/\s+/);
-  const reMatchSplit = new RegExp(
-    `(${searchStrings
-      .map((x) => x.replace(/([.?*+^$[\]\\(){}|-])/g, '\\$1'))
-      .join('|')})`,
-    'ig'
-	);
 	const matches = pages && _.flatten(pages.map(results =>
 		(results && results.hits && results.hits.hits || [])
 	)) || [];
+	const isLoading = pages === undefined || pages.length && pages.length < (pages[0].hits.total.value / pageSize);
+	useEffect(() => {
+		if (isLoading && isVisible && pages !== undefined && size < pages.length + 1)
+			setSize(size + 1);
+  });
+	
+	usePlugin(pageForm);
+	const [siteData, siteForm] = useGitHubSiteForm(site);
+	useFormScreenPlugin(siteForm);
+
 	return <>
 		<Layout navigation={siteData.navigation}>
 			<Head
@@ -121,49 +255,49 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 						}}
 					/>
 					<Dropdown
-					button
-					options={[
-						{
-							key: 'alpha asc',
-							value: 'alpha asc',
-							text: 'Names (Ordered)',
-						},
-						{
-							key: 'alpha desc',
-							value: 'alpha desc',
-							text: 'Names (Reverse)',
-						},
-						{
-							key: 'ids asc',
-							value: 'ids asc',
-							text: 'IDs (Ordered)',
-						},
-						{
-							key: 'ids desc',
-							value: 'ids desc',
-							text: 'IDs (Reverse)',
-						},
-						{
-							key: 'modified desc',
-							value: 'modified desc',
-							text: 'Recent First',
-						},
-						{
-							key: 'modified asc',
-							value: 'modified asc',
-							text: 'Recent Last',
-						},
-					]}
-					value={search.sortOrder}
-						onChange={(_event, data) => {
-							setSearch({
-								...search,
-								sortOrder: `${data.value}`,
-							});
-							setSize(0);
+						button
+						options={[
+							{
+								key: 'alpha asc',
+								value: 'alpha asc',
+								text: 'Names (Ordered)',
+							},
+							{
+								key: 'alpha desc',
+								value: 'alpha desc',
+								text: 'Names (Reverse)',
+							},
+							{
+								key: 'ids asc',
+								value: 'ids asc',
+								text: 'IDs (Ordered)',
+							},
+							{
+								key: 'ids desc',
+								value: 'ids desc',
+								text: 'IDs (Reverse)',
+							},
+							/*{
+								key: 'modified desc',
+								value: 'modified desc',
+								text: 'Recent First',
+							},
+							{
+								key: 'modified asc',
+								value: 'modified asc',
+								text: 'Recent Last',
+							},*/
+						]}
+						value={search.sortOrder}
+							onChange={(_event, data) => {
+								setSearch({
+									...search,
+									sortOrder: `${data.value}`,
+								});
+								setSize(0);
+							}
 						}
-					}
-				/>
+					/>
 				</Input>
 			</InlineForm>
 			<List divided>
@@ -180,131 +314,18 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 						singularLabel='Core/Dive'
 					/>
 				</List.Item>
-				{matches.map((match: any) => (
-					<List.Item key={match._source._osuid}>
-						<Link href={`${match._source._osuid}`}>
-							<List.Content style={{ padding: '.25rem 0 .5rem' }}>
-								<List.Header as='h3'>
-									{itemTypesSingular[match._source._docType]}
-									{" "}
-									{match._source._osuid.replace('OSU-', '')}
-								</List.Header>
-								<List.Description>
-									{match.highlight &&	_.keys(match.highlight).map((field) => (
-										<Label
-											circular
-											size='tiny'
-											key={field}
-											style={{ margin: '.5rem .5rem 0 0' }}
-										>
-											<Icon name='search' />
-											{itemFieldNames[field]}:
-											<Label.Detail>
-												{match.highlight[field][0]
-													.split(reMatchSplit)
-													.map((x: string, i: number) =>
-														searchStrings.includes(x.toLowerCase()) ? (
-															<span key={i} className='highlight'>
-																{x}
-															</span>
-														) : (
-															<span key={i}>{x}</span>
-														)
-													)}
-											</Label.Detail>
-										</Label>
-									))}
-									{match._source._docType === 'core' &&
-										<Label
-												basic
-												circular
-												size='tiny'
-												style={{
-													margin: '.5rem .5rem 0 0',
-												}}
-										>
-											Sections:
-											<Label.Detail><ItemsCount
-												searchString={match._source._osuid}
-												types={['section']}
-												pluralLabel=''
-												singularLabel=''
-											/></Label.Detail>
-										</Label>
-									}
-									{match._source._docType === 'dive' &&
-										<Label
-												basic
-												circular
-												size='tiny'
-												style={{
-													margin: '.5rem .5rem 0 0',
-												}}
-										>
-											Samples:
-											<Label.Detail><ItemsCount
-												searchString={match._source._osuid}
-												types={['diveSample']}
-												pluralLabel=''
-												singularLabel=''
-											/></Label.Detail>
-										</Label>
-									}
-									{_.keys(itemFieldNames).map((label, i) =>
-										label[0] !== '_' &&
-											label !== 'id.substring' &&
-											match._source[label.replace('.substring', '')] &&
-											(!match.highlight || !match.highlight[label]) ? (
-											<Label
-												key={i}
-												basic
-												circular
-												size='tiny'
-												style={{
-													margin: '.5rem .5rem 0 0',
-												}}
-											>
-												&nbsp;&nbsp;{itemFieldNames[label]}:
-												<Label.Detail>
-													{match._source[label.replace('.substring', '')]}
-												</Label.Detail>
-											</Label>
-										) : undefined
-									)}
-								</List.Description>
-								{match._source._cruiseID && 
-									<List.Description style={{ margin: '0.5rem 0 -0.5rem' }}>
-										<CollectionMapThumbnail lat={match._source.latitudeStart}  lon={match._source.longitudeStart} />
-										<CollectionFileButton name='Cruise Report' icon='file pdf outline' file={`${match._source._cruiseID}/cruisereport/OSU-${match._source._cruiseID}-cruisereport.pdf`} />
-										<CollectionFileButton name='Publications' icon='file pdf outline' file={`${match._source._cruiseID}/publications/OSU-${match._source._cruiseID}-publications.pdf`} />
-										<CollectionFileButton name='Coring Data Sheet' icon='file pdf outline' file={`${match._source._cruiseID}/coringdatasheet/OSU-${match._source._cruiseID}-${match._source._coreNumber}-coringdatasheet.pdf`} />
-										<CollectionFileButton name='MST Data' icon='file pdf outline' file={`${match._source._cruiseID}/mstdata/${match._source._osuid}-mstdata.csv`} />
-									</List.Description> || undefined
-								}
-							</List.Content>
-						</Link>
-					</List.Item>
-				))}
+				{matches.map((match: any, key) => <MatchListItem key={ key } match={ match } search={ search }/>)}
 			</List>
+			{isLoading &&
+				<>
+					<Segment basic padded='very'>
+						<Loader active>
+							Loading Results
+						</Loader>
+					</Segment>
+				</> || undefined
+			}
 			{matches.length && <div ref={ref} /> || undefined}
-			{pages === undefined && <Loader active /> || undefined}
-			<style jsx>{`
-				.map {
-					display: inline-block;
-					margin-right: 0.5rem;
-					height: 100px;
-					width: 100px;
-				}
-				.file {
-					display: inline-block;
-					margin-right: 0.5rem;
-					height: 100px;
-					width: 150px;
-				}
-				.highlight {
-					color: #D73F09 !important;
-				}
-			`}</style>
 		</Layout>
 	</>;
 };
