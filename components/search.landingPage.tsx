@@ -102,7 +102,9 @@ const CruiseLandingPage: FunctionComponent<{ cruiseDoc }> = ({ cruiseDoc }) => {
 				</a>
 			</Menu.Item>
 			<Menu.Item active>
-				Cruise/Program {osuID.replace('OSU-', '')}
+				<div>
+					Cruise/Program {osuID.replace('OSU-', '')}
+				</div>
 			</Menu.Item>
 		</Menu>
 		
@@ -221,7 +223,9 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
 				</Menu.Item> || undefined
 			}
 			<Menu.Item active>
-				Core {osuID.replace('OSU-', '')}
+				<div>
+					Core {osuID.replace('OSU-', '')}
+				</div>
 			</Menu.Item>
 		</Menu>
 
@@ -374,7 +378,9 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 				</Menu.Item> || undefined
 			}
 			<Menu.Item active>
-				Dive {osuID.replace('OSU-', '')}
+				<div>
+					Dive {osuID.replace('OSU-', '')}
+				</div>
 			</Menu.Item>
 		</Menu>
 
