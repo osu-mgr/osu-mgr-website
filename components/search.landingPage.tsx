@@ -102,9 +102,9 @@ const CruiseLandingPage: FunctionComponent<{ cruiseDoc }> = ({ cruiseDoc }) => {
 				</a>
 			</Menu.Item>
 			<Menu.Item active>
-				<div>
+				<p>
 					Cruise/Program {osuID.replace('OSU-', '')}
-				</div>
+				</p>
 			</Menu.Item>
 		</Menu>
 		
@@ -121,6 +121,16 @@ const CruiseLandingPage: FunctionComponent<{ cruiseDoc }> = ({ cruiseDoc }) => {
 							</div>
 						) : undefined
 					) || undefined}
+					{cruiseDoc._cruiseID && 
+						<List divided>
+							<List.Item>
+								<List.Content style={{ padding: '.25rem 0 .5rem' }}>
+									<CollectionFileButton name='Cruise Report' icon='file pdf outline' file={`${cruiseDoc._cruiseID}/cruisereport/OSU-${cruiseDoc._cruiseID}-cruisereport.pdf`} />
+									<CollectionFileButton name='Publications' icon='file pdf outline' file={`${cruiseDoc._cruiseID}/publications/OSU-${cruiseDoc._cruiseID}-publications.pdf`} />
+								</List.Content>
+							</List.Item>
+						</List> || undefined
+					}
 				</Grid.Column>
 				<Grid.Column>
 					{mapMarkers.length && <>
@@ -142,16 +152,6 @@ const CruiseLandingPage: FunctionComponent<{ cruiseDoc }> = ({ cruiseDoc }) => {
 					</> || undefined }
 				</Grid.Column>
 			</Grid>
-			{cruiseDoc._cruiseID && 
-				<List divided>
-					<List.Item>
-						<List.Content style={{ padding: '.25rem 0 .5rem' }}>
-							<CollectionFileButton name='Cruise Report' icon='file pdf outline' file={`${cruiseDoc._cruiseID}/cruisereport/OSU-${cruiseDoc._cruiseID}-cruisereport.pdf`} />
-							<CollectionFileButton name='Publications' icon='file pdf outline' file={`${cruiseDoc._cruiseID}/publications/OSU-${cruiseDoc._cruiseID}-publications.pdf`} />
-						</List.Content>
-					</List.Item>
-				</List> || undefined
-			}
 			{ coreDocs && coreDocs.length &&
 				<>
 					<h3>Cores from Cruise/Program {cruiseDoc._cruiseID}</h3>
@@ -223,9 +223,9 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
 				</Menu.Item> || undefined
 			}
 			<Menu.Item active>
-				<div>
+				<p>
 					Core {osuID.replace('OSU-', '')}
-				</div>
+				</p>
 			</Menu.Item>
 		</Menu>
 
@@ -253,6 +253,19 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
 							</div>
 						) : undefined
 					) || undefined}
+					{cruiseDocs && cruiseDocs.length && cruiseDocs[0]._cruiseID && 
+					<List divided>
+						<List.Item>
+							<List.Content style={{ padding: '.25rem 0 .5rem' }}>
+								<CollectionFileButton name='Cruise Report' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/cruisereport/OSU-${cruiseDocs[0]._cruiseID}-cruisereport.pdf`} />
+								<CollectionFileButton name='Publications' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/publications/OSU-${cruiseDocs[0]._cruiseID}-publications.pdf`} />
+								<CollectionFileButton name='Coring Data Sheet' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/coringdatasheet/OSU-${cruiseDocs[0]._cruiseID}-${coreDoc._coreNumber}-coringdatasheet.pdf`} />
+								<CollectionFileButton name='MST Data' icon='file alternate outline' file={`${cruiseDocs[0]._cruiseID}/mstdata/${coreDoc._osuid}-mstdata.csv`} />
+								<CollectionFileButton name='MST Data' icon='file alternate outline' file={`${cruiseDocs[0]._cruiseID}/mstdata/${coreDoc._osuid}-mstdata.out`} />
+							</List.Content>
+						</List.Item>
+					</List> || undefined
+				}
 				</Grid.Column>
 				<Grid.Column>
 					{coreDoc.latitudeStart && coreDoc.longitudeStart && <>
@@ -274,19 +287,6 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
 					</> || undefined }
 				</Grid.Column>
 			</Grid>
-			{cruiseDocs && cruiseDocs.length && cruiseDocs[0]._cruiseID && 
-				<List divided>
-					<List.Item>
-						<List.Content style={{ padding: '.25rem 0 .5rem' }}>
-							<CollectionFileButton name='Cruise Report' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/cruisereport/OSU-${cruiseDocs[0]._cruiseID}-cruisereport.pdf`} />
-							<CollectionFileButton name='Publications' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/publications/OSU-${cruiseDocs[0]._cruiseID}-publications.pdf`} />
-							<CollectionFileButton name='Coring Data Sheet' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/coringdatasheet/OSU-${cruiseDocs[0]._cruiseID}-${coreDoc._coreNumber}-coringdatasheet.pdf`} />
-							<CollectionFileButton name='MST Data' icon='file alternate outline' file={`${cruiseDocs[0]._cruiseID}/mstdata/${coreDoc._osuid}-mstdata.csv`} />
-							<CollectionFileButton name='MST Data' icon='file alternate outline' file={`${cruiseDocs[0]._cruiseID}/mstdata/${coreDoc._osuid}-mstdata.out`} />
-						</List.Content>
-					</List.Item>
-				</List> || undefined
-			}
 			{cruiseDocs && cruiseDocs.length && cruiseDocs[0]._cruiseID && sectionDocs && sectionDocs.length &&
 				<>
 					<h3>Core Sections</h3>
@@ -310,8 +310,6 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
 										<CollectionImageThumbnail name='Section Image' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}-image.bmp`} />
 										<CollectionImageThumbnail name='Section X-Ray' file={`${cruiseDocs[0]._cruiseID}/xray/${doc._osuid}-itraxxray.tif`} />
 										<CollectionFileButton name='Core Description' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/coredescription/${doc._osuid}-coredescription.pdf`} />
-										<CollectionFileButton name='Archive IGSN' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/igsnsheet/${doc._osuid}A.pdf`} />
-										<CollectionFileButton name='Working IGSN' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/igsnsheet/${doc._osuid}W.pdf`} />
 									</List.Description>
 								</List.Content>
 							</List.Item>
@@ -378,9 +376,9 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 				</Menu.Item> || undefined
 			}
 			<Menu.Item active>
-				<div>
+				<p>
 					Dive {osuID.replace('OSU-', '')}
-				</div>
+				</p>
 			</Menu.Item>
 		</Menu>
 
@@ -408,6 +406,16 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 							</div>
 						) : undefined
 					) || undefined}
+					{cruiseDocs && cruiseDocs.length && cruiseDocs[0]._cruiseID && 
+						<List divided>
+							<List.Item>
+								<List.Content style={{ padding: '.25rem 0 .5rem' }}>
+									<CollectionFileButton name='Cruise Report' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/cruisereport/OSU-${cruiseDocs[0]._cruiseID}-cruisereport.pdf`} />
+									<CollectionFileButton name='Publications' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/publications/OSU-${cruiseDocs[0]._cruiseID}-publications.pdf`} />
+								</List.Content>
+							</List.Item>
+						</List> || undefined
+					}
 				</Grid.Column>
 				<Grid.Column>
 					{mapMarkers.length && <>
@@ -429,16 +437,6 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 					</> || undefined }
 				</Grid.Column>
 			</Grid>
-			{cruiseDocs && cruiseDocs.length && cruiseDocs[0]._cruiseID && 
-				<List divided>
-					<List.Item>
-						<List.Content style={{ padding: '.25rem 0 .5rem' }}>
-							<CollectionFileButton name='Cruise Report' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/cruisereport/OSU-${cruiseDocs[0]._cruiseID}-cruisereport.pdf`} />
-							<CollectionFileButton name='Publications' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/publications/OSU-${cruiseDocs[0]._cruiseID}-publications.pdf`} />
-						</List.Content>
-					</List.Item>
-				</List> || undefined
-		}
 		{cruiseDocs && cruiseDocs.length && diveSampleDocs && diveSampleDocs.length &&
 				<>
 					<h3>Dive Samples</h3>
