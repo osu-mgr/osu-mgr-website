@@ -5,7 +5,7 @@
       "_template": "image",
       "size": "Large",
       "floated": "Right",
-      "image": "ParkingEntrance.jpg"
+      "image": "parking.png"
     },
     {
       "_template": "markdown",
