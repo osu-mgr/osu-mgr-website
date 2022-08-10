@@ -3,7 +3,7 @@
   "blocks": [
     {
       "_template": "image",
-      "size": "Large",
+      "size": "Big",
       "floated": "Right",
       "image": "parking.png"
     },
