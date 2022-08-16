@@ -4,6 +4,13 @@
     {
       "_template": "markdown",
       "body": "Coming Soon..."
+    },
+    {
+      "_template": "image",
+      "link": "",
+      "size": "Big",
+      "floated": "Center",
+      "image": "OSU MGR core workflow.jpg"
     }
   ]
 }
