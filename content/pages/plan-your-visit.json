@@ -2,13 +2,9 @@
   "htmlTitle": "Plan Your Visit",
   "blocks": [
     {
-      "_template": "markdown",
-      "body": "Coming Soon..."
-    },
-    {
       "_template": "image",
       "link": "",
-      "size": "Big",
+      "size": "Massive",
       "floated": "Center",
       "image": "OSU MGR core workflow.jpg"
     }
