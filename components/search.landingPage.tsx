@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import numeral from 'numeral';
 import { FunctionComponent } from 'react';
 import { useRouter } from 'next/router';
 import { Grid, Image, List, Loader, Label, Container, Message, Button, Icon, Menu } from 'semantic-ui-react';
@@ -7,7 +6,7 @@ import useSWR from 'swr';
 import CollectionFileButton from './search.collectionFilesButton';
 import CollectionImageThumbnail from './search.collectionImageThumbnail';
 import CollectionMapThumbnail from './search.collectionMapThumbnail';
-import { itemFieldNames } from '../common/items';
+import { itemFieldNames, formatField } from '../common/items';
 import Link from '../components/link';
 
 const useTerms = (types, terms) => {
@@ -59,6 +58,7 @@ const useSearch = (types, searchString) => {
 const FieldLabel: FunctionComponent<{ doc, label }> = ({ doc, label }) => {
 	if (label[0] !== '_' &&
 		label !== 'id.substring' &&
+		itemFieldNames[label] &&
 		doc[label.replace('.substring', '')])
 		return <Label
 			basic
@@ -70,7 +70,7 @@ const FieldLabel: FunctionComponent<{ doc, label }> = ({ doc, label }) => {
 		>
 			&nbsp;&nbsp;{itemFieldNames[label]}:
 			<Label.Detail>
-				{label === 'weight.substring' ? numeral( doc[label.replace('.substring', '')]).format('0,0.0') : doc[label.replace('.substring', '')]}
+				{formatField(doc, label)}
 			</Label.Detail>
 		</Label>;
 	return null;
@@ -117,7 +117,7 @@ const CruiseLandingPage: FunctionComponent<{ cruiseDoc }> = ({ cruiseDoc }) => {
 							<div
 								key={i}
 							>
-								<b>Cruise {itemFieldNames[label]}:</b> {cruiseDoc[label.replace('.substring', '')]} 
+								<b>Cruise {itemFieldNames[label]}:</b> {formatField(cruiseDoc, label)} 
 							</div>
 						) : undefined
 					) || undefined}
@@ -238,7 +238,7 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
 							<div
 								key={i}
 							>
-								<b>{itemFieldNames[label]}:</b> {coreDoc[label.replace('.substring', '')]} 
+								<b>{itemFieldNames[label]}:</b> {formatField(coreDoc, label)} 
 							</div>
 						) : undefined
 					) || undefined}
@@ -249,7 +249,7 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
 							<div
 								key={i}
 							>
-								<b>Cruise {itemFieldNames[label]}:</b> {cruiseDocs[0][label.replace('.substring', '')]} 
+								<b>Cruise {itemFieldNames[label]}:</b> {formatField(cruiseDocs[0], label)} 
 							</div>
 						) : undefined
 					) || undefined}
@@ -391,7 +391,7 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 							<div
 								key={i}
 							>
-								<b>{itemFieldNames[label]}:</b> {diveDoc[label.replace('.substring', '')]} 
+								<b>{itemFieldNames[label]}:</b> {formatField(diveDoc, label)} 
 							</div>
 						) : undefined
 					) || undefined}
@@ -402,7 +402,7 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 							<div
 								key={i}
 							>
-								<b>Cruise {itemFieldNames[label]}:</b> {cruiseDocs[0][label.replace('.substring', '')]} 
+								<b>Cruise {itemFieldNames[label]}:</b> {formatField(cruiseDocs[0], label)} 
 							</div>
 						) : undefined
 					) || undefined}

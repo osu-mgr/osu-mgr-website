@@ -1,3 +1,5 @@
+import numeral from 'numeral';
+
 export const itemTypes = [
   'cruise',
   'core',
@@ -87,3 +89,14 @@ export const itemFieldNames = {
   'storageLocation.substring': 'Storage Location',
   'notes.substring': 'Notes',
 };
+
+export const formatField = (obj: Record<string, string>, fieldName: string): string => {
+  if (fieldName === 'weight.substring')
+    return numeral(obj[fieldName.replace('.substring', '')]).format('0,0.0')
+  if (fieldName === 'latitudeStart.substring' ||
+    fieldName === 'latitudeEnd.substring' ||
+    fieldName === 'longitudeStart.substring' ||
+    fieldName === 'longitudeEnd.substring')
+    return numeral(obj[fieldName.replace('.substring', '')]).format('0,0.0000')
+  return obj[fieldName.replace('.substring', '')] || '';
+}

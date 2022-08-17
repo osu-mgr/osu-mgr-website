@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import numeral from 'numeral';
 import { FunctionComponent, useState, useCallback, useEffect } from 'react';
 import { getGithubPreviewProps, parseJson } from 'next-tinacms-github';
 import { GetStaticProps } from 'next';
@@ -17,7 +16,7 @@ import Link from '../components/link';
 import Layout from '../components/layout';
 import ItemsCount from '../components/items.count';
 import useLocalStorage from '../common/useLocalStorage';
-import { itemFieldNames, itemTypesSingular } from '../common/items';
+import { itemFieldNames, itemTypesSingular, formatField } from '../common/items';
 import CollectionFileButton from '../components/search.collectionFilesButton';
 import CollectionMapThumbnail from '../components/search.collectionMapThumbnail';
 
@@ -40,7 +39,7 @@ const MatchListItem: FunctionComponent<{ match, search }> = ({ match, search }) 
 					</List.Header>
 					<List.Description>
 						{match.highlight &&	_.keys(match.highlight).map((field) => (
-							<Label
+							itemFieldNames[field] && <Label
 								circular
 								size='tiny'
 								key={field}
@@ -61,7 +60,7 @@ const MatchListItem: FunctionComponent<{ match, search }> = ({ match, search }) 
 											)
 										)}
 								</Label.Detail>
-							</Label>
+							</Label> || undefined
 						))}
 						{match._source._docType === 'core' &&
 							<Label
@@ -102,6 +101,7 @@ const MatchListItem: FunctionComponent<{ match, search }> = ({ match, search }) 
 						{_.keys(itemFieldNames).map((label, i) =>
 							label[0] !== '_' &&
 								label !== 'id.substring' &&
+								itemFieldNames[label] &&
 								match._source[label.replace('.substring', '')] &&
 								(!match.highlight || !match.highlight[label]) ? (
 								<Label
@@ -115,10 +115,7 @@ const MatchListItem: FunctionComponent<{ match, search }> = ({ match, search }) 
 								>
 									&nbsp;&nbsp;{itemFieldNames[label]}:
 										<Label.Detail>
-											{label === 'weight.substring' ? 
-												numeral(match._source[label.replace('.substring', '')]).format('0,0.0') : 
-												match._source[label.replace('.substring', '')]
-											}
+											{formatField(match._source, label)}
 									</Label.Detail>
 								</Label>
 							) : undefined
