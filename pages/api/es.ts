@@ -43,8 +43,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
   let resp = { body: {} };
   if (req.query.search !== undefined && (search.terms !== undefined || search.searchString !== undefined) && search.types !== undefined) {
     resp = await client.search({
-      from: search.from,
-      size: search.size,
+      from: search.from || 0,
+      size: search.size || 10,
       index,
       body: {
         sort: sortOrders[search.sortOrder],
