@@ -22,7 +22,7 @@ const CollectionFileButton: FunctionComponent<{ file: string, name: string, icon
 				className='file'
 				target='_blank'
 				rel='noreferrer'
-				href={`https://haviside.ceoas.oregonstate.edu:8443/collection/${folder}${file}`}>
+				href={`${process.env.COLLECTION}${folder}${file}`}>
 				<Segment textAlign='center' style={{ boxShadow: 'none' }}>
 					<Header size='tiny' icon>
 						<Icon name={icon} />

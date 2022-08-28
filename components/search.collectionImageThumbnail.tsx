@@ -27,7 +27,7 @@ const CollectionImageThumbnail: FunctionComponent<{ file: string, name: string }
 				className='file'
 				target='_blank'
 				rel='noreferrer'
-				href={`https://haviside.ceoas.oregonstate.edu:8443/collection/${folder}${file}`}>
+				href={`${process.env.COLLECTION}${folder}${file}`}>
 				{name !== undefined ?
 					<Segment textAlign='center' style={{ boxShadow: 'none' }}>
 						<Grid columns={2}>
@@ -49,7 +49,7 @@ const CollectionImageThumbnail: FunctionComponent<{ file: string, name: string }
 										maxWidth: 'auto',
 										objectFit: 'cover',
 									}}
-									src={`https://haviside.ceoas.oregonstate.edu:8443/collection/${folder}${file}?${rotate[folder] ? 'srotate=-90&' : ''}height=95`}
+									src={`${process.env.COLLECTION}${folder}${file}?${rotate[folder] ? 'srotate=-90&' : ''}height=95`}
 								/>
 							</Grid.Column>
 						</Grid>
@@ -65,7 +65,7 @@ const CollectionImageThumbnail: FunctionComponent<{ file: string, name: string }
 							maxWidth: 'auto',
 							objectFit: 'cover',
 						}}
-						src={`https://haviside.ceoas.oregonstate.edu:8443/collection/${folder}${file}?${rotate[folder] ? 'srotate=-90&' : ''}height=95`}
+						src={`${process.env.COLLECTION}${folder}${file}?${rotate[folder] ? 'srotate=-90&' : ''}height=95`}
 					/>
 				}
 			</a> || undefined

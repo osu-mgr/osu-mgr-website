@@ -4,7 +4,7 @@ import useSWRImmutable from 'swr/immutable';
 const useCollectionFileExists = (file: string | null): SWRResponse => useSWRImmutable(
   file !== null && (() => {
     return { url: `/api/collection?fileExists`, payload: {
-      url: `https://haviside.ceoas.oregonstate.edu:8443/collection/${file}`
+      url: `${process.env.COLLECTION}${file}`
     }};
   }) || null,
   async ({ url, payload }) => {
