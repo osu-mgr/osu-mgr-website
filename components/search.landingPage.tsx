@@ -458,7 +458,7 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 											<CollectionImageThumbnail
 												key={`${x}`}
 												name={x === 1 && 'Sample Image' || undefined}
-												file={`${cruiseDocs[0]._cruiseID}/image/${osuID.replace('OSU-', '')}-${doc.id}_${x}.JPG`}
+												file={`${cruiseDocs[0]._cruiseID}/image/${osuID}-${doc.id}_${x}.JPG`}
 											/>
 										)}
 									</List.Description>
