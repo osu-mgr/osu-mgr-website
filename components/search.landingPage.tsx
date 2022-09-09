@@ -377,7 +377,7 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 			}
 			<Menu.Item active>
 				<p>
-					Dive {osuID.replace('OSU-', '')}
+					Dredge/Dive {osuID.replace('OSU-', '')}
 				</p>
 			</Menu.Item>
 		</Menu>
@@ -439,7 +439,7 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 			</Grid>
 		{cruiseDocs && cruiseDocs.length && diveSampleDocs && diveSampleDocs.length &&
 				<>
-					<h3>Dive Samples</h3>
+					<h3>Dredge/Dive Samples</h3>
 					<hr />
 					<List divided>
 						{ diveSampleDocs.map(doc => !osuIDs[doc._osuid] && (osuIDs[doc._osuid] = 1) &&
@@ -453,7 +453,8 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 												doc={doc} />)}
 									</List.Description>
 									<List.Description style={{ margin: '0.5rem 0 -0.5rem'}}>
-										<CollectionMapThumbnail lat={doc.latitudeStart} lon={doc.longitudeStart} />
+                    <CollectionMapThumbnail lat={doc.latitudeStart} lon={doc.longitudeStart} />
+										<CollectionFileButton name='Description' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/description/${doc._osuid}-description.pdf`} />
 										{_.range(1, 50).map(x =>
 											<CollectionImageThumbnail
 												key={`${x}`}

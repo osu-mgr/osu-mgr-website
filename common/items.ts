@@ -19,9 +19,9 @@ export const itemTypesSingular: Record<ItemType, string> = {
   section: 'Section',
   sectionHalf: 'Section Half',
   sectionSample: 'Section Sample',
-  dive: 'Dive',
-  diveSample: 'Dive Sample',
-  diveSubsample: 'Dive Subsample',
+  dive: 'Dredge/Dive',
+  diveSample: 'Dredge/Dive Sample',
+  diveSubsample: 'Dredge/Dive Subsample',
 };
 
 export const itemTypesPlural: Record<ItemType, string> = {
@@ -30,9 +30,9 @@ export const itemTypesPlural: Record<ItemType, string> = {
   section: 'Sections',
   sectionHalf: 'Section Halves',
   sectionSample: 'Section Samples',
-  dive: 'Dives',
-  diveSample: 'Dive Samples',
-  diveSubsample: 'Dive Subsamples',
+  dive: 'Dredges/Dives',
+  diveSample: 'Dredge/Dive Samples',
+  diveSubsample: 'Dredge/Dive Subsamples',
 };
 
 export const itemTypesHierarchy: Record<ItemType, ItemType[]> = {
