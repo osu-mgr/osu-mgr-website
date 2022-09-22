@@ -6,7 +6,7 @@
         { "source": "/coreactivity-corec", "destination": "http://core-repository.ceoas.oregonstate.edu/coreactivity-corec" },
         { "source": "/education-outreach", "destination": "/in-person-tours" },
         { "source": "/virtual-repository-tour", "destination": "/virtual-tour" },
-        { "source": "/monitor", "destination": "http://haviside.ceoas.oregonstate.edu:3601/d/1veObBoGz/nypro?orgId=1&refresh=10s&from=now-2d&to=now&kiosk" }
+        { "source": "/monitor", "destination": "https://grafana.marfik.earthref.org/d/zydlGFM4k/osu-mgr?orgId=1&refresh=30s&kiosk" }
     ],
     "rewrites": [
         { "source": "/collection/holdings/:match*", "destination": "http://core-repository.ceoas.oregonstate.edu/collection/holdings/:match*" },
