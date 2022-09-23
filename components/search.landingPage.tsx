@@ -496,8 +496,10 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 }
 
 export const SearchLandingPage: FunctionComponent = () => {
-	const { asPath } = useRouter();
-	const osuID = asPath.substring(1);
+  const { asPath } = useRouter();
+  
+  const osuIDparts = asPath.substring(1).split('-');
+  const osuID = osuIDparts.slice(0, 3).join('-');
 	
 	const searchDocs = useTerms(['cruise', 'core', 'dive'], { '_osuid.keyword': [osuID] });
 	
@@ -507,13 +509,16 @@ export const SearchLandingPage: FunctionComponent = () => {
 	if (searchDocs.length === 0)
 		return (
 			<Container style={{ display: 'flex', height: '50vh' }}>
-					<Message
-						error
-						size='large'
-						icon='warning'
-						header='Unknown OSU ID'
-						content={<>
-							Please try searching for a different item in the collections.
+        <Message
+          error
+          size='large'
+          icon='warning'
+          header='Unknown OSU ID'
+          content={<>
+              <br/>
+              <b>{osuID}</b> is not not found in the OSU-MGR collections.
+              <br/>
+              Please try searching for a different item in the collections.
 							<br/>
 							<br/>
 							<Link href='/search'>
