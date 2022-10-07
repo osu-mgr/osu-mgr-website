@@ -78,9 +78,9 @@ const FieldLabel: FunctionComponent<{ doc, label }> = ({ doc, label }) => {
 
 const CruiseLandingPage: FunctionComponent<{ cruiseDoc }> = ({ cruiseDoc }) => {
 	const osuID = cruiseDoc._osuid;
-	const coreDocs = useSearch(['core'], cruiseDoc._cruiseID && `OSU-${cruiseDoc._cruiseID}` || undefined);
-	const diveDocs = useSearch(['dive'], cruiseDoc._cruiseID && `OSU-${cruiseDoc._cruiseID}` || undefined);
-	const diveSampleDocs = useSearch(['diveSample'], cruiseDoc._cruiseID && `OSU-${cruiseDoc._cruiseID}` || undefined);
+	const coreDocs = useSearch(['core'], cruiseDoc._cruiseID && `OSU-${cruiseDoc._cruiseID}-` || undefined);
+	const diveDocs = useSearch(['dive'], cruiseDoc._cruiseID && `OSU-${cruiseDoc._cruiseID}-` || undefined);
+	const diveSampleDocs = useSearch(['diveSample'], cruiseDoc._cruiseID && `OSU-${cruiseDoc._cruiseID}-` || undefined);
 	
 	const mapMarkers = [];
 	[].concat(coreDocs).concat(diveSampleDocs).forEach(doc => {
