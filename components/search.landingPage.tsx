@@ -63,7 +63,7 @@ const FieldLabel: FunctionComponent<{ doc, label }> = ({ doc, label }) => {
 		return <Label
 			basic
 			circular
-			size='tiny'
+			size='medium'
 			style={{
 				margin: '.5rem .5rem 0 0',
 			}}

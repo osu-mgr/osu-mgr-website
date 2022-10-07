@@ -41,7 +41,7 @@ const MatchListItem: FunctionComponent<{ match, search }> = ({ match, search }) 
 						{match.highlight &&	_.keys(match.highlight).map((field) => (
 							itemFieldNames[field] && <Label
 								circular
-								size='tiny'
+								size='medium'
 								key={field}
 								style={{ margin: '.5rem .5rem 0 0' }}
 							>
@@ -66,7 +66,7 @@ const MatchListItem: FunctionComponent<{ match, search }> = ({ match, search }) 
 							<Label
 									basic
 									circular
-									size='tiny'
+									size='medium'
 									style={{
 										margin: '.5rem .5rem 0 0',
 									}}
@@ -84,7 +84,7 @@ const MatchListItem: FunctionComponent<{ match, search }> = ({ match, search }) 
 							<Label
 									basic
 									circular
-									size='tiny'
+									size='medium'
 									style={{
 										margin: '.5rem .5rem 0 0',
 									}}
@@ -108,7 +108,7 @@ const MatchListItem: FunctionComponent<{ match, search }> = ({ match, search }) 
 									key={i}
 									basic
 									circular
-									size='tiny'
+									size='medium'
 									style={{
 										margin: '.5rem .5rem 0 0',
 									}}
