@@ -51,10 +51,10 @@
     },
     {
       "_template": "row",
-      "link": "https://www.sciencedirect.com/science/article/pii/S0277379122000919",
-      "title": "Research In the News",
-      "description": "Jennings, A., Reilly, B., Andrews, J., Hogan, K., Walczak, M., Jakobsson, M., Stoner, J., Mix, A., Nicholls, K.W., O'Regan, M. and Prins, M.A., 2022. Modern and early holocene ice shelf sediment facies from Petermann Fjord and northern Nares Strait, northwest Greenland. Quaternary Science Reviews, 283, p.107460.",
-      "image": "Jenningsetal2022.jpg"
+      "link": "https://www.nature.com/articles/d41586-022-03236-z",
+      "title": "In the News",
+      "description": "OSU-MGR in the news! Read on in this Nature article to learn more about how polar researchers adapted their projects as a result of the pandemic.",
+      "image": "Nature_covidarticle.JPG"
     }
   ]
 }
