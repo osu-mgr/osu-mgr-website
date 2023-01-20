@@ -24,7 +24,7 @@ const MatchListItem: FunctionComponent<{ match, search }> = ({ match, search }) 
 	const searchStrings = search.searchString.toLowerCase().split(/\s+/);
 	const reMatchSplit = new RegExp(
     `(${searchStrings
-      .map((x) => x.replace(/([.?*+^$[\]\\(){}|-])/g, '\\$1'))
+      .map((x) => x.replace(/([.?*+^$[\]\\(){}|])/g, '\\$1'))
       .join('|')})`,
     'ig'
 	);
