@@ -50,6 +50,7 @@ export const itemFieldNames = {
   '_osuid.substring': 'OSU ID',
   '_errors.substring': 'Error',
   '_warnings.substring': 'Warning',
+  'nSections.substring': 'Sections',
   'method.substring': 'Method',
   'latitudeEnd.substring': 'Latitude End',
   'latitudeStart.substring': 'Latitude Start',
@@ -91,6 +92,10 @@ export const itemFieldNames = {
 };
 
 export const formatField = (obj: Record<string, string>, fieldName: string): string => {
+  if (fieldName === 'nSections.substring' ||
+    fieldName === 'depthTop.substring' ||
+    fieldName === 'depthBottom.substring')
+    return numeral(obj[fieldName.replace('.substring', '')]).format('0,0')
   if (fieldName === 'weight.substring')
     return numeral(obj[fieldName.replace('.substring', '')]).format('0,0.0')
   if (fieldName === 'latitudeStart.substring' ||

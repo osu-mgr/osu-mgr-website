@@ -62,24 +62,6 @@ const MatchListItem: FunctionComponent<{ match, search }> = ({ match, search }) 
 								</Label.Detail>
 							</Label> || undefined
 						))}
-						{match._source._docType === 'core' &&
-							<Label
-									basic
-									circular
-									size='medium'
-									style={{
-										margin: '.5rem .5rem 0 0',
-									}}
-							>
-								Sections:
-								<Label.Detail><ItemsCount
-									searchString={match._source._osuid}
-									types={['section']}
-									pluralLabel=''
-									singularLabel=''
-								/></Label.Detail>
-							</Label>
-						}
 						{match._source._docType === 'dive' &&
 							<Label
 									basic
