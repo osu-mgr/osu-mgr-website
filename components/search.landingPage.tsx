@@ -1,7 +1,7 @@
 import _ from 'lodash';
-import { FunctionComponent } from 'react';
+import { FunctionComponent, useState } from 'react';
 import { useRouter } from 'next/router';
-import { Grid, Image, List, Loader, Label, Container, Message, Button, Icon, Menu } from 'semantic-ui-react';
+import { Grid, Image, List, Loader, Label, Container, Message, Button, Icon, Menu, Segment } from 'semantic-ui-react';
 import useSWR from 'swr';
 import CollectionFileButton from './search.collectionFilesButton';
 import CollectionImageThumbnail from './search.collectionImageThumbnail';
@@ -9,14 +9,14 @@ import CollectionMapThumbnail from './search.collectionMapThumbnail';
 import { itemFieldNames, formatField } from '../common/items';
 import Link from '../components/link';
 
-const useTerms = (types, terms) => {
+const useTerms = (types, terms, size=1000) => {
 		const { data } = useSWR(
 		() => {
 			return { url: `/api/es?search`, payload: {
 				sortOrder: 'ids asc',
 				terms,
 				types,
-				size: 1000
+				size
 			}};
 		},
 		async ({ url, payload }) => {
@@ -202,10 +202,11 @@ const CruiseLandingPage: FunctionComponent<{ cruiseDoc }> = ({ cruiseDoc }) => {
 }
 
 const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
+  const [nSectionsToDisplay, setNSectionsToDisplay] = useState(10);
 	const osuID = coreDoc._osuid;
 	const cruiseDocs =  useTerms(['cruise'], coreDoc._cruiseUUID && { '_cruiseUUID.keyword': [coreDoc._cruiseUUID] } || undefined);
-	const sectionDocs =  useTerms(['section'], coreDoc._coreUUID && { '_coreUUID.keyword': [coreDoc._coreUUID] } || undefined);
-	const otherCoreDocs = useTerms(['core'], coreDoc._cruiseUUID && { '_cruiseUUID.keyword': [coreDoc._cruiseUUID] } || undefined);
+  const sectionDocs = useTerms(['section'], coreDoc._coreUUID && { '_coreUUID.keyword': [coreDoc._coreUUID] } || undefined, nSectionsToDisplay + 1);
+  // nsectionstodisplay state
 	
 	const osuIDs = {};
 	return <>
@@ -292,50 +293,32 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
 					<h3>Core Sections</h3>
 					<hr />
 					<List divided>
-						{ sectionDocs.map(doc => !osuIDs[doc._osuid] && (osuIDs[doc._osuid] = 1) &&
-							<List.Item key={doc._uuid}>
-								<List.Content style={{ padding: '.25rem 0 .5rem' }}>
-									<List.Header as='h3'>{doc._osuid}</List.Header>
-									<List.Description>
-										{_.keys(itemFieldNames).map((label, i) => <FieldLabel
-												key={i}
-												label={label}
-												doc={doc} />)}
-									</List.Description>
-									<List.Description style={{ margin: '0.5rem 0 -0.5rem'}}>
-										<CollectionMapThumbnail lat={doc.latitudeStart} lon={doc.longitudeStart} />
-										<CollectionImageThumbnail name='Section Image' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}-image.tif`} />
-										<CollectionImageThumbnail name='Section Image' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}-image.tiff`} />
-										<CollectionImageThumbnail name='Section Image' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}-image.jpeg`} />
-										<CollectionImageThumbnail name='Section Image' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}-image.bmp`} />
-										<CollectionImageThumbnail name='Section X-Ray' file={`${cruiseDocs[0]._cruiseID}/xray/${doc._osuid}-itraxxray.tif`} />
-										<CollectionFileButton name='Core Description' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/coredescription/${doc._osuid}-coredescription.pdf`} />
-									</List.Description>
-								</List.Content>
-							</List.Item>
-						)}
-					</List>
-				</> || undefined
-			}
-			{ otherCoreDocs && otherCoreDocs.length && otherCoreDocs[0]._cruiseID &&
-				<>
-					<h3>Other Cores from Cruise/Program {coreDoc._cruiseID}</h3>
-					<hr />
-					<List divided>
-						{ otherCoreDocs.map(doc => doc._osuid !== osuID && !osuIDs[doc._osuid] && (osuIDs[doc._osuid] = 1) &&
-							<List.Item key={doc._uuid}>
-								<Link href={`${doc._osuid}`}>
-									<List.Content style={{ padding: '.25rem 0 .5rem' }}>
-										<List.Header as='h3'>{doc._osuid}</List.Header>
-										<List.Description>
-											{_.keys(itemFieldNames).map((label, i) => <FieldLabel
-												key={i}
-												label={label}
-												doc={doc} />)}
-										</List.Description>
-									</List.Content>
-								</Link>
-							</List.Item>
+            {sectionDocs.map((doc, i) => !osuIDs[doc._osuid] && (osuIDs[doc._osuid] = 1) &&
+              (i >= nSectionsToDisplay ? 
+                <Segment basic padded>
+                  <Button fluid onClick={() => setNSectionsToDisplay(nSectionsToDisplay + 10)}>Load More</Button>
+                </Segment>:
+                <List.Item key={doc._uuid}>
+                  <List.Content style={{ padding: '.25rem 0 .5rem' }}>
+                    <List.Header as='h3'>{doc._osuid}</List.Header>
+                    <List.Description>
+                      {_.keys(itemFieldNames).map((label, i) => <FieldLabel
+                          key={i}
+                          label={label}
+                          doc={doc} />)}
+                    </List.Description>
+                    <List.Description style={{ margin: '0.5rem 0 -0.5rem'}}>
+                      <CollectionMapThumbnail lat={doc.latitudeStart} lon={doc.longitudeStart} />
+                      <CollectionImageThumbnail name='Section Image' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}-image.tif`} />
+                      <CollectionImageThumbnail name='Section Image' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}-image.tiff`} />
+                      <CollectionImageThumbnail name='Section Image' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}-image.jpeg`} />
+                      <CollectionImageThumbnail name='Section Image' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}-image.bmp`} />
+                      <CollectionImageThumbnail name='Section X-Ray' file={`${cruiseDocs[0]._cruiseID}/xray/${doc._osuid}-itraxxray.tif`} />
+                      <CollectionFileButton name='Core Description' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/coredescription/${doc._osuid}-coredescription.pdf`} />
+                    </List.Description>
+                  </List.Content>
+                </List.Item>
+              )
 						)}
 					</List>
 				</> || undefined
