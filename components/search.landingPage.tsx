@@ -314,6 +314,9 @@ const CoreLandingPage: FunctionComponent<{ coreDoc }> = ({ coreDoc }) => {
                       <CollectionImageThumbnail name='Section Image' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}-image.jpeg`} />
                       <CollectionImageThumbnail name='Section Image' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}-image.bmp`} />
                       <CollectionImageThumbnail name='Section X-Ray' file={`${cruiseDocs[0]._cruiseID}/xray/${doc._osuid}-itraxxray.tif`} />
+                      <CollectionImageThumbnail name='Section X-Ray' file={`${cruiseDocs[0]._cruiseID}/xray/${doc._osuid}-xray.bmp`} />
+                      <CollectionImageThumbnail name='Section X-Ray' file={`${cruiseDocs[0]._cruiseID}/xray/${doc._osuid}W-xray.bmp`} />
+                      <CollectionImageThumbnail name='Section X-Ray' file={`${cruiseDocs[0]._cruiseID}/xray/${doc._osuid}A-xray.bmp`} />
                       <CollectionFileButton name='Core Description' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/coredescription/${doc._osuid}-coredescription.pdf`} />
                     </List.Description>
                   </List.Content>
