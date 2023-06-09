@@ -1,6 +1,6 @@
 {
   "htmlTitle": "Home",
-  "video": "osu-mgr-loop.mp4",
+  "video": "https://osu-mgr.s3.us-west-2.amazonaws.com/website-assets/osu-mgr-loop.mp4",
   "warningVisible": false,
   "warning": {
     "title": "GLAcial Sedimentation School (GLASS) 2022",
@@ -33,7 +33,7 @@
     },
     {
       "_template": "column",
-      "link": "/facility-instrumentation",
+      "link": "/services",
       "title": "Facility",
       "description": "The OSU-MGR is a National Science Foundation (NSF) funded repository that hosts the OSU Marine Geology and Geophysics collection and the Antarctic Core Collection. OSU moved its existing collection from storage on campus to the new 33,000 ft² facility that includes 10,900 ft² of refrigerated core storage, 11,600 ft² of dry rock storage and a 550 ft² walk-in freezer. The facility is well-equipped to run major sampling parties, research programs, and educational endeavors. Laboratory space is available for analytical activities including scanning tracks for physical properties and elemental analyses.",
       "button": "View Facilities",
