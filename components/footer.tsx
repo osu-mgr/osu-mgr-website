@@ -5,6 +5,7 @@ import nsfLogo from '../images/nsf-logo.png';
 import noaaLogo from '../images/noaa-logo.png';
 import osuLogo from '../images/osu-logo.png';
 import nypro from '../images/nypro.png';
+import fiesta from '../images/FIESTA.png';
 import map from '../images/map.png';
 
 const Footer: FunctionComponent = () => {
@@ -16,18 +17,41 @@ const Footer: FunctionComponent = () => {
 						<Grid textAlign='center' stackable>
 							<Grid.Column width='4'>
 								<h3>Supported By</h3>
-								<Link href='/about-us#support'>
-									<Image
-										inline
-										src={nsfLogo}
-										style={{ height: '4em', marginRight: '1em' }}
-									/>
-									<Image
-										inline
-										src={noaaLogo}
-										style={{ height: '4em', marginRight: '1em' }}
-									/>
-									<Image inline src={osuLogo} style={{ height: '4em' }} />
+                                <Link href='/about-us#support'>
+                                    <Grid textAlign='center' columns={4}>
+                                        <Grid.Column>
+                                            <Image
+                                                inline
+                                                src={nsfLogo}
+                                                style={{ height: '3em', marginBottom: '0.5em' }}
+                                            />
+                                            NSF
+                                        </Grid.Column>
+                                        <Grid.Column>
+                                            <Image
+                                                inline
+                                                src={noaaLogo}
+                                                style={{ height: '3em', marginBottom: '0.5em' }}
+                                            />
+                                            NOAA
+                                        </Grid.Column>
+                                        <Grid.Column>
+                                            <Image
+                                                inline
+                                                src={osuLogo}
+                                                style={{ height: '3em', marginBottom: '0.5em' }}
+                                            />
+                                            OSU
+                                        </Grid.Column>
+                                        <Grid.Column>
+                                            <Image
+                                                inline
+                                                src={fiesta}
+                                                style={{ height: '3em', filter: 'drop-shadow(0px 0px 4px white); brightness(2)', marginBottom: '0.5em' }}
+                                            />
+                                            FIESTA
+                                        </Grid.Column>
+                                    </Grid>
 								</Link>
 							</Grid.Column>
 							<Grid.Column width='3'>
