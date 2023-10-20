@@ -439,9 +439,73 @@ const DiveLandingPage: FunctionComponent<{ diveDoc }> = ({ diveDoc }) => {
 												doc={doc} />)}
 									</List.Description>
 									<List.Description style={{ margin: '0.5rem 0 -0.5rem'}}>
-                    <CollectionMapThumbnail lat={doc.latitudeStart} lon={doc.longitudeStart} />
+                                        <CollectionMapThumbnail lat={doc.latitudeStart} lon={doc.longitudeStart} />
 										<CollectionFileButton name='Description' icon='file pdf outline' file={`${cruiseDocs[0]._cruiseID}/description/${doc._osuid}-description.pdf`} />
-										{_.range(1, 50).map(x =>
+										<CollectionImageThumbnail name='ROV Field Photo' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}_Field.jpg`} />
+                                        {_.range(1, 9).map(x =>
+											<CollectionImageThumbnail
+												key={`${x}`}
+												name="ROV Field Photo"
+												file={`${cruiseDocs[0]._cruiseID}/image/${osuID}-${doc.id}_Field${x}.JPG`}
+											/>
+                                        )}
+										<CollectionImageThumbnail name='Aboard R/V Photo' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}_Field.WR.jpg`} />
+                                        {_.range(1, 9).map(x =>
+											<CollectionImageThumbnail
+												key={`${x}`}
+												name="Aboard R/V Photo"
+												file={`${cruiseDocs[0]._cruiseID}/image/${osuID}-${doc.id}_Field.WR${x}.JPG`}
+											/>
+                                        )}
+										<CollectionImageThumbnail name='Whole Rock Photo' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}_WR.jpg`} />
+                                        {_.range(1, 9).map(x =>
+											<CollectionImageThumbnail
+												key={`${x}`}
+												name="Whole Rock Photo"
+												file={`${cruiseDocs[0]._cruiseID}/image/${osuID}-${doc.id}_WR${x}.JPG`}
+											/>
+                                        )}
+										<CollectionImageThumbnail name='Feature of Interest' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}_WR.FOI.jpg`} />
+                                        {_.range(1, 9).map(x =>
+											<CollectionImageThumbnail
+												key={`${x}`}
+												name="Feature of Interest"
+												file={`${cruiseDocs[0]._cruiseID}/image/${osuID}-${doc.id}_WR.FOI${x}.JPG`}
+											/>
+                                        )}
+										<CollectionImageThumbnail name='Thin Section, Plane Polarized Light' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}_TS.PPL.jpg`} />
+                                        {_.range(1, 9).map(x =>
+											<CollectionImageThumbnail
+												key={`${x}`}
+												name="Thin Section, Plane Polarized Light"
+												file={`${cruiseDocs[0]._cruiseID}/image/${osuID}-${doc.id}_TS.PPL${x}.JPG`}
+											/>
+                                        )}
+										<CollectionImageThumbnail name='Thin Section, Cross Polarized Light' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}_TS.XPL.jpg`} />
+                                        {_.range(1, 9).map(x =>
+											<CollectionImageThumbnail
+												key={`${x}`}
+												name="Thin Section, Cross Polarized Light"
+												file={`${cruiseDocs[0]._cruiseID}/image/${osuID}-${doc.id}_TS.XPL${x}.JPG`}
+											/>
+                                        )}
+										<CollectionImageThumbnail name='Thin Section, Plane Polarized Light, Feature Of Interest' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}_TS.PPL.FOI.jpg`} />
+                                        {_.range(1, 9).map(x =>
+											<CollectionImageThumbnail
+												key={`${x}`}
+												name="Thin Section, Plane Polarized Light"
+												file={`${cruiseDocs[0]._cruiseID}/image/${osuID}-${doc.id}_TS.PPL.FOI${x}.JPG`}
+											/>
+                                        )}
+										<CollectionImageThumbnail name='Thin Section, Cross Polarized Light, Feature Of Interest' file={`${cruiseDocs[0]._cruiseID}/image/${doc._osuid}_TS.XPL.FOI.jpg`} />
+                                        {_.range(1, 9).map(x =>
+											<CollectionImageThumbnail
+												key={`${x}`}
+												name="Thin Section, Cross Polarized Light"
+												file={`${cruiseDocs[0]._cruiseID}/image/${osuID}-${doc.id}_TS.XPL.FOI${x}.JPG`}
+											/>
+                                        )}
+                                        {_.range(1, 50).map(x =>
 											<CollectionImageThumbnail
 												key={`${x}`}
 												name={x === 1 && 'Sample Image' || undefined}
