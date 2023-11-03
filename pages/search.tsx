@@ -140,13 +140,13 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 	site,
 }) => {
 	const pageSize = 10;
-  const [search, setSearch] = useLocalStorage('search', {
+    const [search, setSearch] = useLocalStorage('search', {
 		sortOrder: 'alpha asc',
 		searchString: '',
 	});
 	const [searchString, setSearchString] = useState(search.searchString || '');
-  const [ref, isVisible] = useInView({
-    threshold: 0,
+    const [ref, isVisible] = useInView({
+        threshold: 0,
 	});
 	const [pageData, pageForm] = useGithubJsonForm(page, {
 		label: 'Page',
@@ -159,21 +159,21 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 			},
 		],
 	});
-  const debounce = useCallback(
-    _.debounce((x: string) => {
-      x = x.replace(/^http(s?):\/\/osu-mgr.org\//i, '');
+    const debounce = useCallback(
+        _.debounce((x: string) => {
+            x = x.replace(/^http(s?):\/\/osu-mgr.org\//i, '');
 			setSearch({ ...search, searchString: x });
 			setSize(0);
-    }, 500),
-    [setSearch, search]
+        }, 500),
+        [setSearch, search]
 	);
 	
 	const { data: pages, size, setSize } = useSWRInfinite(
-		(pageIndex) => {
+        (pageIndex) => {
 			return {
 				url: `/api/es?search`, payload: {
 					...search,
-					from: search.size * pageIndex,
+					from: (search.size || 10) * pageIndex,
 					size: pageSize,
 					types: ['cruise', 'core', 'dive']
 				}
@@ -190,7 +190,7 @@ export const Page: FunctionComponent<{ page: any; site: any }> = ({
 	);
 	const matches = pages && _.flatten(pages.map(results =>
 		(results && results.hits && results.hits.hits || [])
-	)) || [];
+    )) || [];
 	const isLoading = pages === undefined || pages.length && pages.length < (pages[0].hits.total.value / pageSize);
 	useEffect(() => {
 		if (isLoading && isVisible && pages !== undefined && size < pages.length + 1)
