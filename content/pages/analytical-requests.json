@@ -3,7 +3,12 @@
   "blocks": [
     {
       "_template": "markdown",
-      "body": "## Analytical Requests\n\n"
+      "body": "## Analytical Requests"
+    },
+    {
+      "_template": "accordion",
+      "title": "",
+      "body": ""
     },
     {
       "_template": "markdown",
