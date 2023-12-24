@@ -17,42 +17,48 @@ const Footer: FunctionComponent = () => {
 						<Grid textAlign='center' stackable>
 							<Grid.Column width='4'>
 								<h3>Supported By</h3>
-                                <Link href='/about-us#support'>
-                                    <Grid textAlign='center' columns={4}>
-                                        <Grid.Column>
+                                <Grid textAlign='center' columns={4}>
+                                    <Grid.Column>
+                                        <Link href='https://www.nsf.gov'>
                                             <Image
                                                 inline
                                                 src={nsfLogo}
                                                 style={{ height: '3em', marginBottom: '0.5em' }}
                                             />
                                             NSF
-                                        </Grid.Column>
-                                        <Grid.Column>
+                                        </Link>
+                                    </Grid.Column>
+                                    <Grid.Column>
+                                        <Link href='https://noaa.gov'>
                                             <Image
                                                 inline
                                                 src={noaaLogo}
                                                 style={{ height: '3em', marginBottom: '0.5em' }}
                                             />
                                             NOAA
-                                        </Grid.Column>
-                                        <Grid.Column>
+                                        </Link>
+                                    </Grid.Column>
+                                    <Grid.Column>
+                                        <Link href='https://oregonstate.edu'>
                                             <Image
                                                 inline
                                                 src={osuLogo}
                                                 style={{ height: '3em', marginBottom: '0.5em' }}
                                             />
                                             OSU
-                                        </Grid.Column>
-                                        <Grid.Column>
+                                        </Link>
+                                    </Grid.Column>
+                                    <Grid.Column>
+                                        <Link href='https://earthref.org/FIESTA'>
                                             <Image
                                                 inline
                                                 src={fiesta}
                                                 style={{ height: '3em', filter: 'drop-shadow(0px 0px 4px white); brightness(2)', marginBottom: '0.5em' }}
                                             />
                                             FIESTA
-                                        </Grid.Column>
-                                    </Grid>
-								</Link>
+                                        </Link>
+                                    </Grid.Column>
+                                </Grid>
 							</Grid.Column>
 							<Grid.Column width='3'>
 								<Segment
