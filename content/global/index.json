@@ -1,0 +1,175 @@
+{
+  "header": {
+    "name": "OSU Argon Geochronology Lab",
+    "color": "default",
+    "nav": [
+      {
+        "href": "home",
+        "label": "Home\n"
+      },
+      {
+        "href": "staff",
+        "label": "About\n\nUs\n",
+        "subnav": [
+          {
+            "href": "staff",
+            "label": "Staff\n"
+          },
+          {
+            "href": "policies",
+            "label": "Policies\n"
+          },
+          {
+            "href": "oversight-committee",
+            "label": "Oversight Committee\n"
+          },
+          {
+            "href": "facility-history",
+            "label": "Facility History\n"
+          },
+          {
+            "href": "2017-meeting-of-the-curators-of-marine-lacustrine-and-geological-samples",
+            "label": "2017 Curators Meeting\n"
+          }
+        ]
+      },
+      {
+        "href": "collections",
+        "label": "Collections\n",
+        "subnav": [
+          {
+            "href": "collections",
+            "label": "OSU Collections\n"
+          },
+          {
+            "href": "search",
+            "label": "Search by Name\n"
+          },
+          {
+            "href": "map",
+            "label": "Search by Location\n"
+          }
+        ]
+      },
+      {
+        "href": "plan-your-visit",
+        "label": "Plan Your\\\nVisit\n",
+        "subnav": [
+          {
+            "href": "plan-your-visit",
+            "label": "Plan Your Visit\n"
+          },
+          {
+            "href": "repository-calendar",
+            "label": "Repository Calendar\n"
+          },
+          {
+            "href": "visitor-request-form",
+            "label": "Visitor Request Form\n"
+          },
+          {
+            "href": "parking",
+            "label": "Parking Information\n"
+          }
+        ]
+      },
+      {
+        "href": "facility-instrumentation",
+        "label": "Facilities,\\\nServices\n"
+      },
+      {
+        "href": "request-samples",
+        "label": "Request\\\nSamples\n"
+      },
+      {
+        "href": "sedct",
+        "label": "Software\n"
+      },
+      {
+        "href": "in-the-news",
+        "label": "Education and\\\nOutreach\n"
+      },
+      {
+        "href": "publications",
+        "label": "Publications\n"
+      }
+    ]
+  },
+  "footer": {
+    "sections": [
+      {
+        "title": "Supported By",
+        "content": "",
+        "links": [
+          {
+            "link": "https://www.nsf.gov/dir/index.jsp?org=GEO",
+            "size": "large",
+            "image": {
+              "src": "/uploads/nsf-logo.png"
+            }
+          },
+          {
+            "link": "https://www.noaa.gov",
+            "size": "large",
+            "image": {
+              "src": "/uploads/noaa-logo.png"
+            }
+          },
+          {
+            "link": "https://oregonstate.edu/",
+            "size": "large",
+            "image": {
+              "src": "/uploads/osu-logo.png"
+            }
+          },
+          {
+            "link": "https://earthref.org/FIESTA",
+            "size": "large",
+            "image": {
+              "src": "/uploads/FIESTA.png"
+            }
+          }
+        ]
+      },
+      {
+        "title": "Mailing Address",
+        "content": "OSU Argon Geochronology Laboratory\n\nAttn: Dan Miggins\n\n[Oregon State University](https://oregonstate.edu/)\n\n104 CEOAS Admin. Bldg.\n\nCorvallis, OR 97331-5503\n"
+      },
+      {
+        "title": "Contact Us",
+        "content": "[osu-mgr@oregonstate.edu](mailto:geochronology@oregonstate.edu)\n",
+        "links": [
+          {
+            "link": "https://x.com/osumgr",
+            "image": {
+              "src": "/uploads/twitter-x.png"
+            }
+          }
+        ]
+      },
+      {
+        "title": "Location",
+        "content": "",
+        "links": [
+          {
+            "link": "https://goo.gl/maps/hL3SYJaRDU4189CG7",
+            "size": "large",
+            "image": {
+              "src": "/uploads/nypro.png"
+            }
+          },
+          {
+            "link": "https://goo.gl/maps/xf53rxABNqSvXnjE6",
+            "size": "large",
+            "image": {
+              "src": "/uploads/map.png"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "theme": {
+    "color": "orange"
+  }
+}
