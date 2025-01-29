@@ -1,9 +1,0 @@
-{
-  "htmlTitle": "Other OSU Laboratory Facilities",
-  "blocks": [
-    {
-      "_template": "markdown",
-      "body": "### Paleomagnetic Laboratory\n\nThe [Paleo-and-Environmental Magnetism Laboratory](http://paleomag.ceoas.oregonstate.edu/) in the College of Earth, Ocean, and Atmospheric Sciences at Oregon State University is operated by MGR Director [Dr. Joseph Stoner](http://paleomag.ceoas.oregonstate.edu/people/PI/stoner.html). The [P-Mag Lab](http://paleomag.ceoas.oregonstate.edu/) is an NSF supported OSU facility dedicated to sediment magnetism and a resource for Pacific NW, national and international scientific communities. Built around a helium free 2G Enterprises superconducting rock magnetometer (SRM) optimized for u-channel samples, it plays a strong role in supporting the the marine geology repository. For further information on paleo-and-environmental magnetic services please contact [Dr. Joseph Stoner](http://paleomag.ceoas.oregonstate.edu/people/PI/stoner.html).\n\n### 40Ar/39Ar Geochronology Laboratory\n\nThe [40Ar/39Ar Geochronology Laboratory](http://geochronology.ceoas.oregonstate.edu/) in the College of Earth, Ocean, and Atmospheric Sciences at Oregon State University is operated by MGR Director [Dr. Anthony Koppers](http://ceoas.oregonstate.edu/profile/koppers/). The OSU [Argon Geochronology Lab](http://geochronology.ceoas.oregonstate.edu/) carries out 40Ar/39Ar analyses services for outside researchers all over the world, operating two noble gas  mass spectrometers to carry out 40Ar/39Ar age determinations. For further information on 40Ar/39Ar analyses and services please contact [Dr. Anthony Koppers](http://ceoas.oregonstate.edu/profile/koppers/).\n\n### For a complete list of CEOAS laboratories click [here](https://ceoas.oregonstate.edu/analytical-facilities)."
-    }
-  ]
-}

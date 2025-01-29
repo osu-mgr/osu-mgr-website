@@ -1,9 +1,0 @@
-{
-  "htmlTitle": "Sample Types",
-  "blocks": [
-    {
-      "_template": "markdown",
-      "body": "#### There are a number of different core types in the OSU-MGR collections. Below is a brief guide to help in deciding what type of samples to request. There are additional coring devices not listed below. Please contact osu-mgr@oregonstate.edu with any further questions.\n\n| Name | Abbreviation | Description | Recovery |\n| --- | :---: | --- | --- |\n| Piston Core | PC | Up to 30 m in length | Longest records, surface sediments lost |\n| Jumbo Piston Core | JC | Same as PC but larger diameter | Longest records, surface sediments lost |\n| Trigger Core | TC | Same deployment as associated PC/JC but shorter core (maximum 3 m in length) | Likely better recovery of surface sediments |\n| Gravity Core | GC | Up to 12 m in length | Likely better recovery of surface sediments |\n| Multicore | MC | Shorter record- cores are maximum 60 cm in length | Best recovery of surface sediments |\n| Kasten Core | KC | Up to 4 m in length, rectangular core collects larger volume than gravity core | Greater volume of sediment recovered |\n| Box Core | BC | Recovers large volume of upper sediments (60 cm max) | Minimal disturbance of upper sediments |\n| Vibracore | VC | Vibrating corer recovers up to 6 m in length | Used to sample sandy sediments |\n| Grab | G | Simple scoop | Surface sediments only, no stratigraphy recovered |\n| Push Core | PU | Manually driven core used to sample marsh sediments where no other coring device is an option | Variable recovery and core condition |\n|  |  |  |  |\n| Dredge | D | Chain net dragged along the seafloor | Chips off and catches rocks from a swath of the seafloor |\n| Dive | D | ROV-deployed samplers | Grab samples or small cores collected with ROV arm |\n"
-    }
-  ]
-}
