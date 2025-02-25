@@ -28,7 +28,6 @@ export const iframeBlockSchema = {
       type: "string",
       label: "HTML Source",
       name: "source",
-      required: true,
     },
     {
       type: "string",

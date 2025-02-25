@@ -37,7 +37,7 @@ export const Hero = ({ data }) => {
           )}
           <div className={`relative w-full flex justify-center items-center h-[32rem] ${data.bg_video && "-mt-[32rem]" || ""}`}>
             <div className="text-center text-white p-12">
-              <h1 data-tina-field={tinaField(data, 'headline')} className="text-5xl md:text-6xl xl:text-7xl font-bold tracking-tight mb-12">
+              <h1 data-tina-field={tinaField(data, 'headline')} className="text-5xl md:text-6xl xl:text-7xl font-bold tracking-tight m-3">
                 <TinaMarkdown components={components} content={data.headline} />
               </h1>
               {data.actions && (

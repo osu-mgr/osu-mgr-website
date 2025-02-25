@@ -48,6 +48,14 @@
           {
             "href": "map",
             "label": "Search by Location\n"
+          },
+          {
+            "href": "noaa-ex",
+            "label": "Search NOAA Dives by Location\n"
+          },
+          {
+            "href": "repositories",
+            "label": "Other Repositories and Databases\n"
           }
         ]
       },
@@ -75,23 +83,129 @@
       },
       {
         "href": "facility-instrumentation",
-        "label": "Facilities,\\\nServices\n"
+        "label": "Facilities,\\\nServices\n",
+        "subnav": [
+          {
+            "href": "facility-instrumentation",
+            "label": "Facility Instrumentation\n"
+          },
+          {
+            "href": "fees",
+            "label": "Fees\n"
+          },
+          {
+            "href": "services",
+            "label": "Coring and Dredges Services\n"
+          },
+          {
+            "href": "other-facilities",
+            "label": "Other OSU Laboratory Facilities\n"
+          }
+        ]
       },
       {
         "href": "request-samples",
-        "label": "Request\\\nSamples\n"
+        "label": "Request\\\nSamples\n",
+        "subnav": [
+          {
+            "href": "request-samples",
+            "label": "Request\n\nSamples\n"
+          },
+          {
+            "href": "analytical-requests",
+            "label": "Analyticial\n\nRequests\n"
+          },
+          {
+            "href": "sample-types",
+            "label": "Sample\n\nTypes\n"
+          },
+          {
+            "href": "core-distribution-guidelines",
+            "label": "Sediment and Rock Core\\\nSample Distribution Guidelines\n"
+          },
+          {
+            "href": "dredge-distribution-guidelines",
+            "label": "Dredge and Dive Sample\n\nDistribution Guidelines\n"
+          }
+        ]
       },
       {
         "href": "sedct",
-        "label": "Software\n"
+        "label": "Software\n\nResources\n",
+        "subnav": [
+          {
+            "href": "sedct",
+            "label": "SedCT\n"
+          },
+          {
+            "href": "corelyzer",
+            "label": "Corelyzer\n"
+          }
+        ]
       },
       {
         "href": "in-the-news",
-        "label": "Education and\\\nOutreach\n"
+        "label": "Education and\\\nOutreach\n",
+        "subnav": [
+          {
+            "href": "in-the-news",
+            "label": "In the\\\nNews\n"
+          },
+          {
+            "href": "in-person-tours",
+            "label": "In Person\\\nTours\n"
+          },
+          {
+            "href": "virtual-tour",
+            "label": "Virtual\\\nTour\n"
+          },
+          {
+            "href": "learn-about-cores",
+            "label": "Learn About\\\nCores\n"
+          },
+          {
+            "href": "learn-about-coring",
+            "label": "Learn About\\\nCoring\n"
+          },
+          {
+            "href": "activities",
+            "label": "Activities\\\n \n"
+          },
+          {
+            "href": "glacial_sedimentation_school_2022",
+            "label": "Glacial Sedimentation\\\nSchool 2022\n"
+          }
+        ]
       },
       {
         "href": "publications",
-        "label": "Publications\n"
+        "label": "Publications\n",
+        "subnav": [
+          {
+            "href": "publications",
+            "label": "2020 to Present\n"
+          },
+          {
+            "href": "publications-2010-to-2019",
+            "label": "2010 to 2019\n"
+          },
+          {
+            "href": "publications-2000-to-2009",
+            "label": "2000 to 2009\n"
+          },
+          {
+            "href": "publications-1990-to-1999",
+            "label": "1990 to 1999\n"
+          },
+          {
+            "href": "publications-1980-to-1989",
+            "label": "1980 to 1989\n"
+          },
+          {
+            "href": "publications-before-1980",
+            "label": "Before 1980\n"
+          }
+        ]
       }
     ]
   },

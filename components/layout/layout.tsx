@@ -79,7 +79,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
                 <a
                   key={i}
                   href={item.href}
-                  className={`tab tab-bordered text-white ${item.isActive ? "tab-active !border-white" : ""}`}
+                  className={`tab tab-bordered text-white h-auto ${item.isActive ? "tab-active !border-white" : ""}`}
                 >
                   <span data-tina-field={tinaField(item)}><TinaMarkdown content={item.label as unknown as TinaMarkdownContent} /></span>
                 </a>
