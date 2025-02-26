@@ -251,15 +251,7 @@
       },
       {
         "title": "Contact Us",
-        "content": "[osu-mgr@oregonstate.edu](mailto:geochronology@oregonstate.edu)\n",
-        "links": [
-          {
-            "link": "https://x.com/osumgr",
-            "image": {
-              "src": "/uploads/twitter-x.png"
-            }
-          }
-        ]
+        "content": "[osu-mgr@oregonstate.edu](mailto:geochronology@oregonstate.edu)\n"
       },
       {
         "title": "Location",
