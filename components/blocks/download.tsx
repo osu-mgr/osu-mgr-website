@@ -14,7 +14,7 @@ export const Download = ({ data }) => {
         width="medium"
         className={"grid justify-items-center"}
       >
-        <Link href={data.src} download>
+        <Link href={data.src || ''} download>
           <button
             data-tina-field={tinaField(data, 'src')}
             className="btn btn-primary btn-lg rounded-lg"
@@ -37,9 +37,9 @@ export const downloadBlockSchema = {
   label: "File Download",
   ui: {
     itemProps: (props) => {
-      if (props?.label.length > 100)
+      if (props?.label?.length > 100)
         return props?.label.slice(0, 100) + '...';
-      else if (props?.label.length > 0)
+      else if (props?.label?.length > 0)
         return props?.label;
       return "File Download";
     }
