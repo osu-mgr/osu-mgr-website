@@ -119,6 +119,19 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
               <span data-tina-field={tinaField(item)}><TinaMarkdown content={item.label as unknown as TinaMarkdownContent} /></span>
             </a>
           </Link>
+          {item.subnav?.length > 0 &&
+            <div className="tabs flex-col items-start">
+              {item.subnav.map((subitem, i) => (
+                <a
+                  key={i}
+                  href={subitem.href}
+                  className={`tab tab-bordered text-white h-auto ${router.asPath.includes(subitem.href) ? "tab-active !border-white" : ""}`}
+                >
+                  <span data-tina-field={tinaField(subitem)}><TinaMarkdown content={subitem.label as unknown as TinaMarkdownContent} /></span>
+                </a>
+              ))}
+            </div>
+          }
         </li>
       )}
     </ul>
