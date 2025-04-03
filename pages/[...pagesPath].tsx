@@ -365,23 +365,32 @@ export const getStaticProps: GetStaticProps = async function ({
 		try {
 			fileRelativePath = redirecting ? 'content/redirect.json' : `content/pages/${path}.json`;
 			pagesContent = await getGithubPreviewProps({
-				...previewData,
+				...(typeof previewData === 'object' && previewData !== null ? previewData : {}),
 				fileRelativePath,
 				parse: parseJson,
+				github_access_token: process.env.GITHUB_ACCESS_TOKEN || '',
+				working_repo_full_name: process.env.WORKING_REPO_FULL_NAME || '',
+				head_branch: process.env.HEAD_BRANCH || 'main',
 			});
 		} catch {
 			fileRelativePath = 'content/404.json';
 			pagesContent = await getGithubPreviewProps({
-				...previewData,
+				...(typeof previewData === 'object' && previewData !== null ? previewData : {}),
 				fileRelativePath,
 				parse: parseJson,
+				github_access_token: process.env.GITHUB_ACCESS_TOKEN || '',
+				working_repo_full_name: process.env.WORKING_REPO_FULL_NAME || '',
+				head_branch: process.env.HEAD_BRANCH || 'main',
 			});
 		}
 
 		const site = await getGithubPreviewProps({
-			...previewData,
+			...(typeof previewData === 'object' && previewData !== null ? previewData : {}),
 			fileRelativePath: 'content/site.json',
 			parse: parseJson,
+			github_access_token: process.env.GITHUB_ACCESS_TOKEN || '',
+			working_repo_full_name: process.env.WORKING_REPO_FULL_NAME || '',
+			head_branch: process.env.HEAD_BRANCH || 'main',
 		});
 
 		return {

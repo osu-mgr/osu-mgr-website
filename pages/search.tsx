@@ -317,14 +317,20 @@ export const getStaticProps: GetStaticProps = async function ({
 }) {
 	if (preview) {
 		const page = await getGithubPreviewProps({
-			...previewData,
-			fileRelativePath: 'content/search.json',
+			...(typeof previewData === 'object' && previewData !== null ? previewData : {}),
+			fileRelativePath: 'content/edit.json',
 			parse: parseJson,
+			github_access_token: process.env.GITHUB_ACCESS_TOKEN || '',
+			working_repo_full_name: process.env.WORKING_REPO_FULL_NAME || '',
+			head_branch: process.env.HEAD_BRANCH || 'main',
 		});
 		const site = await getGithubPreviewProps({
-			...previewData,
+			...(typeof previewData === 'object' && previewData !== null ? previewData : {}),
 			fileRelativePath: 'content/site.json',
 			parse: parseJson,
+			github_access_token: process.env.GITHUB_ACCESS_TOKEN || '',
+			working_repo_full_name: process.env.WORKING_REPO_FULL_NAME || '',
+			head_branch: process.env.HEAD_BRANCH || 'main',
 		});
 
 		return {

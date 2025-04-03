@@ -9,7 +9,7 @@ import { NextGithubMediaStore } from 'next-tinacms-github';
 
 export default class AppClass extends App {
 	cms: TinaCMS;
-	constructor(props: AppProps) {
+	constructor(props: AppProps & { pageProps: { preview?: boolean; error?: string } }) {
 		super(props);
 		const github = new GithubClient({
 			proxy: '/api/proxy-github',
@@ -28,7 +28,8 @@ export default class AppClass extends App {
 		});
 	}
 	render(): JSX.Element {
-		const { Component, pageProps } = this.props;
+        const Component = this.props.Component;
+        const pageProps: { preview?: boolean; error?: string } = this.props.pageProps;
 		return (
 			<>
 				<TinaProvider cms={this.cms}>
