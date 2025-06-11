@@ -11,10 +11,8 @@ import logo from "../../public/logo.png";
 import Image from "next/image";
 import { Icon } from "../util/icon";
 import { Container } from "../util/container";
-import { BiMenu as MenuIcon, BiArrowToRight as CloseIcon } from "react-icons/bi";
 import layoutData from "../../content/global/index.json";
 import { Theme } from "./theme";
-import { sub } from "date-fns";
 
 export const Layout = ({ rawData = {} as any, data = layoutData, children }) => {
   const { width: scrollbarWidth } = useScrollbarSize();
@@ -28,7 +26,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
     }
   }, []);
 
-  const items = data?.header?.nav?.map((item, i) => {
+  const items = data?.header?.nav?.map((item) => {
     let isActive = false;
     if (item.href === "" || item.href === "/")
       isActive = (router.asPath === "/home" || router.asPath === "/");
@@ -41,7 +39,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
   });
   const activeItem = items.find((item) => item.isActive);
  
-  const subItems = activeItem?.subnav?.map((subitem, j) => {
+  const subItems = activeItem?.subnav?.map((subitem) => {
     return {
       ...subitem,
       isActive: router.asPath.includes(subitem.href)
@@ -97,7 +95,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
       </div>
       <div className="navbar-end">
         <label tabIndex={0} htmlFor="side-menu" className="drawer-button btn btn-primary btn-link text-4xl">
-          <MenuIcon />
+          <Icon name="BiMenu" color="white" />
         </label>
       </div>
     </div>;
@@ -105,8 +103,8 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
   const SideMenu = () =>
     <ul className="menu !z-50 w-80 bg-neutral-900 text-white">
       <li>
-        <label htmlFor="side-menu" className="text-4xl h-24">
-          <CloseIcon />
+        <label htmlFor="side-menu" className="text-4xl h-20">
+          <Icon name="BiArrowToRight" color="white" />
         </label>
       </li>
       {items.map((item, i) => 

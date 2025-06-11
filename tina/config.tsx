@@ -7,6 +7,8 @@ import { heroBlockSchema } from "../components/blocks/hero";
 import { tableBlockSchema } from "../components/blocks/table";
 import { downloadBlockSchema } from "../components/blocks/download";
 import { iframeBlockSchema } from "../components/blocks/iframe";
+import { searchBlockSchema } from "../components/blocks/search";
+import { landingPageBlockSchema } from "../components/blocks/landing-page";
 import { ColorPickerInput } from "../components/fields/color";
 import { IconPickerInput } from "../components/fields/icon";
 import { LinkButtonInput } from "../components/fields/link-button";
@@ -266,6 +268,10 @@ const config = defineStaticConfig({
               downloadBlockSchema,
               // @ts-ignore
               iframeBlockSchema,
+              // @ts-ignore
+              searchBlockSchema,
+              // @ts-ignore
+              landingPageBlockSchema,
             ],
           },
         ],

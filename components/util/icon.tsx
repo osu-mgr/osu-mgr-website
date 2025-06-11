@@ -1,9 +1,11 @@
 import * as React from "react";
 import { useTheme } from "../layout";
 import * as BoxIcons from "react-icons/bi";
+import * as TbIcons from "react-icons/tb";
 
 export const IconOptions = {
   ...BoxIcons,
+  ...TbIcons,
 };
 
 const iconColorClass: {
@@ -57,16 +59,17 @@ const iconSizeClass = {
 };
 
 export const Icon = ({
-  data,
+  name = "",
+  color = "",
   parentColor = "",
+  size = "small",
+  style = "regular",
   className = "",
   tinaField = "",
 }) => {
-  if (IconOptions[data.name] === null || IconOptions[data.name] === undefined) {
+  if (IconOptions[name] === null || IconOptions[name] === undefined) {
     return null;
   }
-
-  const { name, color, size = "medium", style = "regular" } = data;
 
   const theme = useTheme();
 
@@ -80,8 +83,8 @@ export const Icon = ({
   const iconColor = color
     ? color === "primary"
       ? theme.color
-      : color
-    : theme.color;
+      : "primary"
+    : null;
 
   if (style == "circle") {
     return (
@@ -99,7 +102,7 @@ export const Icon = ({
         (iconColor === theme.color || iconColor === "primary")
           ? "white"
           : iconColor
-      ].regular;
+      ]?.regular || "";
     return (
       <IconSVG
         data-tinafield={tinaField}

@@ -5,7 +5,7 @@ import { TinaMarkdown } from "tinacms/dist/rich-text";
 import { tinaField } from 'tinacms/dist/react'
 import { components, templates } from "../util/md-components";
 
-export const Hero = ({ data }) => {
+export const Hero: React.FC<{ data: any }> = ({ data }) => {
 
   return (
     <Section color={data.color}>

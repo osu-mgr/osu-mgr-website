@@ -4,16 +4,25 @@ import { Container } from "../util/container";
 import { tinaField } from 'tinacms/dist/react'
 
 export const IFrame = ({ data }) => {
+  let height = 'auto';
+  if (data.height && !isNaN(data.height)) {
+    height = `${data.height}px`;
+  }
+  if (data.fullscreen) {
+    height = '50vw';
+  }
   return (
     <Section color="default">
       <Container
-        className="my-4"
-        width="medium"
+        className="min-h-4"
+        style={data.fullscreen ? { padding: 0 } : {}}
+        width={data.fullscreen ? "custom" : "medium"}
+        data-tina-field={tinaField(data, 'source')}
       >
-        <div className="min-h-4" data-tina-field={tinaField(data, 'source')}>
+        <div className="min-h-4">
           <iframe
             src={data.source}
-            style={{width: "100%", height: data.height || 'auto'}} />
+            style={{ width: "100%", height: height }} />
         </div>
       </Container>
     </Section>
@@ -30,9 +39,9 @@ export const iframeBlockSchema = {
       name: "source",
     },
     {
-      type: "string",
-      label: "CSS Styles",
-      name: "style",
+      type: "boolean",
+      label: "Full Screen",
+      name: "fullscreen",
     },
     {
       type: "number",

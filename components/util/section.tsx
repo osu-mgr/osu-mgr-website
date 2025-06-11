@@ -1,6 +1,12 @@
 import React from "react";
 
-export const Section = ({ children, color, className = "" }) => {
+interface SectionProps {
+  children: React.ReactNode;
+  color?: "default" | "tint" | "primary";
+  className?: string;
+}
+
+export const Section: React.FC<SectionProps> = ({ children, color, className = "" }) => {
   const sectionColor = {
     default: "text-gray-800 bg-white",
     tint: "text-gray-900 bg-gray-100",
