@@ -10,13 +10,10 @@ import { ItemsCount } from '../util/items-count';
 import { CollectionFileButton } from '../util/collection-file-button';
 import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
-import { vi } from 'date-fns/locale';
 
 const viewRawData = false; // Set to true to view raw data in the search results
 
-export const Search: React.FC<{ page: any; site: any; data: any }> = ({
-    page,
-    site,
+export const Search: React.FC<{ data: any }> = ({
     data
 }) => {
   const pageSize = 10;
@@ -87,16 +84,15 @@ export const Search: React.FC<{ page: any; site: any; data: any }> = ({
     }
   }, [isVisible, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Updated console.log for new state variables
   console.log('Search State:', {
+    types: search.types,
     matchesCount: matches.length,
     isLoadingQuery,
     isFetchingNextPage,
     hasNextPage,
     currentSearchString: searchString,
     currentSearchStringLength: searchString.length,
-    searchParams: search,
-    rawresultsPages: results?.pages // Uncomment for debugging, can be verbose
+    searchParams: search
   });
   
     return <>
@@ -113,7 +109,7 @@ export const Search: React.FC<{ page: any; site: any; data: any }> = ({
                 debouncedSetSearch(e.target.value);
               }}
             />
-            <button className="btn btn-square"
+            <button className="btn btn-secondary btn-square"
               onClick={() => {
                 setSearchString('');
                 setSearch(prevSearch => ({ ...prevSearch, searchString: '' }));
@@ -136,7 +132,7 @@ export const Search: React.FC<{ page: any; site: any; data: any }> = ({
         </div>
         <div className="tabs mt-2 min-w-full">
           <div
-            className={"tab tab-bordered" + (search.types.includes('cruise') ? ' tab-active text-primary' : '')}
+            className={"tab tab-lg tab-bordered" + (search.types.includes('cruise') ? ' tab-active text-primary' : '')}
             onClick={() => {
               setSearch({ ...search, types: ['cruise'] });
             }}
@@ -152,7 +148,7 @@ export const Search: React.FC<{ page: any; site: any; data: any }> = ({
             </span>
           </div>
           <div
-            className={"tab tab-bordered" + (search.types.includes('core') ? ' tab-active text-primary' : '')}
+            className={"tab tab-lg tab-bordered" + (search.types.includes('core') ? ' tab-active text-primary' : '')}
             onClick={() => {
               setSearch({ ...search, types: ['core'] });
             }}
@@ -168,7 +164,7 @@ export const Search: React.FC<{ page: any; site: any; data: any }> = ({
             </span>
           </div>
           <div
-            className={"tab tab-bordered" + (search.types.includes('dive') ? ' tab-active text-primary' : '')}
+            className={"tab tab-lg tab-bordered" + (search.types.includes('dive') ? ' tab-active text-primary' : '')}
             onClick={() => {
               setSearch({ ...search, types: ['dive'] });
             }}
@@ -183,7 +179,7 @@ export const Search: React.FC<{ page: any; site: any; data: any }> = ({
               />
             </span>
           </div>
-          <div className="tab tab-bordered flex-grow"></div>  
+          <div className="tab tab-lg tab-bordered flex-grow"></div>  
         </div>
         <div className="min-h-[500px]">
           {matches.length > 0 && search.types.includes('cruise') &&

@@ -4,7 +4,10 @@ const colors = require("tailwindcss/colors");
 
 module.exports = {
   mode: "jit",
-  content: ["./pages/**/*.{js,ts,jsx,tsx}", "./components/**/*.{js,ts,jsx,tsx}"],
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx}",
+    "./components/**/*.{js,ts,jsx,tsx}",
+  ],
   darkMode: "class",
   theme: {
     extend: {
@@ -15,11 +18,11 @@ module.exports = {
       typography: {
         DEFAULT: {
           css: {
-            h2: { marginTop: "1em" }
+            h2: { marginTop: "1em" },
           },
-        }
+        },
       },
-    }
+    },
   },
   plugins: [require("@tailwindcss/typography"), require("daisyui")],
   daisyui: {
@@ -27,7 +30,7 @@ module.exports = {
       {
         osu: {
           primary: "#D73F09",
-          secondary: "#4A773C",
+          secondary: "#E6E6E6",
           accent: "#00859B",
           neutral: "#000000",
           "base-100": "#ffffff",
