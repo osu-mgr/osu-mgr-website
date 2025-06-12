@@ -4,7 +4,7 @@
   "private": false,
   "scripts": {
     "dev": "TINA_PUBLIC_IS_LOCAL=true tinacms dev -c \"next dev -p 3100\" --datalayer-port 3101",
-    "build": "DISABLE_ESLINT_PLUGIN=true && tinacms build && next build",
+    "build": "tinacms build && next build",
     "start": "tinacms build && next start",
     "export": "tinacms build && next export",
     "lint": "eslint . --ext .ts,.tsx"

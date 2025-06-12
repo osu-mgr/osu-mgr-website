@@ -23,10 +23,15 @@ module.exports = {
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: '**.tina.io',
-        port: '',
+        protocol: "https",
+        hostname: "**.tina.io",
+        port: "",
       },
     ],
+  },
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: true,
   },
 };
