@@ -10,7 +10,7 @@
     "lint": "eslint . --ext .ts,.tsx"
   },
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   },
   "devDependencies": {
     "@svgr/webpack": "^7.0.0",
