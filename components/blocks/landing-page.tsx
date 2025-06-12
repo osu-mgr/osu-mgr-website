@@ -1,14 +1,14 @@
 import _ from 'lodash';
-import { FunctionComponent, useState } from 'react';
 import { useRouter } from 'next/router';
 // import { CollectionFileButton } from './util/collection-file-button';
 // import { CollectionImageThumbnail } from './util/collection-image-thumbnail';
 // import { CollectionMapThumbnail } from './util/collection-map-thumbnail';
 // import { itemFieldNames, formatField } from './util/items';
-import Link from "next/link";
 import { Icon } from "../util/icon";
 
-export const LandingPage: FunctionComponent = () => {
+export const LandingPage: React.FC<{ data: any }> = ({
+    data
+}) => {
   const { asPath } = useRouter();
   
   const osuIDparts = asPath.substring(1).split('-');
