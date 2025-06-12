@@ -4,6 +4,7 @@ import { Button, wrapFieldsWithMeta, InputProps } from "tinacms";
 import { Popover, Transition } from "@headlessui/react";
 import { Icon, IconOptions } from "../util/icon";
 import { BiChevronRight } from "react-icons/bi";
+import { IconBase } from "react-icons";
 
 const parseIconName = (name: string) => {
   const splitName = name.split(/(?=[A-Z])/);
@@ -105,12 +106,10 @@ export const IconPickerInput = wrapFieldsWithMeta<InputProps>(({ input }) => {
                                   close();
                                 }}
                               >
-                                <Icon
-                                  data={{
-                                    name: name,
-                                    size: "custom",
-                                    color: "blue",
-                                  }}
+                                <IconBase
+                                  name={name}
+                                  size="custom"
+                                  color="blue"
                                   className="w-7 h-auto"
                                 />
                               </button>
