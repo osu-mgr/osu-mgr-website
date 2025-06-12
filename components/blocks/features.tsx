@@ -16,7 +16,8 @@ export const Feature = ({ featuresColor, data }) => {
       {data.icon && (
         <Icon
           parentColor={featuresColor}
-          data={{ size: "large", ...data.icon }}
+          size="large"
+          {...data.icon }
         />
       )}
       {data.title && (
