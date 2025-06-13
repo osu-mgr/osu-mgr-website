@@ -87,7 +87,7 @@
         "subnav": [
           {
             "href": "facility-instrumentation",
-            "label": "#### Facility Instrumentation\n"
+            "label": "Facility Instrumentation\n"
           },
           {
             "href": "fees",
