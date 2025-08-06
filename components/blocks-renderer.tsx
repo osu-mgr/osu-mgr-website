@@ -1,4 +1,5 @@
 import React from "react";
+import dynamic from "next/dynamic";
 import type { Page } from "../tina/__generated__/types";
 import { Content } from "./blocks/content";
 import { Features } from "./blocks/features";
@@ -6,13 +7,16 @@ import { Hero } from "./blocks/hero";
 import { Table } from "./blocks/table";
 import { Download } from "./blocks/download";
 import { IFrame } from "./blocks/iframe";
-import { Search } from "./blocks/search";
 import { LandingPage } from "./blocks/landing-page";
 
 const pageBlock = (key, block: React.JSX.Element) =>
   <div key={key}>
     {block}
   </div>;
+
+const Search = dynamic(() => import("./blocks/search").then(mod => mod.Search), {
+  ssr: false,
+});
 
 export const Blocks = (props: Omit<Page, "id" | "_sys" | "_values">) => {
   return (

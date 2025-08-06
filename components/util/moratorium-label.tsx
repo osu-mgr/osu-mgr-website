@@ -1,29 +1,18 @@
 import numeral from 'numeral';
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ItemType, itemTypesPlural, itemTypesSingular } from './items';
 import { Icon } from './icon';
 
-
-interface CountData {
-  count: number;
-}
-
 export const ItemsCount: React.FC<{
-  types: ItemType[];
-  terms?: any;
-  searchString?: string;
-  filters?: any;
-  singularLabel?: string;
-  pluralLabel?: string;
-}> = ({ types, terms, searchString, filters, singularLabel, pluralLabel }) => {
+  osuId
+}> = ({ types, searchString, singularLabel, pluralLabel }) => {
   const { data: countData, isLoading } = useQuery({
-    queryKey: ['itemsCount', types, searchString, filters],
+    queryKey: ['itemsCount', types, searchString],
     queryFn: async (): Promise<CountData> => {
       const res = await fetch('/api/opensearch?count', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ types, searchString, terms, filters }),
+        body: JSON.stringify({ types, searchString }),
       });
       if (!res.ok) {
         const errorData = await res.json();

@@ -9,21 +9,20 @@ export const CollectionFileButton: React.FC<{ file: string, name: string, icon: 
   icon,
 }) => {
   const exists = {
-    'holdings/': useCollectionFileExists(`${'holdings/'}${file}`),
-    //'holdings/+': useCollectionFileExists(`${'holdings/+'}${file}`),
-    'acc%20holdings/': useCollectionFileExists(`${'acc%20holdings/'}${file}`),
-    //'acc%20holdings/+': useCollectionFileExists(`${'acc%20holdings/+'}${file}`),
+    //'holdings/': useCollectionFileExists(`${'holdings/'}${file}`),
+    ////'holdings/+': useCollectionFileExists(`${'holdings/+'}${file}`),
+    //'acc%20holdings/': useCollectionFileExists(`${'acc%20holdings/'}${file}`),
+    ////'acc%20holdings/+': useCollectionFileExists(`${'acc%20holdings/+'}${file}`),
   };
   
   return <>
     {_.keys(exists).map((folder) =>
-      exists[folder] && exists[folder].data &&
       <a
         key={`${folder}-${file}`}
         className='file btn btn-outline no-underline flex flex-col items-center justify-center p-1' // DaisyUI classes
         target='_blank'
         rel='noreferrer'
-        href={`https://haviside.ceoas.oregonstate.edu:6567/collection/${folder}${file}`}
+        href={`https://haviside.ceoas.oregonstate.edu:6567/${folder}${file}`}
         onClick={(e) => {
           e.stopPropagation();
         }}
@@ -31,7 +30,7 @@ export const CollectionFileButton: React.FC<{ file: string, name: string, icon: 
         <Icon name={icon} size="medium" className="m-auto"/>
         {name && <span className="text-xs mt-0">{name}</span>}
 
-      </a> || undefined
+      </a>
     )}
     <style jsx>{`
       .file {

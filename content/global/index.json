@@ -39,23 +39,23 @@
         "subnav": [
           {
             "href": "collections",
-            "label": "OSU Collections\n"
+            "label": "Collections\n"
           },
           {
             "href": "search",
-            "label": "Search by Name\n"
+            "label": "Search\n"
           },
           {
             "href": "map",
-            "label": "Search by Location\n"
+            "label": "Map\n"
           },
           {
             "href": "noaa-ex",
-            "label": "Search NOAA Dives by Location\n"
+            "label": "NOAA Dives Map\n"
           },
           {
             "href": "repositories",
-            "label": "Other Repositories and Databases\n"
+            "label": "Other Repositories\n"
           }
         ]
       },

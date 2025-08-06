@@ -13,6 +13,7 @@ import { Icon } from "../util/icon";
 import { Container } from "../util/container";
 import layoutData from "../../content/global/index.json";
 import { Theme } from "./theme";
+import { is } from "date-fns/locale";
 
 export const Layout = ({ rawData = {} as any, data = layoutData, children }) => {
   const { width: scrollbarWidth } = useScrollbarSize();
@@ -30,6 +31,8 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
     let isActive = false;
     if (item.href === "" || item.href === "/")
       isActive = (router.asPath === "/home" || router.asPath === "/");
+    else if (router.asPath.startsWith("/OSU-"))
+      isActive = (item.href === 'collections');
     else
       isActive = router.asPath.includes(item.href) || item.subnav?.some((subitem) => router.asPath.includes(subitem.href));
     return {
@@ -38,14 +41,10 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
     };
   });
   const activeItem = items.find((item) => item.isActive);
- 
-  const subItems = activeItem?.subnav?.map((subitem) => {
-    return {
-      ...subitem,
-      isActive: router.asPath.includes(subitem.href)
-    };
-  });
-  // const activeSubItem = subItems.find((subitem) => subitem.isActive);
+
+  // console.log("Router path:", router.asPath);
+  // console.log("Items:", items);
+  // console.log("Active item:", activeItem);
   
   const LargeHorizontalHeader = ({ fixed = false }) => 
     <div className={`z-50 p-0 bg-neutral-900 hidden lg:block ${ fixed && "fixed"}`} style={fixed && { width: `calc(100% - ${scrollbarWidth}px)` } || { visibility: 'hidden' }}>
@@ -66,20 +65,20 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
           )}
         </div>
       </div>
-      {subItems?.length > 0 &&
+      {activeItem?.subnav?.length > 0 &&
         <div className="bg-primary">
           <Container
             className="py-2"
             width="medium"
           >
             <div className="tabs">
-              {subItems.map((item, i) => (
+              {activeItem.subnav.map((subitem, i) => (
                 <a
                   key={i}
-                  href={item.href}
-                  className={`tab tab-bordered text-white h-auto ${item.isActive ? "tab-active !border-white" : ""}`}
+                  href={subitem.href}
+                  className={`tab tab-lg tab-bordered text-white h-auto ${router.asPath.includes(subitem.href) ? "tab-active !border-white" : ""}`}
                 >
-                  <span data-tina-field={tinaField(item)}><TinaMarkdown content={item.label as unknown as TinaMarkdownContent} /></span>
+                  <span data-tina-field={tinaField(subitem)}><TinaMarkdown content={subitem.label as unknown as TinaMarkdownContent} /></span>
                 </a>
               ))}
             </div>
