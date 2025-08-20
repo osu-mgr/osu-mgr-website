@@ -42,12 +42,12 @@ const Cruise: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
     data: results,
     isLoading: isLoadingQuery,
   } = useQuery({
-    queryKey: ['osuID', osuID],
+    queryKey: ['osuID', cruiseDoc._osuid],
     queryFn: async () => { 
       const payload = {
         types: ['cruise', 'core', 'dive'],
         terms: {
-          "_osuid.keyword": [osuID.toUpperCase()],
+          "_osuid.keyword": [cruiseDoc._osuid.toUpperCase()],
         },
       };
       const res = await fetch('/api/opensearch?search', {
