@@ -19,7 +19,7 @@ export const CollectionFileButton: React.FC<{ file: string, name: string, icon: 
     {_.keys(exists).map((folder) =>
       <a
         key={`${folder}-${file}`}
-        className='file btn btn-outline no-underline flex flex-col items-center justify-center p-1' // DaisyUI classes
+        className='file btn btn-outline no-underline flex flex-col items-center justify-center p-2' // DaisyUI classes
         target='_blank'
         rel='noreferrer'
         href={`https://haviside.ceoas.oregonstate.edu:6567/${folder}${file}`}
@@ -27,8 +27,8 @@ export const CollectionFileButton: React.FC<{ file: string, name: string, icon: 
           e.stopPropagation();
         }}
       >
-        <Icon name={icon} size="medium" className="m-auto"/>
-        {name && <span className="text-xs mt-0">{name}</span>}
+        <Icon name={icon} size="large" className="mb-1"/>
+        {name && <span className="text-xs text-center">{name}</span>}
 
       </a>
     )}

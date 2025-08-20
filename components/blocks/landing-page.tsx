@@ -10,7 +10,7 @@ import { CollectionFileButton } from '../util/collection-file-button';
 // import { itemFieldNames, formatField } from './util/items';
 import { Icon } from "../util/icon";
 
-const viewRawData = true; // Set to true to view raw data in the search results
+const viewRawData = false; // Set to true to view raw data in the search results
 
 const TypeTab: React.FC<{
   label: string;
@@ -584,6 +584,54 @@ export const LandingPage: React.FC<{ data: any }> = ({
               <h3 className="text-lg font-semibold mt-0 mb-3">Description</h3>
               <p className="text-sm">{doc.description || 'No description available'}</p>
             </div>
+
+            {/* Files & Resources */}
+            <div className="bg-base-100 p-4 rounded-lg shadow">
+              <h3 className="text-lg font-semibold mt-0 mb-3">Available Files</h3>
+              <div>
+                {doc._files && doc._files.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {doc._files.map((file, index) => {
+                      // Determine icon based on file type
+                      const getFileIcon = (type: string, path: string) => {
+                        const fileType = type?.toLowerCase() || '';
+                        const extension = path?.split('.').pop()?.toLowerCase() || '';
+                        
+                        if (fileType.includes('description') || extension === 'pdf') return 'TbFileText';
+                        if (fileType.includes('xrf') || fileType.includes('data') || extension === 'xlsx' || extension === 'csv') return 'TbFileSpreadsheet';
+                        if (fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) return 'TbPhoto';
+                        return 'TbFile';
+                      };
+
+                      const getFileName = (type: string, path: string) => {
+                        if (type) {
+                          return type.split('-').map(word => 
+                            word.charAt(0).toUpperCase() + word.slice(1)
+                          ).join(' ');
+                        }
+                        return path?.split('/').pop() || 'File';
+                      };
+
+                      return (
+                        <a
+                          key={index}
+                          href={`https://haviside.ceoas.oregonstate.edu:6567/${file.path}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-outline flex flex-col items-center justify-center p-3 w-20 h-20 no-underline hover:bg-primary hover:text-white"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Icon name={getFileIcon(file.type, file.path)} className="w-6 h-6 mb-1" />
+                          <span className="text-xs text-center leading-tight">{getFileName(file.type, file.path)}</span>
+                        </a>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 m-0">No files available</p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Cruise Cores Panel */}
@@ -674,11 +722,11 @@ export const LandingPage: React.FC<{ data: any }> = ({
                           href={`https://haviside.ceoas.oregonstate.edu:6567/${file.path}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="btn btn-outline btn-sm flex items-center gap-2 no-underline hover:bg-primary hover:text-white"
+                          className="btn btn-outline flex flex-col items-center justify-center p-3 w-20 h-20 no-underline hover:bg-primary hover:text-white"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Icon name={getFileIcon(file.type, file.path)} className="w-4 h-4" />
-                          <span className="text-xs">{getFileName(file.type, file.path)}</span>
+                          <Icon name={getFileIcon(file.type, file.path)} className="w-6 h-6 mb-1" />
+                          <span className="text-xs text-center leading-tight">{getFileName(file.type, file.path)}</span>
                         </a>
                       );
                     })}
@@ -795,11 +843,11 @@ export const LandingPage: React.FC<{ data: any }> = ({
                           href={`https://haviside.ceoas.oregonstate.edu:6567/${file.path}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="btn btn-outline btn-sm flex items-center gap-2 no-underline hover:bg-primary hover:text-white"
+                          className="btn btn-outline flex flex-col items-center justify-center p-3 w-20 h-20 no-underline hover:bg-primary hover:text-white"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Icon name={getFileIcon(file.type, file.path)} className="w-4 h-4" />
-                          <span className="text-xs">{getFileName(file.type, file.path)}</span>
+                          <Icon name={getFileIcon(file.type, file.path)} className="w-6 h-6 mb-1" />
+                          <span className="text-xs text-center leading-tight">{getFileName(file.type, file.path)}</span>
                         </a>
                       );
                     })}
@@ -933,11 +981,11 @@ export const LandingPage: React.FC<{ data: any }> = ({
                           href={`https://haviside.ceoas.oregonstate.edu:6567/${file.path}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="btn btn-outline btn-sm flex items-center gap-2 no-underline hover:bg-primary hover:text-white"
+                          className="btn btn-outline flex flex-col items-center justify-center p-3 w-20 h-20 no-underline hover:bg-primary hover:text-white"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Icon name={getFileIcon(file.type, file.path)} className="w-4 h-4" />
-                          <span className="text-xs">{getFileName(file.type, file.path)}</span>
+                          <Icon name={getFileIcon(file.type, file.path)} className="w-6 h-6 mb-1" />
+                          <span className="text-xs text-center leading-tight">{getFileName(file.type, file.path)}</span>
                         </a>
                       );
                     })}

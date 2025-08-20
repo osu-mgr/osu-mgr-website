@@ -11,7 +11,7 @@ import { CollectionFileButton } from '../util/collection-file-button';
 import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
 
-const viewRawData = true; // Set to true to view raw data in the search results
+const viewRawData = false; // Set to true to view raw data in the search results
 
 const moratoriumCruises = [
 'OSU-KM2201',
