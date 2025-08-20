@@ -4,9 +4,9 @@
   "private": false,
   "scripts": {
     "dev": "TINA_PUBLIC_IS_LOCAL=true tinacms dev -c \"next dev -p 3100\" --datalayer-port 3101",
-    "build": "tinacms build && next build",
-    "start": "tinacms build && next start",
-    "export": "tinacms build && next export",
+    "build": "tinacms build -p 3102 --datalayer-port 3103 && next build",
+    "start": "tinacms build -p 3104 --datalayer-port 3105 && next start",
+    "export": "tinacms build -p 3106 --datalayer-port 3107 && next export",
     "lint": "eslint . --ext .ts,.tsx"
   },
   "engines": {
