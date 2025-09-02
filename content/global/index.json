@@ -60,6 +60,32 @@
         ]
       },
       {
+        "href": "request-samples",
+        "label": "Make A \\\nRequest\n",
+        "subnav": [
+          {
+            "href": "request-samples",
+            "label": "Request\n\nSamples\n"
+          },
+          {
+            "href": "analytical-requests",
+            "label": "Analyticial\n\nRequests\n"
+          },
+          {
+            "href": "sample-types",
+            "label": "Sample\n\nTypes\n"
+          },
+          {
+            "href": "core-distribution-guidelines",
+            "label": "Sediment and Rock Core\\\nSample Distribution Guidelines\n"
+          },
+          {
+            "href": "dredge-distribution-guidelines",
+            "label": "Dredge and Dive Sample\n\nDistribution Guidelines\n"
+          }
+        ]
+      },
+      {
         "href": "plan-your-visit",
         "label": "Plan Your\\\nVisit\n",
         "subnav": [
@@ -100,32 +126,6 @@
           {
             "href": "other-facilities",
             "label": "Other OSU Laboratory Facilities\n"
-          }
-        ]
-      },
-      {
-        "href": "request-samples",
-        "label": "Make A \\\nRequest\n",
-        "subnav": [
-          {
-            "href": "request-samples",
-            "label": "Request\n\nSamples\n"
-          },
-          {
-            "href": "analytical-requests",
-            "label": "Analyticial\n\nRequests\n"
-          },
-          {
-            "href": "sample-types",
-            "label": "Sample\n\nTypes\n"
-          },
-          {
-            "href": "core-distribution-guidelines",
-            "label": "Sediment and Rock Core\\\nSample Distribution Guidelines\n"
-          },
-          {
-            "href": "dredge-distribution-guidelines",
-            "label": "Dredge and Dive Sample\n\nDistribution Guidelines\n"
           }
         ]
       },
