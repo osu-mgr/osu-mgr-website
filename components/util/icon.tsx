@@ -2,10 +2,12 @@ import * as React from "react";
 import { useTheme } from "../layout";
 import * as BoxIcons from "react-icons/bi";
 import * as TbIcons from "react-icons/tb";
+import * as LuIcons from "react-icons/lu";
 
 export const IconOptions = {
   ...BoxIcons,
   ...TbIcons,
+  ...LuIcons,
 };
 
 const iconColorClass: {
@@ -50,6 +52,7 @@ const iconColorClass: {
 };
 
 const iconSizeClass = {
+  xxs: "w-4 h-4 flex-shrink-0",
   xs: "w-6 h-6 flex-shrink-0",
   small: "w-8 h-8 flex-shrink-0",
   medium: "w-12 h-12 flex-shrink-0",

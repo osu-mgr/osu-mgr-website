@@ -4,11 +4,13 @@ import { defineStaticConfig } from "tinacms";
 import { contentBlockSchema } from "../components/blocks/content";
 import { featureBlockSchema } from "../components/blocks/features";
 import { heroBlockSchema } from "../components/blocks/hero";
+import { imageBlockSchema } from "../components/blocks/image";
 import { tableBlockSchema } from "../components/blocks/table";
 import { downloadBlockSchema } from "../components/blocks/download";
 import { iframeBlockSchema } from "../components/blocks/iframe";
 import { searchBlockSchema } from "../components/blocks/search";
 import { landingPageBlockSchema } from "../components/blocks/landing-page";
+import { modalBlockSchema } from "../components/blocks/modal";
 import { ColorPickerInput } from "../components/fields/color";
 import { IconPickerInput } from "../components/fields/icon";
 import { LinkButtonInput } from "../components/fields/link-button";
@@ -263,6 +265,8 @@ const config = defineStaticConfig({
               // @ts-ignore
               contentBlockSchema,
               // @ts-ignore
+              imageBlockSchema,
+              // @ts-ignore
               tableBlockSchema,
               // @ts-ignore
               downloadBlockSchema,
@@ -272,6 +276,8 @@ const config = defineStaticConfig({
               searchBlockSchema,
               // @ts-ignore
               landingPageBlockSchema,
+              // @ts-ignore
+              modalBlockSchema,
             ],
           },
         ],

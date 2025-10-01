@@ -42,26 +42,35 @@ export const components: Components<{
   Image: (props) => {
     const figure = (props?.image &&
       <figure className="bg-white rounded-lg drop-shadow-lg" style={{
-        width: props?.width,
+        width: props?.width || '100%',
         float: props?.float || 'none',
         marginLeft: props?.float === 'right' ? '1em' : 'auto',
         marginRight: props?.float === 'left' ? '1em' : 'auto',
         marginTop: 0,
         marginBottom: '1em',
       }}>
-        <div style={{
-          height: props?.height,
-          width: props?.width,
-          position: 'relative',
-          margin: 0,
-        }}>
-          <Image className={`w-full m-0 object-cover ${props?.showCaption ? 'rounded-tl-lg rounded-tr-lg' : 'rounded-lg'}`}
+        {props?.width && props?.height ? (
+          <div style={{
+            height: props?.height,
+            width: props?.width,
+            position: 'relative',
+            margin: 0,
+          }}>
+            <Image className={`w-full m-0 object-cover ${props?.showCaption ? 'rounded-tl-lg rounded-tr-lg' : 'rounded-lg'}`}
+              src={props?.image}
+              fill
+              sizes={props?.width + 'px'}
+              alt={renderToString(<TinaMarkdown components={components} content={props?.caption} />)}
+            />
+          </div>
+        ) : (
+          <Image className={`w-full m-0 h-auto ${props?.showCaption ? 'rounded-tl-lg rounded-tr-lg' : 'rounded-lg'}`}
             src={props?.image}
-            fill
-            sizes={props?.width + 'px'}
+            width={1200}
+            height={800}
             alt={renderToString(<TinaMarkdown components={components} content={props?.caption} />)}
           />
-        </div>
+        )}
         {props?.showCaption &&
           <figcaption className="px-5 py-px mt-0 text-center text-lg font-semibold">
             <div className="-my-4">
@@ -207,13 +216,11 @@ export const templates: any[] = [
         type: "number",
         label: "Width in Pixels",
         name: "width",
-        required: true,
       },
       {
         type: "number",
         label: "Height in Pixels",
         name: "height",
-        required: true,
       },
       {
         label: "Float",

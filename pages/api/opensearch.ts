@@ -4,7 +4,7 @@ import { Client } from '@opensearch-project/opensearch';
 const client: Client = new Client({
   node: process.env.OS_NODE,
 });
-const index = 'osu-mgr';
+const index = 'osu-mgr-dev';
 
 const cruisesFirst = {
   "_script": {
@@ -14,8 +14,8 @@ const cruisesFirst = {
   }
 };
 const sortOrders = {
-	//'modified asc': [cruisesFirst, { _modified: 'asc' }],
-  //'modified desc': [cruisesFirst, { _modified: 'desc' }],
+	'modified asc': [cruisesFirst, { _modified: 'asc' }],
+  'modified desc': [cruisesFirst, { _modified: 'desc' }],
   'alpha asc': [cruisesFirst, { '_osuid.keyword': 'asc' }],
   'alpha desc': [cruisesFirst, { '_osuid.keyword': 'desc' }],
   'ids asc': [cruisesFirst, 
@@ -34,6 +34,15 @@ const sortOrders = {
     { _diveSampleNumber: 'desc' },
     { '_osuid.keyword': 'desc' },
   ],
+  // Additional sort orders for table columns
+  'rvName asc': [cruisesFirst, { 'rvName.keyword': 'asc' }],
+  'rvName desc': [cruisesFirst, { 'rvName.keyword': 'desc' }],
+  'method asc': [cruisesFirst, { 'method.keyword': 'asc' }],
+  'method desc': [cruisesFirst, { 'method.keyword': 'desc' }],
+  'weight asc': [cruisesFirst, { 'weight': 'asc' }],
+  'weight desc': [cruisesFirst, { 'weight': 'desc' }],
+  'depth asc': [cruisesFirst, { 'depthTop.keyword': 'asc' }],
+  'depth desc': [cruisesFirst, { 'depthTop.keyword': 'desc' }],
 };
 
 export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> => {
@@ -89,13 +98,31 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
     if (search.filters.fileTypes && search.filters.fileTypes.length > 0) {
       const fileTypeLogic = search.filterLogic?.fileTypes || 'OR';
       if (fileTypeLogic === 'AND') {
-        // For AND logic, each file type must be present
-        search.filters.fileTypes.forEach((fileType: string) => {
-          filters.push({
-            terms: {
-              '_files.type.keyword': [fileType]
+        // For AND logic, the document must have ALL selected file types
+        // Use a script query to check that all selected file types are present
+        filters.push({
+          script: {
+            script: {
+              source: `
+                def selectedTypes = params.fileTypes;
+                def docFileTypes = new HashSet();
+                if (doc['_files.type.keyword'].size() > 0) {
+                  for (def fileType : doc['_files.type.keyword']) {
+                    docFileTypes.add(fileType);
+                  }
+                }
+                for (def selectedType : selectedTypes) {
+                  if (!docFileTypes.contains(selectedType)) {
+                    return false;
+                  }
+                }
+                return true;
+              `,
+              params: {
+                fileTypes: search.filters.fileTypes
+              }
             }
-          });
+          }
         });
       } else {
         // For OR logic, any file type can be present
@@ -183,19 +210,30 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
   let resp = { body: {} };
 
   if (req.query.search !== undefined && (search.terms !== undefined || search.searchString !== undefined) && search.types !== undefined) {
+    const body: any = {
+      from: search.from || 0,
+      size: search.size || 10,
+      query
+    };
+
+    // Add sort only if size > 0 (not for aggregation-only queries)
+    if (search.size !== 0) {
+      body.sort = sortOrders[search.sortOrder];
+      body.highlight = {
+        pre_tags: '',
+        post_tags: '',
+        fields: { '*.substring': {} },
+      };
+    }
+
+    // Add aggregations if provided
+    if (search.aggs) {
+      body.aggs = search.aggs;
+    }
+
     resp = await client.search({
       index: index,
-      body: {
-        from: search.from || 0,
-        size: search.size || 10,
-        sort: sortOrders[search.sortOrder],
-        highlight: {
-          pre_tags: '',
-          post_tags: '',
-          fields: { '*.substring': {} },
-        },
-        query
-      }
+      body
     } as any);
   }
   else if (req.query.count !== undefined && (search.terms !== undefined || search.searchString !== undefined) && search.types !== undefined) {
@@ -211,7 +249,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
     const fileTypes = [
       'core-description', 'core-image', 'coring-data-sheet', 'cruise-report',
       'ct-color-image', 'ct-density', 'ct-gray-image', 'ct-image',
-      'dredge-log', 'field-image', 'igsn-sheet', 'imlgs-file',
+      'dredge-log', 'field-image',
       'itrax-image', 'itrax-xray-image', 'mst-data', 'ptmag-data',
       'publications-data', 'samples-data', 'thin-section-cross-polarized-foi-image',
       'thin-section-cross-polarized-image', 'thin-section-plane-polarized-foi-image',
@@ -221,7 +259,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
     
     const counts: { [key: string]: number } = {};
     
-    // Base query without file type filter
+    // Build base query and apply non-fileType filters
     let baseQuery: any = {};
     if (search.searchString === '') {
       baseQuery = { terms: { '_docType.keyword': search.types } };
@@ -252,10 +290,74 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         }
       };
     }
+
+    // Apply non-fileType filters if they exist (these should not be affected by fileType AND/OR logic)
+    if (search.filters) {
+      const nonFileTypeFilters = [];
+      
+      // Apply method filters with their own logic
+      if (search.filters.methods && search.filters.methods.length > 0) {
+        const methodLogic = search.filterLogic?.methods || 'OR';
+        if (methodLogic === 'AND') {
+          // For methods AND logic, each method must be present (this doesn't make logical sense for a single field, treat as OR)
+          nonFileTypeFilters.push({
+            terms: { 'method.keyword': search.filters.methods }
+          });
+        } else {
+          nonFileTypeFilters.push({
+            terms: { 'method.keyword': search.filters.methods }
+          });
+        }
+      }
+      
+      // Apply material type filters with their own logic  
+      if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
+        const materialLogic = search.filterLogic?.materialTypes || 'OR';
+        if (materialLogic === 'AND') {
+          // For materials AND logic, each material must be present (this doesn't make logical sense for a single field, treat as OR)
+          nonFileTypeFilters.push({
+            terms: { 'material.keyword': search.filters.materialTypes }
+          });
+        } else {
+          nonFileTypeFilters.push({
+            terms: { 'material.keyword': search.filters.materialTypes }
+          });
+        }
+      }
+      
+      // Apply RV name filters with their own logic
+      if (search.filters.rvNames && search.filters.rvNames.length > 0) {
+        const rvLogic = search.filterLogic?.rvNames || 'OR';
+        if (rvLogic === 'AND') {
+          // For RV names AND logic, each RV name must be present (this doesn't make logical sense for a single field, treat as OR)
+          nonFileTypeFilters.push({
+            terms: { 'rvName.keyword': search.filters.rvNames }
+          });
+        } else {
+          nonFileTypeFilters.push({
+            terms: { 'rvName.keyword': search.filters.rvNames }
+          });
+        }
+      }
+      
+      // Apply non-file type filters to base query
+      if (nonFileTypeFilters.length > 0) {
+        if (baseQuery.bool) {
+          baseQuery.bool.must = baseQuery.bool.must || [];
+          baseQuery.bool.must.push(...nonFileTypeFilters);
+        } else {
+          baseQuery = {
+            bool: {
+              must: [baseQuery, ...nonFileTypeFilters]
+            }
+          };
+        }
+      }
+    }
     
     // Get counts for each file type
     for (const fileType of fileTypes) {
-      const fileTypeQuery = {
+      const fileTypeQuery: any = {
         bool: {
           must: [
             baseQuery,
@@ -267,6 +369,43 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           ]
         }
       };
+      
+      // If AND logic is selected for file types and there are other selected file types,
+      // add those as additional requirements
+      if (search.filters?.fileTypes && search.filters.fileTypes.length > 0) {
+        const fileTypeLogic = search.filterLogic?.fileTypes || 'OR';
+        if (fileTypeLogic === 'AND') {
+          // For AND logic, add all selected file types as requirements
+          // (the current fileType is already included above)
+          const otherSelectedTypes = search.filters.fileTypes.filter((ft: string) => ft !== fileType);
+          if (otherSelectedTypes.length > 0) {
+            fileTypeQuery.bool.must.push({
+              script: {
+                script: {
+                  source: `
+                    def selectedTypes = params.fileTypes;
+                    def docFileTypes = new HashSet();
+                    if (doc['_files.type.keyword'].size() > 0) {
+                      for (def docFileType : doc['_files.type.keyword']) {
+                        docFileTypes.add(docFileType);
+                      }
+                    }
+                    for (def selectedType : selectedTypes) {
+                      if (!docFileTypes.contains(selectedType)) {
+                        return false;
+                      }
+                    }
+                    return true;
+                  `,
+                  params: {
+                    fileTypes: otherSelectedTypes
+                  }
+                }
+              }
+            });
+          }
+        }
+      }
       
       try {
         const countResp = await client.count({
@@ -287,7 +426,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
     // Return counts for each collection method (only for cores and dive types)
     const counts: { [key: string]: number } = {};
     
-    // Base query without method filter
+    // Build base query and apply non-method filters
     let baseQuery: any = {};
     if (search.searchString === '') {
       baseQuery = { terms: { '_docType.keyword': search.types } };
@@ -317,6 +456,92 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           minimum_should_match: 1,
         }
       };
+    }
+
+    // Apply non-method filters if they exist
+    if (search.filters) {
+      const nonMethodFilters = [];
+      
+      // Apply file type filters with their current logic
+      if (search.filters.fileTypes && search.filters.fileTypes.length > 0) {
+        const fileTypeLogic = search.filterLogic?.fileTypes || 'OR';
+        if (fileTypeLogic === 'AND') {
+          nonMethodFilters.push({
+            script: {
+              script: {
+                source: `
+                  def selectedTypes = params.fileTypes;
+                  def docFileTypes = new HashSet();
+                  if (doc['_files.type.keyword'].size() > 0) {
+                    for (def fileType : doc['_files.type.keyword']) {
+                      docFileTypes.add(fileType);
+                    }
+                  }
+                  for (def selectedType : selectedTypes) {
+                    if (!docFileTypes.contains(selectedType)) {
+                      return false;
+                    }
+                  }
+                  return true;
+                `,
+                params: {
+                  fileTypes: search.filters.fileTypes
+                }
+              }
+            }
+          });
+        } else {
+          nonMethodFilters.push({
+            terms: {
+              '_files.type.keyword': search.filters.fileTypes
+            }
+          });
+        }
+      }
+      
+      // Apply material type filters with their current logic
+      if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
+        const materialLogic = search.filterLogic?.materialTypes || 'OR';
+        if (materialLogic === 'AND') {
+          // For materials AND logic, each material must be present (treat as OR since it's a single field)
+          nonMethodFilters.push({
+            terms: { 'material.keyword': search.filters.materialTypes }
+          });
+        } else {
+          nonMethodFilters.push({
+            terms: { 'material.keyword': search.filters.materialTypes }
+          });
+        }
+      }
+      
+      // Apply RV name filters with their current logic
+      if (search.filters.rvNames && search.filters.rvNames.length > 0) {
+        const rvLogic = search.filterLogic?.rvNames || 'OR';
+        if (rvLogic === 'AND') {
+          // For RV names AND logic, each RV name must be present (treat as OR since it's a single field)
+          nonMethodFilters.push({
+            terms: { 'rvName.keyword': search.filters.rvNames }
+          });
+        } else {
+          nonMethodFilters.push({
+            terms: { 'rvName.keyword': search.filters.rvNames }
+          });
+        }
+      }
+      
+      // Apply non-method filters to base query
+      if (nonMethodFilters.length > 0) {
+        if (baseQuery.bool) {
+          baseQuery.bool.must = baseQuery.bool.must || [];
+          baseQuery.bool.must.push(...nonMethodFilters);
+        } else {
+          baseQuery = {
+            bool: {
+              must: [baseQuery, ...nonMethodFilters]
+            }
+          };
+        }
+      }
     }
     
     // Get aggregation of method field values

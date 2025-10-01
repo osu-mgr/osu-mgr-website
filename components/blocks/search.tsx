@@ -1,17 +1,20 @@
 import _ from 'lodash';
 import numeral from 'numeral';
 import React, { useState, useCallback, useEffect } from "react";
+import { useRouter } from 'next/router';
+import { useQuery } from '@tanstack/react-query';
 import useLocalStorage from '../hooks/useLocalStorage';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useInView } from 'react-hook-inview';
 import { Section } from "../util/section";
 import { Container } from "../util/container";
 import { ItemsCount } from '../util/items-count';
-import { CollectionFileButton } from '../util/collection-file-button';
 import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
+import { LandingPage } from "./landing-page";
+import JSZip from 'jszip';
 
-const viewRawData = false; // Set to true to view raw data in the search results
+const viewRawData = true; // Set to true to view raw data in the search results
 
 const moratoriumCruises = [
 'OSU-KM2201',
@@ -97,8 +100,6 @@ const fileTypes = [
   'ct-image',
   'dredge-log',
   'field-image',
-  'igsn-sheet',
-  'imlgs-file',
   'itrax-image',
   'itrax-xray-image',
   'mst-data',
@@ -115,47 +116,48 @@ const fileTypes = [
   'xrf-data'
 ];
 
-const getFileTypeLabel = (fileType: string): string => {
-  const labelMap: { [key: string]: string } = {
-    'core-description': 'Core Description',
-    'core-image': 'Core Image',
-    'coring-data-sheet': 'Coring Data Sheet',
-    'cruise-report': 'Cruise Report',
-    'ct-color-image': 'CT Color Image',
-    'ct-density': 'CT Density',
-    'ct-gray-image': 'CT Gray Image',
-    'ct-image': 'CT Image',
-    'dredge-log': 'Dredge Log',
-    'field-image': 'Field Image',
-    'igsn-sheet': 'IGSN Sheet',
-    'imlgs-file': 'IMLGS File',
-    'itrax-image': 'ITRAX Image',
-    'itrax-xray-image': 'ITRAX X-Ray Image',
-    'mst-data': 'MST Data',
-    'ptmag-data': 'Paleomagnetic Data',
-    'publications-data': 'Publications Data',
-    'samples-data': 'Samples Data',
-    'thin-section-cross-polarized-foi-image': 'Thin Section Cross-Polarized FOI',
-    'thin-section-cross-polarized-image': 'Thin Section Cross-Polarized',
-    'thin-section-plane-polarized-foi-image': 'Thin Section Plane-Polarized FOI',
-    'thin-section-plane-polarized-image': 'Thin Section Plane-Polarized',
-    'whole-rock-foi-image': 'Whole Rock FOI Image',
-    'whole-rock-image': 'Whole Rock Image',
-    'xray-image': 'X-Ray Image',
-    'xrf-data': 'XRF Data'
-  };
-  
-  return labelMap[fileType] || fileType;
+const fileTypeLabelMap: { [key: string]: string } = {
+  'core-description': 'Core Description',
+  'core-image': 'Core Image',
+  'coring-data-sheet': 'Coring Data Sheet',
+  'cruise-report': 'Cruise Report',
+  'ct-color-image': 'CT Color Image',
+  'ct-density': 'CT Density',
+  'ct-gray-image': 'CT Gray Image',
+  'ct-image': 'CT Image',
+  'dredge-log': 'Dredge Log',
+  'field-image': 'Field Image',
+  'itrax-image': 'ITRAX Image',
+  'itrax-xray-image': 'ITRAX X-Ray Image',
+  'mst-data': 'MST Data',
+  'ptmag-data': 'Point MS Data',
+  'publications-data': 'Publications Data',
+  'samples-data': 'Samples Data',
+  'thin-section-cross-polarized-foi-image': 'Thin Section Cross-Polarized FOI',
+  'thin-section-cross-polarized-image': 'Thin Section Cross-Polarized',
+  'thin-section-plane-polarized-foi-image': 'Thin Section Plane-Polarized FOI',
+  'thin-section-plane-polarized-image': 'Thin Section Plane-Polarized',
+  'whole-rock-foi-image': 'Whole Rock FOI Image',
+  'whole-rock-image': 'Whole Rock Image',
+  'xray-image': 'X-Ray Image',
+  'xrf-data': 'XRF Data'
 };
 
-const FilterPanel: React.FC<{
+const hasFileTypeLabel = (fileType: string): boolean => {
+  return fileType in fileTypeLabelMap;
+};
+
+const getFileTypeLabel = (fileType: string): string => {
+  return fileTypeLabelMap[fileType] || fileType;
+};
+
+// File Types Filter Dropdown Component
+const FileTypesFilterDropdown: React.FC<{
   search: any;
   setSearch: (search: any) => void;
 }> = ({ search, setSearch }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const selectedFileTypes = search.filters?.fileTypes || [];
-  const selectedMethods = search.filters?.methods || [];
-  const selectedMaterialTypes = search.filters?.materialTypes || [];
-  const selectedRvNames = search.filters?.rvNames || [];
   
   const toggleFilterLogic = (filterType: string) => {
     const currentLogic = search.filterLogic?.[filterType] || 'OR';
@@ -172,14 +174,16 @@ const FilterPanel: React.FC<{
   
   // Fetch counts for each file type
   const { data: fileTypeCounts, isLoading: countsLoading } = useQuery({
-    queryKey: ['fileTypeCounts', search.types, search.searchString],
+    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?fileTypeCounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           types: search.types,
-          searchString: search.searchString || ''
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
         }),
       });
       
@@ -188,84 +192,6 @@ const FilterPanel: React.FC<{
       }
       return {};
     }
-  });
-
-  // Fetch available collection methods for cores and rocks
-  const { data: methodCounts, isLoading: methodsLoading } = useQuery({
-    queryKey: ['methodCounts', search.types, search.searchString],
-    queryFn: async () => {
-      // Only fetch method counts for cores and dive (rocks)
-      if (!search.types.some((type: string) => ['core', 'dive'].includes(type))) {
-        return {};
-      }
-      
-      const res = await fetch('/api/opensearch?methodCounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          types: search.types,
-          searchString: search.searchString || ''
-        }),
-      });
-      
-      if (res.ok) {
-        return await res.json();
-      }
-      return {};
-    },
-    enabled: search.types.some((type: string) => ['core', 'dive'].includes(type))
-  });
-
-  // Fetch available material types for cores only
-  const { data: materialCounts, isLoading: materialsLoading } = useQuery({
-    queryKey: ['materialCounts', search.types, search.searchString],
-    queryFn: async () => {
-      // Only fetch material counts for cores
-      if (!search.types.includes('core')) {
-        return {};
-      }
-      
-      const res = await fetch('/api/opensearch?materialCounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          types: search.types,
-          searchString: search.searchString || ''
-        }),
-      });
-      
-      if (res.ok) {
-        return await res.json();
-      }
-      return {};
-    },
-    enabled: search.types.includes('core')
-  });
-
-  // Fetch available RV names for cruises only
-  const { data: rvNameCounts, isLoading: rvNamesLoading } = useQuery({
-    queryKey: ['rvNameCounts', search.types, search.searchString],
-    queryFn: async () => {
-      // Only fetch RV name counts for cruises
-      if (!search.types.includes('cruise')) {
-        return {};
-      }
-      
-      const res = await fetch('/api/opensearch?rvNameCounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          types: search.types,
-          searchString: search.searchString || ''
-        }),
-      });
-      
-      if (res.ok) {
-        return await res.json();
-      }
-      return {};
-    },
-    enabled: search.types.includes('cruise')
   });
   
   const handleFileTypeChange = (fileType: string, checked: boolean) => {
@@ -282,7 +208,1105 @@ const FilterPanel: React.FC<{
       }
     });
   };
+  
+  const toggleAllFileTypes = () => {
+    const availableFileTypesWithResults = availableFileTypes.filter(fileType => 
+      (fileTypeCounts?.[fileType] || 0) > 0
+    );
+    const allAvailableSelected = availableFileTypesWithResults.every(fileType => 
+      selectedFileTypes.includes(fileType)
+    );
+    
+    if (allAvailableSelected) {
+      setSearch({
+        ...search,
+        filters: {
+          ...search.filters,
+          fileTypes: selectedFileTypes.filter(fileType => 
+            !availableFileTypesWithResults.includes(fileType)
+          )
+        }
+      });
+    } else {
+      const newFileTypes = Array.from(new Set([...selectedFileTypes, ...availableFileTypesWithResults]));
+      setSearch({
+        ...search,
+        filters: {
+          ...search.filters,
+          fileTypes: newFileTypes
+        }
+      });
+    }
+  };
+  
+  const availableFileTypes = fileTypeCounts 
+    ? fileTypes.filter(fileType => 
+        (fileTypeCounts[fileType] || 0) > 0 || selectedFileTypes.includes(fileType)
+      ).sort((a, b) => {
+        const aSelected = selectedFileTypes.includes(a);
+        const bSelected = selectedFileTypes.includes(b);
+        if (aSelected && !bSelected) return -1;
+        if (!aSelected && bSelected) return 1;
+        return 0;
+      })
+    : fileTypes;
+  
+  
+  return (
+    <span className="relative inline ml-1">
+      <button
+        className="flex items-center gap-1 hover:bg-base-200 px-2 py-1 rounded"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <Icon name="LuFilter" size="xxs" />
+        {selectedFileTypes.length > 0 && (
+          <span className="badge badge-primary badge-sm">{selectedFileTypes.length}</span>
+        )}
+      </button>
+      
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-1 w-80 bg-base-100 rounded-box shadow-lg border z-20 font-normal normal-case">
+          {/* Header with AND/OR toggle */}
+          <div className="p-3 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-sm">File Types</span>
+              <div className="flex gap-1">
+                <button 
+                  className="btn btn-xs btn-ghost"
+                  onClick={toggleAllFileTypes}
+                  disabled={countsLoading}
+                >
+                  {(() => {
+                    const availableFileTypesWithResults = availableFileTypes.filter(fileType => 
+                      (fileTypeCounts?.[fileType] || 0) > 0
+                    );
+                    const allAvailableSelected = availableFileTypesWithResults.every(fileType => 
+                      selectedFileTypes.includes(fileType)
+                    );
+                    return allAvailableSelected ? 'Deselect All' : 'Select All';
+                  })()} 
+                </button>
+                <button 
+                  className="btn btn-xs btn-outline"
+                  onClick={() => {
+                    setSearch({
+                      ...search,
+                      filters: {
+                        ...search.filters,
+                        fileTypes: []
+                      }
+                    });
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="join leading-none">
+                <button 
+                  className={`btn btn-xs join-item ${(search.filterLogic?.fileTypes || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('fileTypes')}
+                >
+                  OR
+                </button>
+                <button 
+                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.fileTypes || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('fileTypes')}
+                >
+                  AND
+                </button>
+              </div>
+              <span className="text-xs text-gray-500">
+                {(search.filterLogic?.fileTypes || 'OR') === 'OR' ? 'Match ANY selected file type' : 'Match ALL selected file types'}
+              </span>
+            </div>
+          </div>
+          
+          {/* Scrollable filter list */}
+          <div className="max-h-64 overflow-y-auto p-2">
+            {countsLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading filters...</span>
+              </div>
+            ) : availableFileTypes.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No file types available
+              </div>
+            ) : (
+              availableFileTypes.map((fileType) => {
+                const count = fileTypeCounts?.[fileType] || 0;
+                const isSelected = selectedFileTypes.includes(fileType);
+                const hasResults = count > 0;
+                
+                return (
+                  <div key={fileType} className="form-control">
+                    <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                      <input 
+                        type="checkbox" 
+                        className="checkbox checkbox-sm"
+                        checked={isSelected}
+                        onChange={(e) => handleFileTypeChange(fileType, e.target.checked)}
+                      />
+                      <span className="label-text text-sm flex-1">{getFileTypeLabel(fileType)}</span>
+                      <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                        {numeral(count).format('0,0')}
+                      </span>
+                    </label>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          
+          {/* Close button */}
+          <div className="p-2 border-t">
+            <button 
+              className="btn btn-sm btn-block"
+              onClick={() => setIsOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </span>
+  );
+};
 
+// RV Name Filter Dropdown Component
+const RvNameFilterDropdown: React.FC<{
+  search: any;
+  setSearch: (search: any) => void;
+}> = ({ search, setSearch }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedRvNames = search.filters?.rvNames || [];
+
+  const toggleFilterLogic = (filterType: string) => {
+    const currentLogic = search.filterLogic?.[filterType] || 'OR';
+    const newLogic = currentLogic === 'OR' ? 'AND' : 'OR';
+
+    setSearch({
+      ...search,
+      filterLogic: {
+        ...search.filterLogic,
+        [filterType]: newLogic
+      }
+    });
+  };
+
+  // Fetch counts for each RV name
+  const { data: rvNameCounts, isLoading: countsLoading } = useQuery({
+    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryFn: async () => {
+      const res = await fetch('/api/opensearch?rvNameCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    },
+    enabled: search.types.includes('cruise')
+  });
+
+  const handleRvNameChange = (rvName: string, checked: boolean) => {
+    const currentNames = search.filters?.rvNames || [];
+    const newNames = checked
+      ? [...currentNames, rvName]
+      : currentNames.filter((name: string) => name !== rvName);
+
+    setSearch({
+      ...search,
+      filters: {
+        ...search.filters,
+        rvNames: newNames
+      }
+    });
+  };
+
+  const toggleAllRvNames = () => {
+    const availableRvNamesWithResults = availableRvNames.filter(rvName =>
+      (rvNameCounts?.[rvName] || 0) > 0
+    );
+    const allAvailableSelected = availableRvNamesWithResults.every(rvName =>
+      selectedRvNames.includes(rvName)
+    );
+
+    if (allAvailableSelected) {
+      setSearch({
+        ...search,
+        filters: {
+          ...search.filters,
+          rvNames: selectedRvNames.filter(rvName =>
+            !availableRvNamesWithResults.includes(rvName)
+          )
+        }
+      });
+    } else {
+      const newRvNames = Array.from(new Set([...selectedRvNames, ...availableRvNamesWithResults]));
+      setSearch({
+        ...search,
+        filters: {
+          ...search.filters,
+          rvNames: newRvNames
+        }
+      });
+    }
+  };
+
+  const availableRvNames = rvNameCounts
+    ? Object.keys(rvNameCounts)
+        .filter(rvName =>
+          (rvNameCounts[rvName] || 0) > 0 || selectedRvNames.includes(rvName)
+        )
+        .sort((a, b) => {
+          const aSelected = selectedRvNames.includes(a);
+          const bSelected = selectedRvNames.includes(b);
+          if (aSelected && !bSelected) return -1;
+          if (!aSelected && bSelected) return 1;
+          return a.localeCompare(b);
+        })
+    : [];
+
+
+  return (
+    <span className="relative inline ml-1">
+      <button
+        className="flex items-center gap-1 hover:bg-base-200 px-2 py-1 rounded"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <Icon name="LuFilter" size="xxs" />
+        {selectedRvNames.length > 0 && (
+          <span className="badge badge-primary badge-sm">{selectedRvNames.length}</span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-1 w-80 bg-base-100 rounded-box shadow-lg border z-20 font-normal normal-case">
+          {/* Header with AND/OR toggle */}
+          <div className="p-3 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-sm">RV Names</span>
+              <div className="flex gap-1">
+                <button
+                  className="btn btn-xs btn-ghost"
+                  onClick={toggleAllRvNames}
+                  disabled={countsLoading}
+                >
+                  {(() => {
+                    const availableRvNamesWithResults = availableRvNames.filter(rvName =>
+                      (rvNameCounts?.[rvName] || 0) > 0
+                    );
+                    const allAvailableSelected = availableRvNamesWithResults.every(rvName =>
+                      selectedRvNames.includes(rvName)
+                    );
+                    return allAvailableSelected ? 'Deselect All' : 'Select All';
+                  })()}
+                </button>
+                <button
+                  className="btn btn-xs btn-outline"
+                  onClick={() => {
+                    setSearch({
+                      ...search,
+                      filters: {
+                        ...search.filters,
+                        rvNames: []
+                      }
+                    });
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="join leading-none">
+                <button
+                  className={`btn btn-xs join-item ${(search.filterLogic?.rvNames || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('rvNames')}
+                >
+                  OR
+                </button>
+                <button
+                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.rvNames || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('rvNames')}
+                >
+                  AND
+                </button>
+              </div>
+              <span className="text-xs text-gray-500">
+                {(search.filterLogic?.rvNames || 'OR') === 'OR' ? 'Match ANY selected RV' : 'Match ALL selected RVs'}
+              </span>
+            </div>
+          </div>
+
+          {/* Scrollable filter list */}
+          <div className="max-h-64 overflow-y-auto p-2">
+            {countsLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading filters...</span>
+              </div>
+            ) : availableRvNames.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No RV names available
+              </div>
+            ) : (
+              availableRvNames.map((rvName) => {
+                const count = rvNameCounts?.[rvName] || 0;
+                const isSelected = selectedRvNames.includes(rvName);
+                const hasResults = count > 0;
+
+                return (
+                  <div key={rvName} className="form-control">
+                    <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm"
+                        checked={isSelected}
+                        onChange={(e) => handleRvNameChange(rvName, e.target.checked)}
+                      />
+                      <span className="label-text text-sm flex-1">{rvName}</span>
+                      <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                        {numeral(count).format('0,0')}
+                      </span>
+                    </label>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Close button */}
+          <div className="p-2 border-t">
+            <button
+              className="btn btn-sm btn-block"
+              onClick={() => setIsOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </span>
+  );
+};
+
+// Collection Filter Dropdown Component (Material Types + Methods)
+const CollectionFilterDropdown: React.FC<{
+  search: any;
+  setSearch: (search: any) => void;
+}> = ({ search, setSearch }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedMethods = search.filters?.methods || [];
+  const selectedMaterialTypes = search.filters?.materialTypes || [];
+
+  const toggleFilterLogic = (filterType: string) => {
+    const currentLogic = search.filterLogic?.[filterType] || 'OR';
+    const newLogic = currentLogic === 'OR' ? 'AND' : 'OR';
+
+    setSearch({
+      ...search,
+      filterLogic: {
+        ...search.filterLogic,
+        [filterType]: newLogic
+      }
+    });
+  };
+
+  // Fetch counts for each method
+  const { data: methodCounts, isLoading: methodCountsLoading } = useQuery({
+    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryFn: async () => {
+      const res = await fetch('/api/opensearch?methodCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    },
+    enabled: search.types.includes('core')
+  });
+
+  // Fetch counts for each material type
+  const { data: materialCounts, isLoading: materialCountsLoading } = useQuery({
+    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryFn: async () => {
+      const res = await fetch('/api/opensearch?materialCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    },
+    enabled: search.types.includes('core')
+  });
+
+  const handleMethodChange = (method: string, checked: boolean) => {
+    const currentMethods = search.filters?.methods || [];
+    const newMethods = checked
+      ? [...currentMethods, method]
+      : currentMethods.filter((m: string) => m !== method);
+
+    setSearch({
+      ...search,
+      filters: {
+        ...search.filters,
+        methods: newMethods
+      }
+    });
+  };
+
+  const handleMaterialChange = (material: string, checked: boolean) => {
+    const currentMaterials = search.filters?.materialTypes || [];
+    const newMaterials = checked
+      ? [...currentMaterials, material]
+      : currentMaterials.filter((m: string) => m !== material);
+
+    setSearch({
+      ...search,
+      filters: {
+        ...search.filters,
+        materialTypes: newMaterials
+      }
+    });
+  };
+
+  const availableMethods = methodCounts
+    ? Object.keys(methodCounts)
+        .filter(method =>
+          (methodCounts[method] || 0) > 0 || selectedMethods.includes(method)
+        )
+        .sort((a, b) => {
+          const aSelected = selectedMethods.includes(a);
+          const bSelected = selectedMethods.includes(b);
+          if (aSelected && !bSelected) return -1;
+          if (!aSelected && bSelected) return 1;
+          return a.localeCompare(b);
+        })
+    : [];
+
+  const availableMaterials = materialCounts
+    ? Object.keys(materialCounts)
+        .filter(material =>
+          (materialCounts[material] || 0) > 0 || selectedMaterialTypes.includes(material)
+        )
+        .sort((a, b) => {
+          const aSelected = selectedMaterialTypes.includes(a);
+          const bSelected = selectedMaterialTypes.includes(b);
+          if (aSelected && !bSelected) return -1;
+          if (!aSelected && bSelected) return 1;
+          return a.localeCompare(b);
+        })
+    : [];
+
+  const totalSelected = selectedMethods.length + selectedMaterialTypes.length;
+  const isLoading = methodCountsLoading || materialCountsLoading;
+
+  return (
+    <span className="relative inline ml-1">
+      <button
+        className="flex items-center gap-1 hover:bg-base-200 px-2 py-1 rounded"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <Icon name="LuFilter" size="xxs" />
+        {totalSelected > 0 && (
+          <span className="badge badge-primary badge-sm">{totalSelected}</span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-1 w-80 bg-base-100 rounded-box shadow-lg border z-20 font-normal normal-case">
+          {/* Methods Section */}
+          <div className="p-3 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-sm">Collection Methods</span>
+              <button
+                className="btn btn-xs btn-outline"
+                onClick={() => {
+                  setSearch({
+                    ...search,
+                    filters: {
+                      ...search.filters,
+                      methods: []
+                    }
+                  });
+                }}
+              >
+                Clear
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="join leading-none">
+                <button
+                  className={`btn btn-xs join-item ${(search.filterLogic?.methods || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('methods')}
+                >
+                  OR
+                </button>
+                <button
+                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.methods || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('methods')}
+                >
+                  AND
+                </button>
+              </div>
+              <span className="text-xs text-gray-500">
+                {(search.filterLogic?.methods || 'OR') === 'OR' ? 'Match ANY selected method' : 'Match ALL selected methods'}
+              </span>
+            </div>
+          </div>
+
+          {/* Scrollable methods list */}
+          <div className="max-h-40 overflow-y-auto p-2 border-b">
+            {isLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading...</span>
+              </div>
+            ) : availableMethods.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No methods available
+              </div>
+            ) : (
+              availableMethods.map((method) => {
+                const count = methodCounts?.[method] || 0;
+                const isSelected = selectedMethods.includes(method);
+                const hasResults = count > 0;
+
+                return (
+                  <div key={method} className="form-control">
+                    <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm"
+                        checked={isSelected}
+                        onChange={(e) => handleMethodChange(method, e.target.checked)}
+                      />
+                      <span className="label-text text-sm flex-1">{method}</span>
+                      <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                        {numeral(count).format('0,0')}
+                      </span>
+                    </label>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Material Types Section */}
+          <div className="p-3 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-sm">Material Types</span>
+              <button
+                className="btn btn-xs btn-outline"
+                onClick={() => {
+                  setSearch({
+                    ...search,
+                    filters: {
+                      ...search.filters,
+                      materialTypes: []
+                    }
+                  });
+                }}
+              >
+                Clear
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="join leading-none">
+                <button
+                  className={`btn btn-xs join-item ${(search.filterLogic?.materialTypes || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('materialTypes')}
+                >
+                  OR
+                </button>
+                <button
+                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.materialTypes || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('materialTypes')}
+                >
+                  AND
+                </button>
+              </div>
+              <span className="text-xs text-gray-500">
+                {(search.filterLogic?.materialTypes || 'OR') === 'OR' ? 'Match ANY selected material' : 'Match ALL selected materials'}
+              </span>
+            </div>
+          </div>
+
+          {/* Scrollable materials list */}
+          <div className="max-h-40 overflow-y-auto p-2">
+            {isLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading...</span>
+              </div>
+            ) : availableMaterials.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No materials available
+              </div>
+            ) : (
+              availableMaterials.map((material) => {
+                const count = materialCounts?.[material] || 0;
+                const isSelected = selectedMaterialTypes.includes(material);
+                const hasResults = count > 0;
+
+                return (
+                  <div key={material} className="form-control">
+                    <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm"
+                        checked={isSelected}
+                        onChange={(e) => handleMaterialChange(material, e.target.checked)}
+                      />
+                      <span className="label-text text-sm flex-1">{material}</span>
+                      <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                        {numeral(count).format('0,0')}
+                      </span>
+                    </label>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Close button */}
+          <div className="p-2 border-t">
+            <button
+              className="btn btn-sm btn-block"
+              onClick={() => setIsOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </span>
+  );
+};
+
+// Download Files Button Component
+const DownloadFilesButton: React.FC<{
+  search: any;
+  searchString: string;
+  moratoriumCruises: string[];
+}> = ({ search, searchString, moratoriumCruises }) => {
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedFileTypes, setSelectedFileTypes] = useState<Set<string>>(new Set());
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+
+  // Fetch file counts from ALL result types (not just current)
+  const { data: fileTypeCounts } = useQuery({
+    queryKey: ['fileTypeCountsAll', search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryFn: async () => {
+      // Fetch counts from all document types
+      const allTypes = ['cruise', 'core', 'section', 'section-half', 'dive', 'rock'];
+      const res = await fetch('/api/opensearch?fileTypeCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: allTypes,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    },
+  });
+
+  const availableFileTypes = Object.keys(fileTypeCounts || {}).sort();
+
+  // Initialize selected file types when available types change
+  useEffect(() => {
+    if (availableFileTypes.length > 0) {
+      setSelectedFileTypes(new Set(availableFileTypes));
+    }
+  }, [availableFileTypes.join(',')]);
+
+  // Calculate total files to download
+  const totalFiles = Object.entries(fileTypeCounts || {})
+    .filter(([type]) => selectedFileTypes.has(type))
+    .reduce((sum, [, count]) => sum + (count as number), 0);
+  const tooManyFiles = totalFiles > 1000;
+
+  const handleDownload = async () => {
+    if (tooManyFiles || totalFiles === 0) return;
+
+    setIsDownloading(true);
+    try {
+      const zip = new JSZip();
+
+      // Fetch all results from ALL document types by scrolling through pages
+      let allMatches: any[] = [];
+      const allTypes = ['cruise', 'core', 'section', 'section-half', 'dive', 'rock'];
+
+      for (const docType of allTypes) {
+        let pageNum = 0;
+        const pageSize = 100;
+
+        while (true) {
+          const payload = {
+            ...search,
+            types: [docType],
+            from: pageSize * pageNum,
+            size: pageSize,
+          };
+          const res = await fetch('/api/opensearch?search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) break;
+
+          const data = await res.json();
+          const hits = data.hits?.hits || [];
+          if (hits.length === 0) break;
+
+          allMatches = allMatches.concat(hits);
+          pageNum++;
+
+          // Stop if we've fetched all available results
+          const totalAvailable = data.hits.total?.value || 0;
+          const fetchedForType = pageNum * pageSize;
+          if (fetchedForType >= totalAvailable) break;
+        }
+      }
+
+      // Collect all files to download
+      const filesToDownload: any[] = [];
+      for (const match of allMatches) {
+        // Skip moratorium cruises
+        if (moratoriumCruises.includes(match._source._osuid)) continue;
+
+        const files = match._source._files || [];
+        for (const file of files) {
+          if (selectedFileTypes.has(file.type)) {
+            filesToDownload.push(file);
+          }
+        }
+      }
+
+      // Fetch and add each file to the zip
+      let fetchedCount = 0;
+      for (const file of filesToDownload) {
+        try {
+          const response = await fetch(`/api/file/${file.path}`);
+          if (response.ok) {
+            const blob = await response.blob();
+            // Extract just the filename from the path
+            const filename = file.path.split('/').pop() || file.path;
+            zip.file(filename, blob);
+          }
+          fetchedCount++;
+          setDownloadProgress((fetchedCount / filesToDownload.length) * 100);
+        } catch (error) {
+          console.error(`Failed to fetch file: ${file.path}`, error);
+          fetchedCount++;
+          setDownloadProgress((fetchedCount / filesToDownload.length) * 100);
+        }
+      }
+
+      // Generate and download the zip file
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `osu-mgr-files-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Failed to download files. Please try again.');
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress(0);
+    }
+  };
+
+  const toggleFileType = (fileType: string) => {
+    const newSet = new Set(selectedFileTypes);
+    if (newSet.has(fileType)) {
+      newSet.delete(fileType);
+    } else {
+      newSet.add(fileType);
+    }
+    setSelectedFileTypes(newSet);
+  };
+
+  const toggleAll = () => {
+    if (selectedFileTypes.size === Object.keys(fileTypeCounts || {}).length) {
+      setSelectedFileTypes(new Set());
+    } else {
+      setSelectedFileTypes(new Set(Object.keys(fileTypeCounts || {})));
+    }
+  };
+
+  return (
+    <div className="relative ml-2">
+      <div>
+        <button
+          className="btn btn-primary"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          Download Files
+          <Icon name={isOpen ? "LuChevronUp" : "LuChevronDown"} size="xxs" className="ml-1" />
+        </button>
+      </div>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-1 w-80 bg-base-100 rounded-box shadow-lg border z-30 font-normal normal-case">
+          {/* Header */}
+          <div className="p-3 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="label-text font-semibold pl-0 bg-transparent">Select File Types</span>
+              <button
+                className="btn btn-xs btn-outline"
+                onClick={toggleAll}
+              >
+                {selectedFileTypes.size === Object.keys(fileTypeCounts || {}).length ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+          </div>
+
+          {/* Scrollable file types list */}
+          <div className="max-h-64 overflow-y-auto p-2">
+            {Object.entries(fileTypeCounts || {})
+              .filter(([, count]) => (count as number) > 0)
+              .map(([fileType, count]) => {
+                const isSelected = selectedFileTypes.has(fileType);
+                return (
+                  <div key={fileType} className="form-control">
+                    <label className="label cursor-pointer justify-start gap-2 py-1">
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm"
+                        checked={isSelected}
+                        onChange={() => toggleFileType(fileType)}
+                      />
+                      <span className="label-text text-sm bg-transparent flex-1">{getFileTypeLabel(fileType)}</span>
+                      <span className="badge badge-sm badge-outline">
+                        {numeral(count).format('0,0')}
+                      </span>
+                    </label>
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* Download button */}
+          <div className="p-2 border-t">
+            {tooManyFiles && (
+              <div className="alert alert-primary mb-2 py-2 text-xs">
+                Too many files selected ({numeral(totalFiles).format('0,0')}). Please select fewer than 1,000 files.
+              </div>
+            )}
+            {!tooManyFiles && (
+              <button
+                className="btn btn-primary btn-sm btn-block relative overflow-hidden"
+                disabled={tooManyFiles || totalFiles === 0 || isDownloading}
+                onClick={handleDownload}
+              >
+                {isDownloading && (
+                  <div
+                    className="absolute inset-0 bg-primary-focus transition-all duration-300"
+                    style={{ width: `${downloadProgress}%` }}
+                  />
+                )}
+                <span className="relative z-10 bg-transparent">
+                  {isDownloading ? (
+                    <span className="text-black bg-transparent">
+                      <Icon name="TbLoader2" size="sm" className="animate-spin inline-block mr-1" />
+                      Downloading... {Math.round(downloadProgress)}%
+                    </span>
+                  ) : (
+                    <>Download {numeral(totalFiles).format('0,0')} File{totalFiles !== 1 ? 's' : ''}</>
+                  )}
+                </span>
+              </button>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FilterPanel: React.FC<{
+  search: any;
+  setSearch: (search: any) => void;
+  onToggle: () => void;
+}> = ({ search, setSearch, onToggle }) => {
+  const selectedMethods = search.filters?.methods || [];
+  const selectedMaterialTypes = search.filters?.materialTypes || [];
+  const selectedRvNames = search.filters?.rvNames || [];
+  const selectedFileTypes = search.filters?.fileTypes || [];
+
+  // Count active filter types
+  const activeFilterCount = [
+    selectedFileTypes.length > 0,
+    selectedMethods.length > 0,
+    selectedMaterialTypes.length > 0,
+    selectedRvNames.length > 0
+  ].filter(Boolean).length;
+  
+  const toggleFilterLogic = (filterType: string) => {
+    const currentLogic = search.filterLogic?.[filterType] || 'OR';
+    const newLogic = currentLogic === 'OR' ? 'AND' : 'OR';
+    
+    setSearch({
+      ...search,
+      filterLogic: {
+        ...search.filterLogic,
+        [filterType]: newLogic
+      }
+    });
+  };
+
+  // Fetch available collection methods for cores and rocks
+  const { data: methodCounts, isLoading: methodsLoading } = useQuery({
+    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.methods, search.filterLogic?.methods, search.filters?.fileTypes, search.filters?.materialTypes, search.filters?.rvNames],
+    queryFn: async () => {
+      // Only fetch method counts for cores and dive (rocks)
+      if (!search.types.some((type: string) => ['core', 'dive'].includes(type))) {
+        return {};
+      }
+      
+      const res = await fetch('/api/opensearch?methodCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+      
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    },
+    enabled: search.types.some((type: string) => ['core', 'dive'].includes(type))
+  });
+
+  // Fetch available material types for cores only
+  const { data: materialCounts, isLoading: materialsLoading } = useQuery({
+    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.materialTypes, search.filterLogic?.materialTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.rvNames],
+    queryFn: async () => {
+      // Only fetch material counts for cores
+      if (!search.types.includes('core')) {
+        return {};
+      }
+      
+      const res = await fetch('/api/opensearch?materialCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+      
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    },
+    enabled: search.types.includes('core')
+  });
+
+  // Fetch available RV names for cruises only
+  const { data: rvNameCounts, isLoading: rvNamesLoading } = useQuery({
+    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters?.rvNames, search.filterLogic?.rvNames, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes],
+    queryFn: async () => {
+      // Only fetch RV name counts for cruises
+      if (!search.types.includes('cruise')) {
+        return {};
+      }
+      
+      const res = await fetch('/api/opensearch?rvNameCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+      
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    },
+    enabled: search.types.includes('cruise')
+  });
+
+  // Fetch counts for each file type - reuse the same query as FileTypesFilterDropdown
+  const { data: fileTypeCounts, isLoading: fileTypesLoading } = useQuery({
+    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryFn: async () => {
+      const res = await fetch('/api/opensearch?fileTypeCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+      
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    }
+  });
+  
   const handleMethodChange = (method: string, checked: boolean) => {
     const currentMethods = search.filters?.methods || [];
     const newMethods = checked 
@@ -328,36 +1352,19 @@ const FilterPanel: React.FC<{
     });
   };
 
-  const toggleAllFileTypes = () => {
-    const availableFileTypesWithResults = availableFileTypes.filter(fileType => 
-      (fileTypeCounts?.[fileType] || 0) > 0
-    );
-    const allAvailableSelected = availableFileTypesWithResults.every(fileType => 
-      selectedFileTypes.includes(fileType)
-    );
+  const handleFileTypeChange = (fileType: string, checked: boolean) => {
+    const currentFileTypes = search.filters?.fileTypes || [];
+    const newFileTypes = checked 
+      ? [...currentFileTypes, fileType]
+      : currentFileTypes.filter((f: string) => f !== fileType);
     
-    if (allAvailableSelected) {
-      // Deselect all available file types
-      setSearch({
-        ...search,
-        filters: {
-          ...search.filters,
-          fileTypes: selectedFileTypes.filter(fileType => 
-            !availableFileTypesWithResults.includes(fileType)
-          )
-        }
-      });
-    } else {
-      // Select all available file types
-      const newFileTypes = Array.from(new Set([...selectedFileTypes, ...availableFileTypesWithResults]));
-      setSearch({
-        ...search,
-        filters: {
-          ...search.filters,
-          fileTypes: newFileTypes
-        }
-      });
-    }
+    setSearch({
+      ...search,
+      filters: {
+        ...search.filters,
+        fileTypes: newFileTypes
+      }
+    });
   };
 
   const toggleAllMethods = () => {
@@ -456,19 +1463,37 @@ const FilterPanel: React.FC<{
     }
   };
 
-  // Filter out file types with 0 counts, but keep selected ones visible
-  // Sort selected items to the top
-  const availableFileTypes = fileTypeCounts 
-    ? fileTypes.filter(fileType => 
-        (fileTypeCounts[fileType] || 0) > 0 || selectedFileTypes.includes(fileType)
-      ).sort((a, b) => {
-        const aSelected = selectedFileTypes.includes(a);
-        const bSelected = selectedFileTypes.includes(b);
-        if (aSelected && !bSelected) return -1;
-        if (!aSelected && bSelected) return 1;
-        return 0;
-      })
-    : fileTypes;
+  const toggleAllFileTypes = () => {
+    const availableFileTypesWithResults = availableFileTypes.filter(fileType => 
+      (fileTypeCounts?.[fileType] || 0) > 0
+    );
+    const allAvailableSelected = availableFileTypesWithResults.every(fileType => 
+      selectedFileTypes.includes(fileType)
+    );
+    
+    if (allAvailableSelected) {
+      // Deselect all available file types
+      setSearch({
+        ...search,
+        filters: {
+          ...search.filters,
+          fileTypes: selectedFileTypes.filter(fileType => 
+            !availableFileTypesWithResults.includes(fileType)
+          )
+        }
+      });
+    } else {
+      // Select all available file types
+      const newFileTypes = Array.from(new Set([...selectedFileTypes, ...availableFileTypesWithResults]));
+      setSearch({
+        ...search,
+        filters: {
+          ...search.filters,
+          fileTypes: newFileTypes
+        }
+      });
+    }
+  };
 
   // Filter out methods with 0 counts, but keep selected ones visible
   // Sort selected items to the top
@@ -512,111 +1537,65 @@ const FilterPanel: React.FC<{
       })
     : [];
 
+  // Filter out file types with 0 counts, but keep selected ones visible
+  // Sort selected items to the top, and filter out imgs-file
+  const availableFileTypes = fileTypeCounts 
+    ? fileTypes.filter(fileType => 
+        fileType !== 'imgs-file' && // Hide imgs-file from the left panel too
+        ((fileTypeCounts[fileType] || 0) > 0 || selectedFileTypes.includes(fileType))
+      ).sort((a, b) => {
+        const aSelected = selectedFileTypes.includes(a);
+        const bSelected = selectedFileTypes.includes(b);
+        if (aSelected && !bSelected) return -1;
+        if (!aSelected && bSelected) return 1;
+        return 0;
+      })
+    : fileTypes.filter(fileType => fileType !== 'imgs-file');
+
   return (
-    <div className="pr-4 min-w-[300px] border-r-2">
+    <div className="pr-4 w-[320px] flex-shrink-0 border-r-2">
       <div className="sticky top-0 bg-white pb-2">
-        <h4 className="font-bold text-lg mt-0">
-          Filters
-        </h4>
-      </div>
-      
-      {/* Only show File Types filter if there are file types with results */}
-      {availableFileTypes.some(fileType => (fileTypeCounts?.[fileType] || 0) > 0) && (
-      <div className="form-control mb-4">
-        <label className="label">
-          <span className="label-text font-semibold">File Types</span>
-          <div className="flex gap-1">
-            <button 
-              className="btn btn-xs btn-ghost"
-              onClick={toggleAllFileTypes}
-              disabled={countsLoading}
-            >
-              {(() => {
-                const availableFileTypesWithResults = availableFileTypes.filter(fileType => 
-                  (fileTypeCounts?.[fileType] || 0) > 0
-                );
-                const allAvailableSelected = availableFileTypesWithResults.every(fileType => 
-                  selectedFileTypes.includes(fileType)
-                );
-                return allAvailableSelected ? 'Deselect All' : 'Select All';
-              })()}
-            </button>
-            <button 
-              className="btn btn-xs btn-outline"
-              onClick={() => {
-                setSearch({
-                  ...search,
-                  filters: {
-                    fileTypes: []
-                  }
-                });
-              }}
-            >
-              Clear
-            </button>
-          </div>
-        </label>
-        
-        <div className="max-h-[200px] overflow-y-scroll border rounded p-2 bg-base-100">
-          {countsLoading ? (
-            <div className="flex justify-center items-center py-4">
-              <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
-              <span className="ml-2 text-sm">Loading filters...</span>
+        <div className="flex items-center justify-between">
+          <div className="tabs min-w-full">
+            <div className="tab tab-lg tab-bordered text-primary flex-grow justify-start"
+                onClick={onToggle}>
+              <b>Filters</b>
+              <span className="badge bg-white text-primary ml-2 font-bold">{activeFilterCount}</span>
             </div>
-          ) : (
-            <>
-              {availableFileTypes.map((fileType) => {
-                const count = fileTypeCounts?.[fileType] || 0;
-                const isSelected = selectedFileTypes.includes(fileType);
-                const hasResults = count > 0;
-                
-                return (
-                  <div key={fileType} className="form-control">
-                    <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
-                      <input 
-                        type="checkbox" 
-                        className="checkbox checkbox-sm"
-                        checked={isSelected}
-                        onChange={(e) => handleFileTypeChange(fileType, e.target.checked)}
-                      />
-                      <span className="label-text text-sm flex-1">{getFileTypeLabel(fileType)}</span>
-                      <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
-                        {numeral(count).format('0,0')}
-                      </span>
-                    </label>
-                  </div>
-                );
-              })}
-              
-              {/* Filter Logic Toggle for File Types - show when at least one is selected */}
-              {selectedFileTypes.length > 0 && (
-                <div className="mt-3 pt-2 border-t border-gray-200">
-                  <div className="flex items-center justify-center">
-                    <div className="join">
-                      <button 
-                        className={`btn btn-xs join-item ${(search.filterLogic?.fileTypes || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
-                        onClick={() => toggleFilterLogic('fileTypes')}
-                      >
-                        OR
-                      </button>
-                      <button 
-                        className={`btn btn-xs join-item ${(search.filterLogic?.fileTypes || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
-                        onClick={() => toggleFilterLogic('fileTypes')}
-                      >
-                        AND
-                      </button>
-                    </div>
-                  </div>
-                  <div className="text-xs text-center text-gray-500 mt-1">
-                    {(search.filterLogic?.fileTypes || 'OR') === 'OR' ? 'Match ANY selected file type' : 'Match ALL selected file types'}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+            {activeFilterCount > 0 && (
+              <div className="tab tab-lg tab-bordered text-primary">
+                <button
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => {
+                    setSearch({
+                      ...search,
+                      filters: {
+                        fileTypes: [],
+                        methods: [],
+                        materialTypes: [],
+                        rvNames: []
+                      }
+                    });
+                  }}
+                  title="Clear all filters"
+                >
+                  Clear All
+                </button>
+              </div>
+            )}
+            <div className="tab tab-lg tab-bordered text-primary">
+              <button
+                className="btn btn-sm btn-ghost"
+                onClick={onToggle}
+                title="Hide filters panel"
+              >
+                <Icon name="LuChevronLeft" size="sm" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-      )}
+      
 
       {/* Collection Method Filter - only show for cores and rocks and if there are methods with results */}
       {search.types.some((type: string) => ['core', 'dive'].includes(type)) && 
@@ -657,63 +1636,69 @@ const FilterPanel: React.FC<{
           </div>
         </label>
         
-        <div className="max-h-[200px] overflow-y-scroll border rounded p-2 bg-base-100">
-          {methodsLoading ? (
-            <div className="flex justify-center items-center py-4">
-              <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
-              <span className="ml-2 text-sm">Loading methods...</span>
+        <div className="border rounded bg-base-100">
+          {/* AND/OR Toggle - always visible at the top */}
+          <div className="p-2 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center gap-2">
+              <div className="join leading-none">
+                <button 
+                  className={`btn btn-xs join-item ${(search.filterLogic?.methods || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('methods')}
+                >
+                  OR
+                </button>
+                <button 
+                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.methods || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('methods')}
+                >
+                  AND
+                </button>
+              </div>
+              <span className="text-xs text-gray-500">
+                {(search.filterLogic?.methods || 'OR') === 'OR' ? 'Match ANY selected method' : 'Match ALL selected methods'}
+              </span>
             </div>
-          ) : (
-            <>
-              {availableMethods.map((method) => {
-                const count = methodCounts?.[method] || 0;
-                const isSelected = selectedMethods.includes(method);
-                const hasResults = count > 0;
-                
-                return (
-                  <div key={method} className="form-control">
-                    <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
-                      <input 
-                        type="checkbox" 
-                        className="checkbox checkbox-sm"
-                        checked={isSelected}
-                        onChange={(e) => handleMethodChange(method, e.target.checked)}
-                      />
-                      <span className="label-text text-sm flex-1">{method || 'Unknown'}</span>
-                      <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
-                        {numeral(count).format('0,0')}
-                      </span>
-                    </label>
-                  </div>
-                );
-              })}
-              
-              {/* Filter Logic Toggle for Collection Method - show when at least one is selected */}
-              {selectedMethods.length > 0 && (
-                <div className="mt-3 pt-2 border-t border-gray-200">
-                  <div className="flex items-center justify-center">
-                    <div className="join">
-                      <button 
-                        className={`btn btn-xs join-item ${(search.filterLogic?.methods || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
-                        onClick={() => toggleFilterLogic('methods')}
-                      >
-                        OR
-                      </button>
-                      <button 
-                        className={`btn btn-xs join-item ${(search.filterLogic?.methods || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
-                        onClick={() => toggleFilterLogic('methods')}
-                      >
-                        AND
-                      </button>
+          </div>
+          
+          {/* Scrollable filter list */}
+          <div className="max-h-[200px] overflow-y-auto p-2">
+            {methodsLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading methods...</span>
+              </div>
+            ) : availableMethods.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No methods available
+              </div>
+            ) : (
+              <>
+                {availableMethods.map((method) => {
+                  const count = methodCounts?.[method] || 0;
+                  const isSelected = selectedMethods.includes(method);
+                  const hasResults = count > 0;
+                  
+                  return (
+                    <div key={method} className="form-control">
+                      <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                        <input 
+                          type="checkbox" 
+                          className="checkbox checkbox-sm"
+                          checked={isSelected}
+                          onChange={(e) => handleMethodChange(method, e.target.checked)}
+                        />
+                        <span className="label-text text-sm flex-1">{method || 'Unknown'}</span>
+                        <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                          {numeral(count).format('0,0')}
+                        </span>
+                      </label>
                     </div>
-                  </div>
-                  <div className="text-xs text-center text-gray-500 mt-1">
-                    {(search.filterLogic?.methods || 'OR') === 'OR' ? 'Match ANY selected method' : 'Match ALL selected methods'}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+                  );
+                })}
+                
+              </>
+            )}
+          </div>
         </div>
       </div>
       )}
@@ -757,63 +1742,69 @@ const FilterPanel: React.FC<{
           </div>
         </label>
         
-        <div className="max-h-[200px] overflow-y-scroll border rounded p-2 bg-base-100">
-          {materialsLoading ? (
-            <div className="flex justify-center items-center py-4">
-              <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
-              <span className="ml-2 text-sm">Loading materials...</span>
+        <div className="border rounded bg-base-100">
+          {/* AND/OR Toggle - always visible at the top */}
+          <div className="p-2 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center gap-2">
+              <div className="join leading-none">
+                <button 
+                  className={`btn btn-xs join-item ${(search.filterLogic?.materialTypes || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('materialTypes')}
+                >
+                  OR
+                </button>
+                <button 
+                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.materialTypes || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('materialTypes')}
+                >
+                  AND
+                </button>
+              </div>
+              <span className="text-xs text-gray-500">
+                {(search.filterLogic?.materialTypes || 'OR') === 'OR' ? 'Match ANY selected material' : 'Match ALL selected materials'}
+              </span>
             </div>
-          ) : (
-            <>
-              {availableMaterialTypes.map((materialType) => {
-                const count = materialCounts?.[materialType] || 0;
-                const isSelected = selectedMaterialTypes.includes(materialType);
-                const hasResults = count > 0;
-                
-                return (
-                  <div key={materialType} className="form-control">
-                    <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
-                      <input 
-                        type="checkbox" 
-                        className="checkbox checkbox-sm"
-                        checked={isSelected}
-                        onChange={(e) => handleMaterialTypeChange(materialType, e.target.checked)}
-                      />
-                      <span className="label-text text-sm flex-1">{materialType || 'Unknown'}</span>
-                      <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
-                        {numeral(count).format('0,0')}
-                      </span>
-                    </label>
-                  </div>
-                );
-              })}
-              
-              {/* Filter Logic Toggle for Material Type - show when at least one is selected */}
-              {selectedMaterialTypes.length > 0 && (
-                <div className="mt-3 pt-2 border-t border-gray-200">
-                  <div className="flex items-center justify-center">
-                    <div className="join">
-                      <button 
-                        className={`btn btn-xs join-item ${(search.filterLogic?.materialTypes || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
-                        onClick={() => toggleFilterLogic('materialTypes')}
-                      >
-                        OR
-                      </button>
-                      <button 
-                        className={`btn btn-xs join-item ${(search.filterLogic?.materialTypes || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
-                        onClick={() => toggleFilterLogic('materialTypes')}
-                      >
-                        AND
-                      </button>
+          </div>
+          
+          {/* Scrollable filter list */}
+          <div className="max-h-[200px] overflow-y-auto p-2">
+            {materialsLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading materials...</span>
+              </div>
+            ) : availableMaterialTypes.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No materials available
+              </div>
+            ) : (
+              <>
+                {availableMaterialTypes.map((materialType) => {
+                  const count = materialCounts?.[materialType] || 0;
+                  const isSelected = selectedMaterialTypes.includes(materialType);
+                  const hasResults = count > 0;
+                  
+                  return (
+                    <div key={materialType} className="form-control">
+                      <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                        <input 
+                          type="checkbox" 
+                          className="checkbox checkbox-sm"
+                          checked={isSelected}
+                          onChange={(e) => handleMaterialTypeChange(materialType, e.target.checked)}
+                        />
+                        <span className="label-text text-sm flex-1">{materialType || 'Unknown'}</span>
+                        <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                          {numeral(count).format('0,0')}
+                        </span>
+                      </label>
                     </div>
-                  </div>
-                  <div className="text-xs text-center text-gray-500 mt-1">
-                    {(search.filterLogic?.materialTypes || 'OR') === 'OR' ? 'Match ANY selected material' : 'Match ALL selected materials'}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+                  );
+                })}
+                
+              </>
+            )}
+          </div>
         </div>
       </div>
       )}
@@ -857,65 +1848,176 @@ const FilterPanel: React.FC<{
           </div>
         </label>
         
-        <div className="max-h-[200px] overflow-y-scroll border rounded p-2 bg-base-100">
-          {rvNamesLoading ? (
-            <div className="flex justify-center items-center py-4">
-              <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
-              <span className="ml-2 text-sm">Loading RV names...</span>
+        <div className="border rounded bg-base-100">
+          {/* AND/OR Toggle - always visible at the top */}
+          <div className="p-2 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center gap-2">
+              <div className="join leading-none">
+                <button 
+                  className={`btn btn-xs join-item ${(search.filterLogic?.rvNames || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('rvNames')}
+                >
+                  OR
+                </button>
+                <button 
+                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.rvNames || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={() => toggleFilterLogic('rvNames')}
+                >
+                  AND
+                </button>
+              </div>
+              <span className="text-xs text-gray-500">
+                {(search.filterLogic?.rvNames || 'OR') === 'OR' ? 'Match ANY selected RV name' : 'Match ALL selected RV names'}
+              </span>
             </div>
-          ) : (
-            <>
-              {availableRvNames.map((rvName) => {
-                const count = rvNameCounts?.[rvName] || 0;
-                const isSelected = selectedRvNames.includes(rvName);
-                const hasResults = count > 0;
-                
-                return (
-                  <div key={rvName} className="form-control">
-                    <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
-                      <input 
-                        type="checkbox" 
-                        className="checkbox checkbox-sm"
-                        checked={isSelected}
-                        onChange={(e) => handleRvNameChange(rvName, e.target.checked)}
-                      />
-                      <span className="label-text text-sm flex-1">{rvName || 'Unknown'}</span>
-                      <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
-                        {numeral(count).format('0,0')}
-                      </span>
-                    </label>
-                  </div>
-                );
-              })}
-              
-              {/* Filter Logic Toggle for RV Name - show when at least one is selected */}
-              {selectedRvNames.length > 0 && (
-                <div className="mt-3 pt-2 border-t border-gray-200">
-                  <div className="flex items-center justify-center">
-                    <div className="join">
-                      <button 
-                        className={`btn btn-xs join-item ${(search.filterLogic?.rvNames || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
-                        onClick={() => toggleFilterLogic('rvNames')}
-                      >
-                        OR
-                      </button>
-                      <button 
-                        className={`btn btn-xs join-item ${(search.filterLogic?.rvNames || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
-                        onClick={() => toggleFilterLogic('rvNames')}
-                      >
-                        AND
-                      </button>
+          </div>
+          
+          {/* Scrollable filter list */}
+          <div className="max-h-[200px] overflow-y-auto p-2">
+            {rvNamesLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading RV names...</span>
+              </div>
+            ) : availableRvNames.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No RV names available
+              </div>
+            ) : (
+              <>
+                {availableRvNames.map((rvName) => {
+                  const count = rvNameCounts?.[rvName] || 0;
+                  const isSelected = selectedRvNames.includes(rvName);
+                  const hasResults = count > 0;
+                  
+                  return (
+                    <div key={rvName} className="form-control">
+                      <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                        <input 
+                          type="checkbox" 
+                          className="checkbox checkbox-sm"
+                          checked={isSelected}
+                          onChange={(e) => handleRvNameChange(rvName, e.target.checked)}
+                        />
+                        <span className="label-text text-sm flex-1">{rvName || 'Unknown'}</span>
+                        <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                          {numeral(count).format('0,0')}
+                        </span>
+                      </label>
                     </div>
-                  </div>
-                  <div className="text-xs text-center text-gray-500 mt-1">
-                    {(search.filterLogic?.rvNames || 'OR') === 'OR' ? 'Match ANY selected RV name' : 'Match ALL selected RV names'}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
+                  );
+                })}
+                
+              </>
+            )}
+          </div>
         </div>
       </div>
+      )}
+
+      {/* File Types Filter - show if there are file types with results */}
+      {availableFileTypes.some(fileType => (fileTypeCounts?.[fileType] || 0) > 0) && (
+        <div className="form-control mb-4">
+          <label className="label">
+            <span className="label-text font-semibold">File Types</span>
+            <div className="flex gap-1">
+              <button 
+                className="btn btn-xs btn-ghost"
+                onClick={toggleAllFileTypes}
+                disabled={fileTypesLoading}
+              >
+                {(() => {
+                  const availableFileTypesWithResults = availableFileTypes.filter(fileType => 
+                    (fileTypeCounts?.[fileType] || 0) > 0
+                  );
+                  const allAvailableSelected = availableFileTypesWithResults.every(fileType => 
+                    selectedFileTypes.includes(fileType)
+                  );
+                  return allAvailableSelected ? 'Deselect All' : 'Select All';
+                })()}
+              </button>
+              <button 
+                className="btn btn-xs btn-outline"
+                onClick={() => {
+                  setSearch({
+                    ...search,
+                    filters: {
+                      ...search.filters,
+                      fileTypes: []
+                    }
+                  });
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </label>
+          
+          <div className="border rounded bg-base-100">
+            {/* AND/OR Toggle - always visible at the top */}
+            <div className="p-2 border-b border-gray-200 bg-gray-50">
+              <div className="flex items-center gap-2">
+                <div className="join leading-none">
+                  <button 
+                    className={`btn btn-xs join-item ${(search.filterLogic?.fileTypes || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => toggleFilterLogic('fileTypes')}
+                  >
+                    OR
+                  </button>
+                  <button 
+                    className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.fileTypes || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => toggleFilterLogic('fileTypes')}
+                  >
+                    AND
+                  </button>
+                </div>
+                <span className="text-xs text-gray-500">
+                  {(search.filterLogic?.fileTypes || 'OR') === 'OR' ? 'Match ANY selected file type' : 'Match ALL selected file types'}
+                </span>
+              </div>
+            </div>
+            
+            {/* Scrollable filter list */}
+            <div className="max-h-[200px] overflow-y-auto p-2">
+              {fileTypesLoading ? (
+                <div className="flex justify-center items-center py-4">
+                  <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                  <span className="ml-2 text-sm">Loading file types...</span>
+                </div>
+              ) : availableFileTypes.length === 0 ? (
+                <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                  No file types available
+                </div>
+              ) : (
+                <>
+                  {availableFileTypes.map((fileType) => {
+                    const count = fileTypeCounts?.[fileType] || 0;
+                    const isSelected = selectedFileTypes.includes(fileType);
+                    const hasResults = count > 0;
+                    
+                    return (
+                      <div key={fileType} className="form-control">
+                        <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                          <input 
+                            type="checkbox" 
+                            className="checkbox checkbox-sm"
+                            checked={isSelected}
+                            onChange={(e) => handleFileTypeChange(fileType, e.target.checked)}
+                          />
+                          <span className="label-text text-sm flex-1">{getFileTypeLabel(fileType)}</span>
+                          <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                            {numeral(count).format('0,0')}
+                          </span>
+                        </label>
+                      </div>
+                    );
+                  })}
+                  
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -925,6 +2027,7 @@ export const Search: React.FC<{ data: any }> = ({
     data
 }) => {
   const pageSize = 10;
+  const router = useRouter();
   const [search, setSearch] = useLocalStorage('search-2025-08-06-v2', {
     sortOrder: 'alpha asc',
     searchString: '',
@@ -944,6 +2047,12 @@ export const Search: React.FC<{ data: any }> = ({
   });
   const [searchString, setSearchString] = useState(search.searchString || '');
   const [expandedRawData, setExpandedRawData] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(true);
+  const [hasProcessedUrlParam, setHasProcessedUrlParam] = useState(false);
+  const [showLandingModal, setShowLandingModal] = useState(false);
+  const [osuId, setOsuId] = useState<string>('');
+  const [currentDoc, setCurrentDoc] = useState<any>(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [ref, isVisible] = useInView({
       threshold: 0,
   });
@@ -994,7 +2103,9 @@ export const Search: React.FC<{ data: any }> = ({
         return allPages.length;
       }
       return undefined;
-    }
+    },
+    staleTime: 1000, // Keep data fresh for 1 second
+    placeholderData: (previousData) => previousData, // Keep previous data while loading new
   });
 
   const matches = results?.pages.flatMap(pageresults => pageresults.hits?.hits || []) || [];
@@ -1010,6 +2121,140 @@ export const Search: React.FC<{ data: any }> = ({
       return newSet;
     });
   };
+
+  const openLandingModal = (osuid: string) => {
+    setOsuId(osuid);
+    setShowLandingModal(true);
+  };
+
+  // Hook to fetch core data by UUID for breadcrumbs
+  const useCoreData = (coreUUID: string | null) => {
+    return useQuery({
+      queryKey: ['coreForBreadcrumb', coreUUID],
+      queryFn: async () => {
+        if (!coreUUID) return null;
+        
+        const payload = {
+          types: ['core'],
+          terms: {
+            "_coreUUID.keyword": [coreUUID],
+          },
+        };
+        const res = await fetch('/api/opensearch?search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const errorresults = await res.json();
+          throw new Error(errorresults.message || 'Failed to fetch core');
+        }
+        const results = await res.json();
+        return results?.hits?.hits?.[0]?._source || null;
+      },
+      enabled: !!coreUUID,
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    });
+  };
+
+  // Breadcrumb component for modal header
+  const Breadcrumbs: React.FC<{ doc: any }> = ({ doc }) => {
+    if (!doc || !doc._docType) return <span>{osuId}</span>;
+
+    // Fetch core data if this is a section/sectionHalf and has _coreUUID
+    const { data: coreData } = useCoreData(
+      (doc._docType === 'section' || doc._docType === 'sectionHalf') && doc._coreUUID 
+        ? doc._coreUUID 
+        : null
+    );
+
+    const breadcrumbs = [];
+
+    // Build breadcrumb hierarchy based on document type
+    if (doc._docType === 'sectionHalf' || doc._docType === 'section') {
+      // Cruise -> Core -> Section/SectionHalf (hierarchical order)
+      if (doc._cruiseID) {
+        breadcrumbs.push({
+          label: `OSU-${doc._cruiseID}`,
+          osuid: `OSU-${doc._cruiseID}`,
+          type: 'cruise'
+        });
+      }
+      // Use fetched core data instead of doc._coreID
+      if (coreData && coreData._osuid) {
+        breadcrumbs.push({
+          label: coreData._osuid,
+          osuid: coreData._osuid,
+          type: 'core'
+        });
+      }
+      breadcrumbs.push({
+        label: doc._osuid || osuId,
+        osuid: doc._osuid || osuId,
+        type: doc._docType,
+        current: true
+      });
+    } else if (doc._docType === 'core') {
+      // Core -> Cruise
+      if (doc._cruiseID) {
+        breadcrumbs.push({
+          label: `OSU-${doc._cruiseID}`,
+          osuid: `OSU-${doc._cruiseID}`,
+          type: 'cruise'
+        });
+      }
+      breadcrumbs.push({
+        label: doc._osuid || osuId,
+        osuid: doc._osuid || osuId,
+        type: 'core',
+        current: true
+      });
+    } else if (doc._docType === 'dive') {
+      // Dive/Rock -> Cruise
+      if (doc._cruiseID) {
+        breadcrumbs.push({
+          label: `OSU-${doc._cruiseID}`,
+          osuid: `OSU-${doc._cruiseID}`,
+          type: 'cruise'
+        });
+      }
+      breadcrumbs.push({
+        label: doc._osuid || osuId,
+        osuid: doc._osuid || osuId,
+        type: 'dive',
+        current: true
+      });
+    } else {
+      // Cruise or unknown - just show current
+      breadcrumbs.push({
+        label: doc._osuid || osuId,
+        osuid: doc._osuid || osuId,
+        type: doc._docType || 'unknown',
+        current: true
+      });
+    }
+
+    return (
+      <div className="breadcrumbs text-lg">
+        <ul>
+          {breadcrumbs.map((crumb, index) => (
+            <li key={index}>
+              {crumb.current ? (
+                <span className="font-semibold">{crumb.label}</span>
+              ) : (
+                <button
+                  onClick={() => openLandingModal(crumb.osuid)}
+                  className="text-primary hover:text-primary-focus hover:underline"
+                >
+                  {crumb.label}
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  };
   
   useEffect(() => {
     if (isVisible && hasNextPage && !isFetchingNextPage) {
@@ -1017,6 +2262,98 @@ export const Search: React.FC<{ data: any }> = ({
     }
   }, [isVisible, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  // Handle URL query parameters on component mount
+  useEffect(() => {
+    if (router.isReady && !hasProcessedUrlParam) {
+      // Handle text parameter for direct search
+      if (router.query.text) {
+        const textParam = Array.isArray(router.query.text) ? router.query.text[0] : router.query.text;
+        if (textParam) {
+          console.log('Processing text URL parameter:', textParam);
+          setSearchString(textParam);
+          setSearch(prevSearch => ({ 
+            ...prevSearch, 
+            searchString: textParam,
+            filters: {
+              fileTypes: [],
+              methods: [],
+              materialTypes: [],
+              rvNames: [],
+            },
+            filterLogic: {
+              fileTypes: 'OR',
+              methods: 'OR',
+              materialTypes: 'OR',
+              rvNames: 'OR',
+            }
+          }));
+          setHasProcessedUrlParam(true);
+          router.replace('/search', undefined, { shallow: true });
+        }
+      }
+      // Handle OSU ID parameter for modal
+      else if (router.query.osu) {
+        const osuParam = Array.isArray(router.query.osu) ? router.query.osu[0] : router.query.osu;
+        if (osuParam) {
+          console.log('Processing OSU URL parameter:', osuParam);
+          setOsuId(osuParam);
+          setSearchString(osuParam);
+          setShowLandingModal(true);
+          setSearch(prevSearch => ({ 
+            ...prevSearch, 
+            searchString: osuParam,
+            filters: {
+              fileTypes: [],
+              methods: [],
+              materialTypes: [],
+              rvNames: [],
+            },
+            filterLogic: {
+              fileTypes: 'OR',
+              methods: 'OR',
+              materialTypes: 'OR',
+              rvNames: 'OR',
+            }
+          }));
+          setHasProcessedUrlParam(true);
+          router.replace('/search', undefined, { shallow: true });
+        }
+      }
+    }
+  }, [router.isReady, router.query.text, router.query.osu, hasProcessedUrlParam, setSearch, router]);
+
+  // Helper function to toggle sorting (three-way: asc -> desc -> none -> asc)
+  const toggleSort = (sortType: string) => {
+    const currentOrder = search.sortOrder;
+    let newOrder: string;
+
+    if (currentOrder === `${sortType} asc`) {
+      newOrder = `${sortType} desc`;
+    } else if (currentOrder === `${sortType} desc`) {
+      newOrder = 'ids asc'; // Reset to default sort
+    } else {
+      newOrder = `${sortType} asc`;
+    }
+
+    setSearch({ ...search, sortOrder: newOrder });
+  };
+
+  // Helper function to get sort icon
+  const getSortIcon = (sortType: string) => {
+    const currentOrder = search.sortOrder;
+    if (currentOrder === `${sortType} asc`) {
+      return <Icon name="LuChevronUp" size="xxs" className="inline ml-1" />;
+    } else if (currentOrder === `${sortType} desc`) {
+      return <Icon name="LuChevronDown" size="xxs" className="inline ml-1" />;
+    }
+    // Show disabled up/down chevrons for sortable columns
+    return (
+      <span className="inline ml-1 opacity-30">
+        <Icon name="LuChevronsUpDown" size="xxs" className="inline -mt-0.5" />
+      </span>
+    );
+  };
+  
   console.log("Search types: ", search.types);
   return (
     <Section>
@@ -1040,104 +2377,344 @@ export const Search: React.FC<{ data: any }> = ({
             >
               <Icon name="BiX" />
             </button>
-            <select className="select select-bordered"
-              value={search.sortOrder}
-              onChange={(e) => {
-                setSearch({ ...search, sortOrder: e.target.value });
-              }}
-            >
-              <option value="alpha asc">Names (Ordered)</option>
-              <option value="alpha desc">Names (Reverse)</option>
-              <option value="ids asc">IDs (Ordered)</option>
-              <option value="ids desc">IDs (Reverse)</option>
-            </select>
+            <DownloadFilesButton
+              search={search}
+              searchString={searchString}
+              moratoriumCruises={moratoriumCruises}
+            />
           </div>
         </div>
-        <div className="tabs mt-2 min-w-full">
-          <SearchTab
-            label="Cruises/Programs"
-            isActive={search.types.includes('cruise')}
-            onClick={() => setSearch({ ...search, types: ['cruise'] })}
-            type="cruise"
-            searchString={search.searchString}
-            filters={search.filters}
-          />
-          <SearchTab
-            label="Cores"
-            isActive={search.types.includes('core')}
-            onClick={() => setSearch({ ...search, types: ['core'] })}
-            type="core"
-            searchString={search.searchString}
-            filters={search.filters}
-          />
-          <SearchTab
-            label="Core Sections"
-            isActive={search.types.includes('section')}
-            onClick={() => setSearch({ ...search, types: ['section'] })}
-            type="section"
-            searchString={search.searchString}
-            filters={search.filters}
-          />
-          <SearchTab
-            label="Rocks"
-            isActive={search.types.includes('dive')}
-            onClick={() => setSearch({ ...search, types: ['dive'] })}
-            type="dive"
-            searchString={search.searchString}
-            filters={search.filters}
-          />
-          <div className="tab tab-lg tab-bordered flex-grow"></div>  
-        </div>
         <div className="flex gap-4 mt-4">
-          {/* Filter Panel */}
-          <FilterPanel search={search} setSearch={setSearch} />
+          {/* Filter Panel - conditionally shown */}
+          {showFilters && (
+            <FilterPanel 
+              search={search} 
+              setSearch={setSearch} 
+              onToggle={() => setShowFilters(false)}
+            />
+          )}
+          
+          {/* Show Filters Button - shown when filters are hidden */}
+          {!showFilters && (
+            <div className="flex-shrink-0">
+              <button
+                className="btn btn-primary btn-sm flex flex-col gap-1 h-auto py-2 px-2"
+                onClick={() => setShowFilters(true)}
+                title="Show filters panel"
+              >
+                <Icon name="LuFilter" size="xs" />
+                <span className="badge bg-white text-primary font-bold min-h-0 h-auto">
+                  {[
+                    (search.filters?.fileTypes || []).length > 0,
+                    (search.filters?.methods || []).length > 0,
+                    (search.filters?.materialTypes || []).length > 0,
+                    (search.filters?.rvNames || []).length > 0
+                  ].filter(Boolean).length}
+                </span>
+              </button>
+            </div>
+          )}
           
           {/* Main Content Area */}
           <div className="flex-1 min-h-[500px]">
-          {matches.length > 0 && search.types.includes('cruise') &&
+            
+        {/* Responsive tabs - full tabs on large screens, dropdown on small */}
+        <div className="mb-2">
+          {/* Desktop tabs - hidden on small screens */}
+          <div className="hidden 2xl:flex tabs min-w-full">
+            <SearchTab
+              label="Cruises"
+              isActive={search.types.includes('cruise')}
+              onClick={() => setSearch({ ...search, types: ['cruise'] })}
+              type="cruise"
+              searchString={search.searchString}
+              filters={search.filters}
+            />
+            <SearchTab
+              label="Cores"
+              isActive={search.types.includes('core')}
+              onClick={() => setSearch({ ...search, types: ['core'] })}
+              type="core"
+              searchString={search.searchString}
+              filters={search.filters}
+            />
+            <SearchTab
+              label="Sections"
+              isActive={search.types.includes('section')}
+              onClick={() => setSearch({ ...search, types: ['section'] })}
+              type="section"
+              searchString={search.searchString}
+              filters={search.filters}
+            />
+            <SearchTab
+              label="Section Halves"
+              isActive={search.types.includes('sectionHalf')}
+              onClick={() => setSearch({ ...search, types: ['sectionHalf'] })}
+              type="sectionHalf"
+              searchString={search.searchString}
+              filters={search.filters}
+            />
+            <SearchTab
+              label="Dredges/Dives"
+              isActive={search.types.includes('dive')}
+              onClick={() => setSearch({ ...search, types: ['dive'] })}
+              type="dive"
+              searchString={search.searchString}
+              filters={search.filters}
+            />
+            <SearchTab
+              label="Rocks"
+              isActive={search.types.includes('diveSample')}
+              onClick={() => setSearch({ ...search, types: ['diveSample'] })}
+              type="diveSample"
+              searchString={search.searchString}
+              filters={search.filters}
+            />
+            <div className="tab tab-lg tab-bordered flex-grow"></div>  
+          </div>
+
+          {/* Mobile menu - shown on small screens */}
+          <div className="2xl:hidden relative">
+            <button 
+              className="btn btn-active btn-ghost w-full justify-between no-animation px-2"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-primary normal-case font-bold text-lg">
+                  {(() => {
+                    if (search.types.includes('cruise')) return 'Cruises';
+                    if (search.types.includes('core')) return 'Cores';
+                    if (search.types.includes('section')) return 'Sections';
+                    if (search.types.includes('sectionHalf')) return 'Section Halves';
+                    if (search.types.includes('dive')) return 'Dredges/Dives';
+                    if (search.types.includes('diveSample')) return 'Rocks';
+                    return 'Select Type';
+                  })()} 
+                </span>
+                <span className="badge badge-primary">
+                  <ItemsCount
+                    searchString={search.searchString}
+                    types={search.types}
+                    filters={search.filters}
+                    singularLabel=""
+                    pluralLabel=""
+                  />
+                </span>
+              </div>
+              <Icon name={isMenuOpen ? "LuChevronUp" : "LuChevronDown"} size="xxs" />
+            </button>
+            
+            {isMenuOpen && (
+              <ul className="menu bg-base-100 rounded-box z-30 w-full p-1 shadow border absolute top-full mt-1">
+                <li>
+                  <div
+                    onClick={() => {
+                      setSearch({ ...search, types: ['cruise'] });
+                      setIsMenuOpen(false);
+                    }}
+                    className={`flex items-center justify-between ${search.types.includes('cruise') ? 'active' : ''}`}
+                  >
+                    <span>Cruises</span>
+                    <span className="badge badge-sm badge-outline">
+                      <ItemsCount
+                        searchString={search.searchString}
+                        types={['cruise']}
+                        filters={search.filters}
+                        singularLabel=""
+                        pluralLabel=""
+                      />
+                    </span>
+                  </div>
+                </li>
+                <li>
+                  <div 
+                    onClick={() => {
+                      setSearch({ ...search, types: ['core'] });
+                      setIsMenuOpen(false);
+                    }}
+                    className={`flex items-center justify-between ${search.types.includes('core') ? 'active' : ''}`}
+                  >
+                    <span>Cores</span>
+                    <span className="badge badge-sm badge-outline">
+                      <ItemsCount
+                        searchString={search.searchString}
+                        types={['core']}
+                        filters={search.filters}
+                        singularLabel=""
+                        pluralLabel=""
+                      />
+                    </span>
+                  </div>
+                </li>
+                <li>
+                  <div 
+                    onClick={() => {
+                      setSearch({ ...search, types: ['section'] });
+                      setIsMenuOpen(false);
+                    }}
+                    className={`flex items-center justify-between ${search.types.includes('section') ? 'active' : ''}`}
+                  >
+                    <span>Sections</span>
+                    <span className="badge badge-sm badge-outline">
+                      <ItemsCount
+                        searchString={search.searchString}
+                        types={['section']}
+                        filters={search.filters}
+                        singularLabel=""
+                        pluralLabel=""
+                      />
+                    </span>
+                  </div>
+                </li>
+                <li>
+                  <div
+                    onClick={() => {
+                      setSearch({ ...search, types: ['sectionHalf'] });
+                      setIsMenuOpen(false);
+                    }}
+                    className={`flex items-center justify-between ${search.types.includes('sectionHalf') ? 'active' : ''}`}
+                  >
+                    <span>Section Halves</span>
+                    <span className="badge badge-sm badge-outline">
+                      <ItemsCount
+                        searchString={search.searchString}
+                        types={['sectionHalf']}
+                        filters={search.filters}
+                        singularLabel=""
+                        pluralLabel=""
+                      />
+                    </span>
+                  </div>
+                </li>
+                <li>
+                  <div
+                    onClick={() => {
+                      setSearch({ ...search, types: ['dive'] });
+                      setIsMenuOpen(false);
+                    }}
+                    className={`flex items-center justify-between ${search.types.includes('dive') ? 'active' : ''}`}
+                  >
+                    <span>Dredges/Dives</span>
+                    <span className="badge badge-sm badge-outline">
+                      <ItemsCount
+                        searchString={search.searchString}
+                        types={['dive']}
+                        filters={search.filters}
+                        singularLabel=""
+                        pluralLabel=""
+                      />
+                    </span>
+                  </div>
+                </li>
+                <li>
+                  <div
+                    onClick={() => {
+                      setSearch({ ...search, types: ['diveSample'] });
+                      setIsMenuOpen(false);
+                    }}
+                    className={`flex items-center justify-between ${search.types.includes('diveSample') ? 'active' : ''}`}
+                  >
+                    <span>Rocks</span>
+                    <span className="badge badge-sm badge-outline">
+                      <ItemsCount
+                        searchString={search.searchString}
+                        types={['diveSample']}
+                        filters={search.filters}
+                        singularLabel=""
+                        pluralLabel=""
+                      />
+                    </span>
+                  </div>
+                </li>
+              </ul>
+            )}
+          </div>
+        </div>
+          {search.types.includes('cruise') &&
             <table className="table table-compact w-full mt-0">
               <thead>
                 <tr>
-                  <th className="rounded-none">Cruise</th> 
-                  <th className="rounded-none">RV Name</th> 
-                  <th className="rounded-none">Files</th>
+                  <th 
+                    className="rounded-none cursor-pointer hover:bg-base-200" 
+                    onClick={() => toggleSort('alpha')}
+                  >
+                    Cruise {getSortIcon('alpha')}
+                  </th> 
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span
+                        className="cursor-pointer hover:bg-base-200"
+                        onClick={() => toggleSort('rvName')}
+                      >
+                        RV Name {getSortIcon('rvName')}
+                      </span>
+                      <RvNameFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
+                  <th className="rounded-none">Institution</th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Files</span>
+                      <FileTypesFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
                 </tr>
               </thead> 
               <tbody>
-                { matches.map((match, key) => (
+                {matches.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-8 text-gray-500">
+                      No matching cruises found
+                    </td>
+                  </tr>
+                ) : (
+                matches.map((match, key) => (
                   <>
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
-                      window.location.href = `/${match._source._osuid}`;
+                      openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top"><b>{match._source._osuid}</b>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0"><b>{match._source._osuid}</b>
                       { moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
                       </td>
-                      <td className="align-top">{match._source.rvName}</td>
-                      <td className="align-top">
-                        {match._source._files && match._source._files.length > 0 ? (
-                          <div className="flex flex-col gap-1">
-                            {(() => {
-                              // Group files by type and count them
-                              const fileTypeCounts: { [key: string]: number } = {};
-                              match._source._files.forEach((file: any) => {
-                                fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                              });
-                              
-                              return Object.entries(fileTypeCounts).map(([fileType, count]) => (
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">{match._source.rvName}</td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {match._source.pi && <><b>{match._source.pi}</b><br/></>}
+                        {match._source.piInstitution && <>{match._source.piInstitution}<br/></>}
+                      </td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {(() => {
+                          if (!match._source._files || match._source._files.length === 0) {
+                            return <span className="text-gray-500 text-sm">No files</span>;
+                          }
+
+                          // Group files by type and count them
+                          const fileTypeCounts: { [key: string]: number } = {};
+                          match._source._files.forEach((file: any) => {
+                            fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                          });
+
+                          const displayableFiles = Object.entries(fileTypeCounts)
+                            .filter(([fileType]) => hasFileTypeLabel(fileType));
+
+                          if (displayableFiles.length === 0) {
+                            return <span className="text-gray-500 text-sm">No files</span>;
+                          }
+
+                          return (
+                            <div className="flex flex-col gap-1">
+                              {displayableFiles.map(([fileType, count]) => (
                                 <div key={fileType} className="text-sm">
                                   <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
                                 </div>
-                              ));
-                            })()}
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 text-sm">No files</span>
-                        )}
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </td>
                     </tr>
                     {viewRawData &&
                       <tr key={`${key}-rawresults`}>
-                        <td colSpan={3}>
+                        <td colSpan={4}>
                           <button 
                             className="btn btn-xs btn-ghost mb-2"
                             onClick={(e) => {
@@ -1145,11 +2722,12 @@ export const Search: React.FC<{ data: any }> = ({
                               toggleRawData(`cruise-${key}`);
                             }}
                           >
-                            <Icon name={expandedRawData.has(`cruise-${key}`) ? "TbChevronUp" : "TbChevronDown"} className="w-3 h-3 mr-1" />
+                            <Icon name={expandedRawData.has(`cruise-${key}`) ? "LuChevronUp" : "LuChevronDown"} size="xxs" className="mr-1" />
                             Raw Data
                           </button>
                           {expandedRawData.has(`cruise-${key}`) && (
                             <pre><code className="flex flex-col gap-2">
+                              Index: {match._index || 'osu-mgr'}{'\n'}
                               {JSON.stringify(match._source, null, 2)}
                             </code></pre>
                           )}
@@ -1157,111 +2735,198 @@ export const Search: React.FC<{ data: any }> = ({
                       </tr>
                     }
                   </>
-                )) }
+                )) 
+                )}
               </tbody>
             </table>
           }
-          {matches.length > 0 && search.types.includes('core') &&
+          {search.types.includes('core') &&
             <table className="table table-compact w-full mt-0">
               <thead>
                 <tr>
-                  <th className="rounded-none">Core</th>
+                  <th
+                    className="rounded-none cursor-pointer hover:bg-base-200"
+                    onClick={() => toggleSort('alpha')}
+                  >
+                    Core {getSortIcon('alpha')}
+                  </th>
                   <th className="rounded-none">Size</th>
-                  <th className="rounded-none">Depth</th>
-                  <th className="rounded-none">Collection</th>
+                  <th
+                    className="rounded-none cursor-pointer hover:bg-base-200"
+                    onClick={() => toggleSort('depth')}
+                  >
+                    Depth {getSortIcon('depth')}
+                  </th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Collection</span>
+                      <CollectionFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
+                  <th
+                    className="rounded-none cursor-pointer hover:bg-base-200"
+                    onClick={() => toggleSort('modified')}
+                  >
+                    Date Time {getSortIcon('modified')}
+                  </th>
                   <th className="rounded-none">Location</th>
-                  <th className="rounded-none">Files</th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Files</span>
+                      <FileTypesFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
                 </tr>
               </thead> 
               <tbody>
-                  {matches.map((match, key) => (
+                {matches.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="text-center py-8 text-gray-500">
+                      No matching cores found
+                    </td>
+                  </tr>
+                ) : (
+                matches.map((match, key) => (
                   <>
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
-                      window.location.href = `/${match._source._osuid}`;
+                      openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top">
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
                       </td>
-                      <td className="align-top">
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.length != null && <><b>Length:</b><br/>{numeral(match._source.length).format(0.00)} cm<br /></>}
                         {match._source.diameter != null && <><b>Diameter:</b><br/>{numeral(match._source.diameter).format(0.00)} cm<br /></>}
                       </td>
-                      <td className="align-top">
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {(match._source.waterDepthStart != null || match._source.waterDepthEnd != null) &&
                           <>
                             <b>Water Depth:</b><br />
-                            {match._source.waterDepthStart && numeral(match._source.waterDepthStart).format(0.00) || ""} {match._source.waterDepthStart && match._source.waterDepthEnd && "-" || ""} {match._source.waterDepthEnd && numeral(match._source.waterDepthEnd).format(0.00) || ""} cm<br />
+                            {match._source.waterDepthStart && numeral(match._source.waterDepthStart).format(0.00) || ""} {match._source.waterDepthStart && match._source.waterDepthEnd && match._source.waterDepthStart !== match._source.waterDepthEnd && "-" || ""} {match._source.waterDepthEnd && match._source.waterDepthStart !== match._source.waterDepthEnd && numeral(match._source.waterDepthEnd).format(0.00) || ""} mbsf<br />
                           </>
                         }
                       </td>
-                      <td className="align-top">
-                        {match._source.material != null && <><b>Material:</b><br/>{match._source.material}<br /></>}
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.method != null && <><b>Method:</b><br/>{match._source.method}<br/></>}
+                        {match._source.material != null && <><b>Material:</b><br/>{match._source.material}<br /></>}
                       </td>
-                      <td className="align-top">
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {(() => {
+                          const sd = match._source.startDate ? new Date(match._source.startDate) : null;
+                          const st = match._source.startTime ? new Date(match._source.startTime) : null;
+                          const ed = match._source.endDate ? new Date(match._source.endDate) : null;
+                          const et = match._source.endTime ? new Date(match._source.endTime) : null;
+                          const d = match._source.date ? new Date(match._source.date) : null;
+                          const t = match._source.time ? new Date(match._source.time) : null;
+
+                          const formatDate = (dt: Date | null) => dt ? dt.toLocaleDateString() : '';
+                          const formatTime = (dt: Date | null) => dt ? dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+                          if (sd || st || ed || et) {
+                            const startDate = formatDate(sd);
+                            const startTime = formatTime(st);
+                            const endDate = formatDate(ed);
+                            const endTime = formatTime(et);
+                            const showEndDate = endDate && endDate !== startDate;
+                            const showEndTime = endTime && endTime !== startTime;
+                            return (
+                              <>
+                                {startDate && <><b>Date:</b><br/>{startDate}<br/></>}
+                                {showEndDate && <><b>End Date:</b><br/>{endDate}<br/></>}
+                                {(startTime || showEndTime) && (
+                                  <>
+                                    <b>Time:</b><br/>
+                                    {startTime}
+                                    {showEndTime && <> to {endTime}</>}
+                                    <br/>
+                                  </>
+                                )}
+                              </>
+                            );
+                          }
+                          if (d || t) {
+                            return (
+                              <>
+                                {d && <><b>Date:</b><br/>{formatDate(d)}<br/></>}
+                                {t && <><b>Time:</b><br/>{formatTime(t)}<br/></>}
+                              </>
+                            );
+                          }
+                          return <span className="text-gray-500">—</span>;
+                        })()}
+                      </td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <div className="flex flex-row gap-2">
                           <CollectionMapThumbnail
                             lat={match._source.latitudeStart || match._source.latitudeEnd}
                             lon={match._source.longitudeStart || match._source.longitudeEnd}
                           />
-                          <div>
+                          <div className="overflow-hidden">
                             {(match._source.latitudeStart != null || match._source.latitudeEnd != null) &&
-                            <>
+                            <div className="truncate">
                               <b>Latitude:</b><br/>
                               {match._source.latitudeStart != null && numeral(match._source.latitudeStart).format('0.0000')}
-                              {match._source.latitudeStart != null && match._source.latitudeEnd != null && ' to '}
-                              {match._source.latitudeEnd != null && numeral(match._source.latitudeEnd).format('0.0000')}
-                              <br />
-                            </>}
+                              {match._source.latitudeStart != null && match._source.latitudeEnd != null && match._source.latitudeStart !== match._source.latitudeEnd && ' to '}
+                              {match._source.latitudeEnd != null && match._source.latitudeStart !== match._source.latitudeEnd && numeral(match._source.latitudeEnd).format('0.0000')}
+                            </div>}
                             {(match._source.longitudeStart != null || match._source.longitudeEnd != null) &&
-                            <>
+                            <div className="truncate">
                               <b>Longitude:</b><br/>
                               {match._source.longitudeStart != null && numeral(match._source.longitudeStart).format('0.0000')}
-                              {match._source.longitudeStart != null && match._source.longitudeEnd != null && ' to '}
-                              {match._source.longitudeEnd != null && numeral(match._source.longitudeEnd).format('0.0000')}
-                              <br />
-                            </>}
+                              {match._source.longitudeStart != null && match._source.longitudeEnd != null && match._source.longitudeStart !== match._source.longitudeEnd && ' to '}
+                              {match._source.longitudeEnd != null && match._source.longitudeStart !== match._source.longitudeEnd && numeral(match._source.longitudeEnd).format('0.0000')}
+                            </div>}
                           </div>
                         </div>
                       </td>
-                      <td className="align-top">
-                        {match._source._files && match._source._files.length > 0 ? (
-                          <div className="flex flex-col gap-1">
-                            {(() => {
-                              // Group files by type and count them
-                              const fileTypeCounts: { [key: string]: number } = {};
-                              match._source._files.forEach((file: any) => {
-                                fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                              });
-                              
-                              return Object.entries(fileTypeCounts).map(([fileType, count]) => (
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {(() => {
+                          if (!match._source._files || match._source._files.length === 0) {
+                            return <span className="text-gray-500 text-sm">No files</span>;
+                          }
+
+                          // Group files by type and count them
+                          const fileTypeCounts: { [key: string]: number } = {};
+                          match._source._files.forEach((file: any) => {
+                            fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                          });
+
+                          const displayableFiles = Object.entries(fileTypeCounts)
+                            .filter(([fileType]) => hasFileTypeLabel(fileType));
+
+                          if (displayableFiles.length === 0) {
+                            return <span className="text-gray-500 text-sm">No files</span>;
+                          }
+
+                          return (
+                            <div className="flex flex-col gap-1">
+                              {displayableFiles.map(([fileType, count]) => (
                                 <div key={fileType} className="text-sm">
                                   <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
                                 </div>
-                              ));
-                            })()}
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 text-sm">No files</span>
-                        )}
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </td>
                     </tr>
                     { viewRawData &&
                       <tr key={`${key}-raw`}>
-                        <td colSpan={5}>
-                          <button 
+                        <td colSpan={7}>
+                          <button
                             className="btn btn-xs btn-ghost mb-2"
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleRawData(`core-${key}`);
                             }}
                           >
-                            <Icon name={expandedRawData.has(`core-${key}`) ? "TbChevronUp" : "TbChevronDown"} className="w-3 h-3 mr-1" />
+                            <Icon name={expandedRawData.has(`core-${key}`) ? "LuChevronUp" : "LuChevronDown"} size="xxs" className="mr-1" />
                             Raw Data
                           </button>
                           {expandedRawData.has(`core-${key}`) && (
                             <pre><code className="flex flex-col gap-2">
+                              Index: {match._index || 'osu-mgr'}{'\n'}
                               {JSON.stringify(match._source, null, 2)}
                             </code></pre>
                           )}
@@ -1269,33 +2934,59 @@ export const Search: React.FC<{ data: any }> = ({
                       </tr>
                     }
                   </>
-                )) }
+                )) 
+                )}
               </tbody>
             </table>
           }
-          {matches.length > 0 && search.types.includes('section') &&
+          {search.types.includes('section') &&
             <table className="table table-compact w-full mt-0">
               <thead>
                 <tr>
-                  <th className="rounded-none">Section</th>
-                  <th className="rounded-none">Size</th>
-                  <th className="rounded-none">Depth</th>
-                  <th className="rounded-none">Collection</th>
-                  <th className="rounded-none">Location</th>
-                  <th className="rounded-none">Files</th>
+                  <th 
+                    className="rounded-none cursor-pointer hover:bg-base-200" 
+                    onClick={() => toggleSort('alpha')}
+                  >
+                    Section {getSortIcon('alpha')}
+                  </th>
+                  <th 
+                    className="rounded-none cursor-pointer hover:bg-base-200" 
+                    onClick={() => toggleSort('depth')}
+                  >
+                    Size {getSortIcon('depth')}
+                  </th>
+                  <th
+                    className="rounded-none cursor-pointer hover:bg-base-200"
+                    onClick={() => toggleSort('depth')}
+                  >
+                    Depth {getSortIcon('depth')}
+                  </th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Files</span>
+                      <FileTypesFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
                 </tr>
-              </thead> 
+              </thead>
               <tbody>
-                  {matches.map((match, key) => (
+                {matches.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-8 text-gray-500">
+                      No matching sections found
+                    </td>
+                  </tr>
+                ) : (
+                matches.map((match, key) => (
                   <>
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
-                      window.location.href = `/${match._source._osuid}`;
+                      openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top">
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
                       </td>
-                      <td className="align-top">
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.depthTop != null && match._source.depthBottom != null &&
                           <>
                             <b>Length:</b><br />
@@ -1303,7 +2994,7 @@ export const Search: React.FC<{ data: any }> = ({
                           </>
                         }
                       </td>
-                      <td className="align-top">
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {(match._source.depthTop != null || match._source.depthBottom != null) &&
                           <>
                             <b>Core Depth:</b><br />
@@ -1311,73 +3002,246 @@ export const Search: React.FC<{ data: any }> = ({
                           </>
                         }
                       </td>
-                      <td className="align-top">
-                        {match._source.material != null && <><b>Material:</b><br/>{match._source.material}<br /></>}
-                        {match._source.method != null && <><b>Method:</b><br/>{match._source.method}<br/></>}
-                      </td>
-                      <td className="align-top">
-                        <div className="flex flex-row gap-2">
-                          <CollectionMapThumbnail
-                            lat={match._source.latitudeStart || match._source.latitudeEnd}
-                            lon={match._source.longitudeStart || match._source.longitudeEnd}
-                          />
-                          <div>
-                            {(match._source.latitudeStart != null || match._source.latitudeEnd != null) &&
-                            <>
-                              <b>Latitude:</b><br/>
-                              {match._source.latitudeStart != null && numeral(match._source.latitudeStart).format('0.0000')}
-                              {match._source.latitudeStart != null && match._source.latitudeEnd != null && ' to '}
-                              {match._source.latitudeEnd != null && numeral(match._source.latitudeEnd).format('0.0000')}
-                              <br />
-                            </>}
-                            {(match._source.longitudeStart != null || match._source.longitudeEnd != null) &&
-                            <>
-                              <b>Longitude:</b><br/>
-                              {match._source.longitudeStart != null && numeral(match._source.longitudeStart).format('0.0000')}
-                              {match._source.longitudeStart != null && match._source.longitudeEnd != null && ' to '}
-                              {match._source.longitudeEnd != null && numeral(match._source.longitudeEnd).format('0.0000')}
-                              <br />
-                            </>}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="align-top">
-                        {match._source._files && match._source._files.length > 0 ? (
-                          <div className="flex flex-col gap-1">
-                            {(() => {
-                              // Group files by type and count them
-                              const fileTypeCounts: { [key: string]: number } = {};
-                              match._source._files.forEach((file: any) => {
-                                fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                              });
-                              
-                              return Object.entries(fileTypeCounts).map(([fileType, count]) => (
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {(() => {
+                          if (!match._source._files || match._source._files.length === 0) {
+                            return <span className="text-gray-500 text-sm">No files</span>;
+                          }
+
+                          // Group files by type and count them
+                          const fileTypeCounts: { [key: string]: number } = {};
+                          match._source._files.forEach((file: any) => {
+                            fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                          });
+
+                          const displayableFiles = Object.entries(fileTypeCounts)
+                            .filter(([fileType]) => hasFileTypeLabel(fileType));
+
+                          if (displayableFiles.length === 0) {
+                            return <span className="text-gray-500 text-sm">No files</span>;
+                          }
+
+                          return (
+                            <div className="flex flex-col gap-1">
+                              {displayableFiles.map(([fileType, count]) => (
                                 <div key={fileType} className="text-sm">
                                   <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
                                 </div>
-                              ));
-                            })()}
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 text-sm">No files</span>
-                        )}
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </td>
                     </tr>
                     { viewRawData &&
                       <tr key={`${key}-raw`}>
-                        <td colSpan={5}>
-                          <button 
+                        <td colSpan={4}>
+                          <button
                             className="btn btn-xs btn-ghost mb-2"
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleRawData(`section-${key}`);
                             }}
                           >
-                            <Icon name={expandedRawData.has(`section-${key}`) ? "TbChevronUp" : "TbChevronDown"} className="w-3 h-3 mr-1" />
+                            <Icon name={expandedRawData.has(`section-${key}`) ? "LuChevronUp" : "LuChevronDown"} size="xxs" className="mr-1" />
                             Raw Data
                           </button>
                           {expandedRawData.has(`section-${key}`) && (
                             <pre><code className="flex flex-col gap-2">
+                              Index: {match._index || 'osu-mgr'}{'\n'}
+                              {JSON.stringify(match._source, null, 2)}
+                            </code></pre>
+                          )}
+                        </td>
+                      </tr>
+                    }
+                  </>
+                )) 
+                )}
+              </tbody>
+            </table>
+          }
+          {search.types.includes('sectionHalf') &&
+            <table className="table table-compact w-full mt-0">
+              <thead>
+                <tr>
+                  <th
+                    className="rounded-none cursor-pointer hover:bg-base-200"
+                    onClick={() => toggleSort('alpha')}
+                  >
+                    Section Half {getSortIcon('alpha')}
+                  </th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Files</span>
+                      <FileTypesFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                  {matches.length === 0 ? (
+                    <tr>
+                      <td colSpan={2} className="text-center py-8 text-gray-500">
+                        No matching section halves found
+                      </td>
+                    </tr>
+                  ) : (
+                    matches.map((match, key) => (
+                      <>
+                        <tr key={key} className="hover cursor-pointer" onClick={() => {
+                          openLandingModal(match._source._osuid);
+                        }}>
+                          <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                            <b>{match._source._osuid}</b>
+                            {match._source.nSections != null && <><br /><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
+                          </td>
+                          <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                            {(() => {
+                              if (!match._source._files || match._source._files.length === 0) {
+                                return <span className="text-gray-500 text-sm">No files</span>;
+                              }
+
+                              // Group files by type and count them
+                              const fileTypeCounts: { [key: string]: number } = {};
+                              match._source._files.forEach((file: any) => {
+                                fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                              });
+
+                              const displayableFiles = Object.entries(fileTypeCounts)
+                                .filter(([fileType]) => hasFileTypeLabel(fileType));
+
+                              if (displayableFiles.length === 0) {
+                                return <span className="text-gray-500 text-sm">No files</span>;
+                              }
+
+                              return (
+                                <div className="flex flex-col gap-1">
+                                  {displayableFiles.map(([fileType, count]) => (
+                                    <div key={fileType} className="text-sm">
+                                      <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+                          </td>
+                        </tr>
+                        {viewRawData &&
+                          <tr key={`${key}-raw`}>
+                            <td colSpan={2}>
+                              <button
+                                className="btn btn-xs btn-ghost mb-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleRawData(`sectionHalf-${key}`);
+                                }}
+                              >
+                                <Icon name={expandedRawData.has(`sectionHalf-${key}`) ? "LuChevronUp" : "LuChevronDown"} size="xxs" className="mr-1" />
+                                Raw Data
+                              </button>
+                              {expandedRawData.has(`sectionHalf-${key}`) && (
+                                <pre><code className="flex flex-col gap-2">
+                                  {JSON.stringify(match._source, null, 2)}
+                                </code></pre>
+                              )}
+                            </td>
+                          </tr>
+                        }
+                      </>
+                    )))}
+              </tbody>
+            </table>
+          }
+          {matches.length > 0 && search.types.includes('dive') &&
+            <table className="table table-compact w-full mt-0">
+              <thead>
+                <tr>
+                  <th 
+                    className="rounded-none cursor-pointer hover:bg-base-200" 
+                    onClick={() => toggleSort('alpha')}
+                  >
+                    Rock {getSortIcon('alpha')}
+                  </th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span
+                        className="cursor-pointer hover:bg-base-200"
+                        onClick={() => toggleSort('method')}
+                      >
+                        Collection {getSortIcon('method')}
+                      </span>
+                      <CollectionFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
+                  <th className="rounded-none">Area</th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Files</span>
+                      <FileTypesFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
+                </tr>
+              </thead> 
+              <tbody>
+                  {matches.map((match, key) => (
+                  <>
+                    <tr key={key} className="hover cursor-pointer" onClick={() => {
+                      openLandingModal(match._source._osuid);
+                    }}>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0"><b>{match._source._osuid}</b></td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {match._source.method != null && <><b>Method:</b><br/>{match._source.method}<br/></>}
+                        {match._source.material != null && <><b>Material:</b><br/>{match._source.material}<br /></>}
+                      </td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">{match._source.area}</td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {(() => {
+                          if (!match._source._files || match._source._files.length === 0) {
+                            return <span className="text-gray-500 text-sm">No files</span>;
+                          }
+
+                          // Group files by type and count them
+                          const fileTypeCounts: { [key: string]: number } = {};
+                          match._source._files.forEach((file: any) => {
+                            fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                          });
+
+                          const displayableFiles = Object.entries(fileTypeCounts)
+                            .filter(([fileType]) => hasFileTypeLabel(fileType));
+
+                          if (displayableFiles.length === 0) {
+                            return <span className="text-gray-500 text-sm">No files</span>;
+                          }
+
+                          return (
+                            <div className="flex flex-col gap-1">
+                              {displayableFiles.map(([fileType, count]) => (
+                                <div key={fileType} className="text-sm">
+                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                    { viewRawData &&
+                      <tr key={`${key}-rawresults`}>
+                        <td colSpan={4}>
+                          <button 
+                            className="btn btn-xs btn-ghost mb-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleRawData(`dive-${key}`);
+                            }}
+                          >
+                            <Icon name={expandedRawData.has(`dive-${key}`) ? "LuChevronUp" : "LuChevronDown"} size="xxs" className="mr-1" />
+                            Raw Data
+                          </button>
+                          {expandedRawData.has(`dive-${key}`) && (
+                            <pre><code className="flex flex-col gap-2">
+                              Index: {match._index || 'osu-mgr'}{'\n'}
                               {JSON.stringify(match._source, null, 2)}
                             </code></pre>
                           )}
@@ -1389,63 +3253,162 @@ export const Search: React.FC<{ data: any }> = ({
               </tbody>
             </table>
           }
-          {matches.length > 0 && search.types.includes('dive') &&
+          {matches.length > 0 && search.types.includes('diveSample') &&
             <table className="table table-compact w-full mt-0">
               <thead>
                 <tr>
-                  <th className="rounded-none">Rock</th>
-                  <th className="rounded-none">Method</th>
-                  <th className="rounded-none">Weight (kg)</th>
-                  <th className="rounded-none">Area</th>
-                  <th className="rounded-none">Files</th>
+                  <th 
+                    className="rounded-none cursor-pointer hover:bg-base-200" 
+                    onClick={() => toggleSort('alpha')}
+                  >
+                    Rock Sample {getSortIcon('alpha')}
+                  </th>
+                  <th className="rounded-none">Date Time</th>
+                  <th className="rounded-none">Water Depth</th>
+                  <th className="rounded-none">Texture</th>
+                  <th className="rounded-none">Location</th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Files</span>
+                      <FileTypesFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
                 </tr>
               </thead> 
               <tbody>
                   {matches.map((match, key) => (
                   <>
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
-                      window.location.href = `/${match._source._osuid}`;
+                      openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top"><b>{match._source._osuid}</b></td>
-                      <td className="align-top">{match._source.method}</td>
-                      <td className="align-top">{match._source.weight == null ? '' : numeral(match._source.weight).format('0.00')}</td>
-                      <td className="align-top">{match._source.area}</td>
-                      <td className="align-top">
-                        {match._source._files && match._source._files.length > 0 ? (
-                          <div className="flex flex-col gap-1">
-                            {(() => {
-                              // Group files by type and count them
-                              const fileTypeCounts: { [key: string]: number } = {};
-                              match._source._files.forEach((file: any) => {
-                                fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                              });
-                              
-                              return Object.entries(fileTypeCounts).map(([fileType, count]) => (
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0"><b>{match._source._osuid}</b></td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {(() => {
+                          const sd = match._source.startDate ? new Date(match._source.startDate) : null;
+                          const st = match._source.startTime ? new Date(match._source.startTime) : null;
+                          const ed = match._source.endDate ? new Date(match._source.endDate) : null;
+                          const et = match._source.endTime ? new Date(match._source.endTime) : null;
+                          const d = match._source.date ? new Date(match._source.date) : null;
+                          const t = match._source.time ? new Date(match._source.time) : null;
+
+                          const formatDate = (dt: Date | null) => dt ? dt.toLocaleDateString() : '';
+                          const formatTime = (dt: Date | null) => dt ? dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+                          if (sd || st || ed || et) {
+                            const startDate = formatDate(sd);
+                            const startTime = formatTime(st);
+                            const endDate = formatDate(ed);
+                            const endTime = formatTime(et);
+                            const showEndDate = endDate && endDate !== startDate;
+                            const showEndTime = endTime && endTime !== startTime;
+                            return (
+                              <>
+                                {startDate && <><b>Date:</b><br/>{startDate}<br/></>}
+                                {showEndDate && <><b>End Date:</b><br/>{endDate}<br/></>}
+                                {(startTime || showEndTime) && (
+                                  <>
+                                    <b>Time:</b><br/>
+                                    {startTime}
+                                    {showEndTime && <> to {endTime}</>}
+                                    <br/>
+                                  </>
+                                )}
+                              </>
+                            );
+                          }
+                          if (d || t) {
+                            return (
+                              <>
+                                {d && <><b>Date:</b><br/>{formatDate(d)}<br/></>}
+                                {t && <><b>Time:</b><br/>{formatTime(t)}<br/></>}
+                              </>
+                            );
+                          }
+                          return <span className="text-gray-500">—</span>;
+                        })()}
+                      </td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {(() => {
+                          const ws = match._source.waterDepthStart;
+                          const we = match._source.waterDepthEnd;
+                          if (ws != null || we != null) {
+                            const left = ws != null ? numeral(ws).format('0.00') : '';
+                            const right = we != null && ws !== we ? numeral(we).format('0.00') : '';
+                            return <span>{left}{(ws != null && we != null && ws !== we) ? ' to ' : ''}{right} mbsf</span>;
+                          }
+                          return <span className="text-gray-500">—</span>;
+                        })()}
+                      </td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">{match._source.texture || <span className="text-gray-500">—</span>}</td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        <div className="flex flex-row gap-2">
+                          <CollectionMapThumbnail
+                            lat={match._source.latitudeStart || match._source.latitudeEnd}
+                            lon={match._source.longitudeStart || match._source.longitudeEnd}
+                          />
+                          <div className="overflow-hidden">
+                            {(match._source.latitudeStart != null || match._source.latitudeEnd != null) &&
+                            <div className="truncate">
+                              <b>Latitude:</b><br/>
+                              {match._source.latitudeStart != null && numeral(match._source.latitudeStart).format('0.0000')}
+                              {match._source.latitudeStart != null && match._source.latitudeEnd != null && match._source.latitudeStart !== match._source.latitudeEnd && ' to '}
+                              {match._source.latitudeEnd != null && match._source.latitudeStart !== match._source.latitudeEnd && numeral(match._source.latitudeEnd).format('0.0000')}
+                            </div>}
+                            {(match._source.longitudeStart != null || match._source.longitudeEnd != null) &&
+                            <div className="truncate">
+                              <b>Longitude:</b><br/>
+                              {match._source.longitudeStart != null && numeral(match._source.longitudeStart).format('0.0000')}
+                              {match._source.longitudeStart != null && match._source.longitudeEnd != null && match._source.longitudeStart !== match._source.longitudeEnd && ' to '}
+                              {match._source.longitudeEnd != null && match._source.longitudeStart !== match._source.longitudeEnd && numeral(match._source.longitudeEnd).format('0.0000')}
+                            </div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {(() => {
+                          if (!match._source._files || match._source._files.length === 0) {
+                            return <span className="text-gray-500 text-sm">No files</span>;
+                          }
+
+                          // Group files by type and count them
+                          const fileTypeCounts: { [key: string]: number } = {};
+                          match._source._files.forEach((file: any) => {
+                            fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                          });
+
+                          const displayableFiles = Object.entries(fileTypeCounts)
+                            .filter(([fileType]) => hasFileTypeLabel(fileType));
+
+                          if (displayableFiles.length === 0) {
+                            return <span className="text-gray-500 text-sm">No files</span>;
+                          }
+
+                          return (
+                            <div className="flex flex-col gap-1">
+                              {displayableFiles.map(([fileType, count]) => (
                                 <div key={fileType} className="text-sm">
                                   <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
                                 </div>
-                              ));
-                            })()}
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 text-sm">No files</span>
-                        )}
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </td>
                     </tr>
                     { viewRawData &&
-                      <tr key={`${key}-rawresults`}>
-                        <td colSpan={5}>
+                      <tr key={`${key}-raw`}>
+                        <td colSpan={6}>
                           <button 
                             className="btn btn-xs btn-ghost mb-2"
                             onClick={(e) => {
                               e.stopPropagation();
-                              toggleRawData(`dive-${key}`);
+                              toggleRawData(`rockSample-${key}`);
                             }}
                           >
-                            <Icon name={expandedRawData.has(`dive-${key}`) ? "TbChevronUp" : "TbChevronDown"} className="w-3 h-3 mr-1" />
+                            <Icon name={expandedRawData.has(`rockSample-${key}`) ? "LuChevronUp" : "LuChevronDown"} size="xxs" className="mr-1" />
                             Raw Data
                           </button>
-                          {expandedRawData.has(`dive-${key}`) && (
+                          {expandedRawData.has(`rockSample-${key}`) && (
                             <pre><code className="flex flex-col gap-2">
                               {JSON.stringify(match._source, null, 2)}
                             </code></pre>
@@ -1491,6 +3454,45 @@ export const Search: React.FC<{ data: any }> = ({
         {/* Infinite scroll trigger: only show if there are more pages to load */}
         {hasNextPage && <div ref={ref} className="h-1" /> }
       </Container>
+
+      {/* Landing Page Modal */}
+      {showLandingModal && (
+        <div className="modal modal-open" onClick={() => setShowLandingModal(false)}>
+          <div className="modal-box max-w-6xl w-11/12 h-[90vh] flex flex-col p-0" onClick={(e) => e.stopPropagation()}>
+            {/* Fixed header with breadcrumbs and close button */}
+            <div className="flex justify-between items-center p-6 border-b border-base-300 flex-shrink-0">
+              <div className="flex-1">
+                <Breadcrumbs doc={currentDoc} />
+              </div>
+              <button 
+                className="btn btn-sm btn-circle btn-ghost ml-4"
+                onClick={() => setShowLandingModal(false)}
+              >
+                <Icon name="BiX" />
+              </button>
+            </div>
+            
+            {/* Scrollable content area */}
+            <div className="flex-1 overflow-y-scroll overflow-x-hidden" style={{ scrollbarGutter: 'stable' }}>
+              <div className="p-6">
+                <LandingPage 
+                  data={{}} 
+                  osuId={osuId} 
+                  onDocumentLoaded={(doc) => setCurrentDoc(doc)}
+                  onNavigateToChild={(childOsuId) => {
+                    setOsuId(childOsuId);
+                    setCurrentDoc(null); // Clear current doc to trigger loading state
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+          <div 
+            className="modal-backdrop"
+            onClick={() => setShowLandingModal(false)}
+          ></div>
+        </div>
+      )}
     </Section>
   );
 };

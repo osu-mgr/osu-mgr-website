@@ -7,21 +7,41 @@ import { TinaMarkdown } from "tinacms/dist/rich-text";
 import { components, templates } from "../util/md-components";
 
 export const Content = ({ data }) => {
+  const columns = data.body || [];
+  const columnCount = columns.length || 1;
+
   return (
     <Section color={data.color}>
       <Container
         className={`my-4 ${
-          data.color === "primary" ? `text-2xl font-bold text-center` : 'prose'
-        } ${
           data.top_padding || 'pt-0'
         } ${
           data.bottom_padding || 'pb-0'
         }`}
         width="medium"
       >
-        <div className="min-h-4" data-tina-field={tinaField(data, 'body')}>
-          <TinaMarkdown components={components} content={data.body} />
-          <div className="clear-both"></div>
+        <div className={`grid gap-6 ${
+          columnCount === 2 ? 'md:grid-cols-2' :
+          columnCount === 3 ? 'md:grid-cols-3' :
+          columnCount === 4 ? 'md:grid-cols-4' :
+          'grid-cols-1'
+        }`}>
+          {columns.map((column, index) => (
+            <div
+              key={index}
+              className={`min-h-4 min-w-full ${
+                data.color === "primary" ? `text-2xl font-bold text-center` : 'prose'
+              } ${
+                data.alignment === 'center' ? 'text-center' :
+                data.alignment === 'right' ? 'text-right' :
+                'text-left'
+              }`}
+              data-tina-field={tinaField(data.body[index], 'content')}
+            >
+              <TinaMarkdown components={components} content={column.content} />
+              <div className="clear-both"></div>
+            </div>
+          ))}
         </div>
       </Container>
     </Section>
@@ -32,7 +52,10 @@ export const contentBlockSchema = {
   name: "content",
   label: "Content",
   ui: {
-    itemProps: (props) => mdToString(props, "Content"),
+    itemProps: (props) => {
+      const firstColumn = props.body?.[0]?.content;
+      return mdToString({ body: firstColumn }, "Content");
+    },
   },
   fields: [
     {
@@ -68,10 +91,28 @@ export const contentBlockSchema = {
       ],
     },
     {
-      type: "rich-text",
-      label: "Body",
+      type: "string",
+      label: "Alignment",
+      name: "alignment",
+      options: [
+        { label: "Left", value: "left" },
+        { label: "Center", value: "center" },
+        { label: "Right", value: "right" },
+      ],
+    },
+    {
+      type: "object",
+      label: "Columns",
       name: "body",
-      templates,
+      list: true,
+      fields: [
+        {
+          type: "rich-text",
+          label: "Content",
+          name: "content",
+          templates,
+        },
+      ],
     },
   ],
 };

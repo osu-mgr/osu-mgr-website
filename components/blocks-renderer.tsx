@@ -4,10 +4,12 @@ import type { Page } from "../tina/__generated__/types";
 import { Content } from "./blocks/content";
 import { Features } from "./blocks/features";
 import { Hero } from "./blocks/hero";
+import { ImageBlock } from "./blocks/image";
 import { Table } from "./blocks/table";
 import { Download } from "./blocks/download";
 import { IFrame } from "./blocks/iframe";
 import { LandingPage } from "./blocks/landing-page";
+import { Modal } from "./blocks/modal";
 
 const pageBlock = (key, block: React.JSX.Element) =>
   <div key={key}>
@@ -30,6 +32,8 @@ export const Blocks = (props: Omit<Page, "id" | "_sys" | "_values">) => {
                 return pageBlock(i + block.__typename, <Hero data={block} />);
               case "PageBlocksFeatures":
                 return pageBlock(i + block.__typename, <Features data={block} />);
+              case "PageBlocksImage":
+                return pageBlock(i + block.__typename, <ImageBlock data={block} />);
               case "PageBlocksTable":
                 return pageBlock(i + block.__typename, <Table data={block} />);
               case "PageBlocksDownload":
@@ -40,6 +44,8 @@ export const Blocks = (props: Omit<Page, "id" | "_sys" | "_values">) => {
                 return pageBlock(i + block.__typename, <Search data={block} />);
               case "PageBlocksLandingPage":
                 return pageBlock(i + block.__typename, <LandingPage data={block} />);
+              case "PageBlocksModal":
+                return pageBlock(i + block.__typename, <Modal data={block} />);
               default:
                 return null;
             }

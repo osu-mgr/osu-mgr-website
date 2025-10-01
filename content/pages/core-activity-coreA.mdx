@@ -3,19 +3,63 @@ title: Core Activity Core A
 blocks:
   - color: ''
     top_padding: ''
-    body: |
-      # CORE A
+    alignment: center
+    body:
+      - content: |
+          # CORE A
     _template: content
-  - color: ''
-    body: |
-      IMAGE
-    _template: content
-  - body: >
-      <Image float="left" image="/uploads/CoreA.jpg" height={3000} width={300}
-      />
+  - body:
+      - content: >
+          ## IMAGE
 
 
-      <Image />
+          Here is an image of Core A. It is a long core section, so scroll down.
+          The clear round pins on the left indicate the depth from the top of
+          the core marked every 10 cm (ex: 800 = 800 cm down from the sediment
+          surface).
+
+
+          <Image float="left" image="/uploads/CoreA.jpg" />
+      - content: >
+          ## MICROSCOPE IMAGE
+
+
+          To determine the sediment type, a slide was made of a small sample of
+          sediment and examined under the microscope. Here is what the “smear
+          slide” looks like under special polarizing light.
+
+
+          <Image
+            image="/uploads/coccolith.jpg"
+            caption={<>
+              Image source: https\://tmi.laccore.umn.edu/is
+            </>}
+            showCaption={true}
+          />
+
+
+          The sediment is so small that it would take a scanning electron
+          microscope to actually see the particles. Below is an image from a
+          similar sediment sample. 
+
+
+          <Image
+          image="/uploads/600px-Emiliania_huxleyi_coccolithophore_PLoS.png" />
+
+
+          ## SMEAR SLIDE ANALYSIS
+
+
+          A close analysis of the slide provided the following components:
+
+
+          * Calcareous nannofosssils: 95%
+
+          * Foraminifera: 2%
+
+          * Diatoms: 1%
+
+          * Radiolaria: 2%
     _template: content
 ---
 

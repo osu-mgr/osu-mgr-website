@@ -25,7 +25,13 @@ export default function Page(
 export const getStaticProps = async ({ params }) => {
   const isLandingPage = (path) => path.match(/^OSU-[^/]+$/i);
   if (isLandingPage(params.filename)) {
-    params.filename = "landing-page";
+    // Client-side navigation to search with OSU ID
+    return {
+      redirect: {
+        destination: `/search?osu=${params.filename}`,
+        permanent: false,
+      },
+    };
   }
 
   const tinaProps = await client.queries.contentQuery({

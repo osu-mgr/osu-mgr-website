@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom tab padding overrides
+.tab {
+  --tab-padding: 0.25rem;
+}
+
+.tab-lg {
+  --tab-padding: 0.5rem;
+} */
+
+/* Equal width table columns */
+.table th,
+.table td {
+  width: auto;
+}
+
+.table {
+  table-layout: fixed;
+}

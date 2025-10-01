@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import { useRouter } from 'next/router';
 import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { Section } from "../util/section";
 import { Container } from "../util/container";
 import { ItemsCount } from '../util/items-count';
@@ -10,7 +11,7 @@ import { CollectionFileButton } from '../util/collection-file-button';
 // import { itemFieldNames, formatField } from './util/items';
 import { Icon } from "../util/icon";
 
-const viewRawData = false; // Set to true to view raw data in the search results
+const viewRawData = true; // Set to true to view raw data in the search results
 
 const TypeTab: React.FC<{
   label: string;
@@ -96,7 +97,7 @@ const Cruise: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
   );
 }
 
-const CoreSectionsPanel: React.FC<{ coreDoc: any }> = ({ coreDoc }) => {
+const CoreSectionsPanel: React.FC<{ coreDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ coreDoc, onNavigateToChild }) => {
   const {
     data: sectionsResults,
     isLoading: isSectionsLoading,
@@ -151,10 +152,10 @@ const CoreSectionsPanel: React.FC<{ coreDoc: any }> = ({ coreDoc }) => {
           {sections.map((section, index) => {
             const sectionData = section._source;
             return (
-              <a
+              <div
                 key={index}
-                href={`/${sectionData._osuid}`}
-                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary no-underline"
+                onClick={() => onNavigateToChild?.(sectionData._osuid)}
+                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-primary m-0">{sectionData._osuid}</h4>
@@ -189,7 +190,7 @@ const CoreSectionsPanel: React.FC<{ coreDoc: any }> = ({ coreDoc }) => {
                     </div>
                   )}
                 </div>
-              </a>
+              </div>
             );
           })}
         </div>
@@ -198,7 +199,113 @@ const CoreSectionsPanel: React.FC<{ coreDoc: any }> = ({ coreDoc }) => {
   );
 }
 
-const CruiseCoresPanel: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
+const RockSamplesPanel: React.FC<{ rockDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ rockDoc, onNavigateToChild }) => {
+  const {
+    data: samplesResults,
+    isLoading: isSamplesLoading,
+  } = useQuery({
+    queryKey: ['rockSamples', rockDoc._diveUUID],
+    queryFn: async () => { 
+      if (!rockDoc._diveUUID) return null;
+      
+      const payload = {
+        types: ['diveSample'],
+        terms: {
+          "_diveUUID.keyword": [rockDoc._diveUUID],
+        },
+        sortOrder: 'ids asc',
+        size: 100, // Get up to 100 samples
+      };
+      const res = await fetch('/api/opensearch?search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorresults = await res.json();
+        throw new Error(errorresults.message || 'Failed to fetch rock samples');
+      }
+      return res.json();
+    },
+    enabled: !!rockDoc._diveUUID,
+  });
+
+  const samples = samplesResults?.hits?.hits || [];
+
+  if (!rockDoc._diveUUID) return null;
+
+  return (
+    <div className="bg-base-50 p-6 rounded-lg mt-6">
+      <h3 className="text-xl font-bold mb-4 text-primary">Rock Samples</h3>
+      
+      {isSamplesLoading && (
+        <div className="flex justify-center items-center py-8">
+          <Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" />
+          <span className="ml-2">Loading samples...</span>
+        </div>
+      )}
+
+      {!isSamplesLoading && samples.length === 0 && (
+        <p className="text-gray-500">No samples found for this rock.</p>
+      )}
+
+      {!isSamplesLoading && samples.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {samples.map((sample, index) => {
+            const sampleData = sample._source;
+            return (
+              <div
+                key={index}
+                onClick={() => onNavigateToChild?.(sampleData._osuid)}
+                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-semibold text-primary m-0">{sampleData._osuid}</h4>
+                  <Icon name="TbExternalLink" className="w-4 h-4 text-gray-400" />
+                </div>
+                
+                <div className="space-y-1 text-sm text-gray-600">
+                  <p className="m-0">
+                    <strong>Type:</strong> Sample
+                  </p>
+                  
+                  {sampleData.method && (
+                    <p className="m-0">
+                      <strong>Method:</strong> {sampleData.method}
+                    </p>
+                  )}
+
+                  {sampleData.weight && (
+                    <p className="m-0">
+                      <strong>Weight:</strong> {sampleData.weight} kg
+                    </p>
+                  )}
+
+                  {sampleData.area && (
+                    <p className="m-0">
+                      <strong>Area:</strong> {sampleData.area}
+                    </p>
+                  )}
+
+                  {sampleData._files && sampleData._files.length > 0 && (
+                    <div className="flex items-center gap-1 mt-2">
+                      <Icon name="TbFiles" className="w-3 h-3 text-gray-500" />
+                      <span className="text-xs text-gray-500">
+                        {sampleData._files.length} file{sampleData._files.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const CruiseCoresPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ cruiseDoc, onNavigateToChild }) => {
   const {
     data: coresResults,
     isLoading: isCoresLoading,
@@ -249,10 +356,10 @@ const CruiseCoresPanel: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
           {cores.map((core, index) => {
             const coreData = core._source;
             return (
-              <a
+              <div
                 key={index}
-                href={`/${coreData._osuid}`}
-                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary no-underline"
+                onClick={() => onNavigateToChild?.(coreData._osuid)}
+                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-primary m-0">{coreData._osuid}</h4>
@@ -299,7 +406,7 @@ const CruiseCoresPanel: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
                     </div>
                   )}
                 </div>
-              </a>
+              </div>
             );
           })}
         </div>
@@ -308,7 +415,7 @@ const CruiseCoresPanel: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
   );
 }
 
-const CruiseRocksPanel: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
+const CruiseRocksPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ cruiseDoc, onNavigateToChild }) => {
   const {
     data: rocksResults,
     isLoading: isRocksLoading,
@@ -359,10 +466,10 @@ const CruiseRocksPanel: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
           {rocks.map((rock, index) => {
             const rockData = rock._source;
             return (
-              <a
+              <div
                 key={index}
-                href={`/${rockData._osuid}`}
-                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary no-underline"
+                onClick={() => onNavigateToChild?.(rockData._osuid)}
+                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-primary m-0">{rockData._osuid}</h4>
@@ -403,7 +510,7 @@ const CruiseRocksPanel: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
                     </div>
                   )}
                 </div>
-              </a>
+              </div>
             );
           })}
         </div>
@@ -412,7 +519,7 @@ const CruiseRocksPanel: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
   );
 }
 
-const SectionhalvesPanel: React.FC<{ sectionDoc: any }> = ({ sectionDoc }) => {
+const SectionhalvesPanel: React.FC<{ sectionDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ sectionDoc, onNavigateToChild }) => {
   const {
     data: halvesResults,
     isLoading: ishalvesLoading,
@@ -463,10 +570,10 @@ const SectionhalvesPanel: React.FC<{ sectionDoc: any }> = ({ sectionDoc }) => {
           {halves.map((half, index) => {
             const halfData = half._source;
             return (
-              <a
+              <div
                 key={index}
-                href={`/${halfData._osuid}`}
-                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary no-underline"
+                onClick={() => onNavigateToChild?.(halfData._osuid)}
+                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
               >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-primary m-0">{halfData._osuid}</h4>
@@ -507,7 +614,7 @@ const SectionhalvesPanel: React.FC<{ sectionDoc: any }> = ({ sectionDoc }) => {
                     </div>
                   )}
                 </div>
-              </a>
+              </div>
             );
           })}
         </div>
@@ -516,14 +623,16 @@ const SectionhalvesPanel: React.FC<{ sectionDoc: any }> = ({ sectionDoc }) => {
   );
 }
 
-export const LandingPage: React.FC<{ data: any }> = ({
-    data
+export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded?: (doc: any) => void; onNavigateToChild?: (osuid: string) => void }> = ({
+    data,
+    osuId,
+    onDocumentLoaded,
+    onNavigateToChild
 }) => {
   const { asPath } = useRouter();
   
-  // Extract the full OSU ID from the path, removing any leading slash
-  const fullPath = asPath.substring(1); // Remove leading slash
-  const osuID = fullPath; // Use the full path as the OSU ID
+  // Use passed osuId prop or extract from URL
+  const osuID = osuId || asPath.substring(1); // Remove leading slash from path if no osuId provided
 	
   const {
     data: results,
@@ -532,7 +641,7 @@ export const LandingPage: React.FC<{ data: any }> = ({
     queryKey: ['osuID', osuID],
     queryFn: async () => { 
       const payload = {
-        types: ['cruise', 'core', 'dive', 'section', 'sectionHalf'],
+        types: ['cruise', 'core', 'dive', 'section', 'sectionHalf', 'diveSample', 'diveSubsample'],
         terms: {
           "_osuid.keyword": [osuID.toUpperCase()],
         },
@@ -550,7 +659,16 @@ export const LandingPage: React.FC<{ data: any }> = ({
     },
   });
 
-  const doc = results?.hits?.total ? results.hits.hits[0]._source : {};
+  const doc = (results?.hits?.total?.value > 0 || results?.hits?.total > 0) && results?.hits?.hits?.[0]?._source 
+    ? results.hits.hits[0]._source 
+    : {};
+
+  // Notify parent component when document is loaded
+  useEffect(() => {
+    if (onDocumentLoaded && doc._osuid) {
+      onDocumentLoaded(doc);
+    }
+  }, [doc, onDocumentLoaded]);
 
   return (
     <Section>
@@ -566,7 +684,7 @@ export const LandingPage: React.FC<{ data: any }> = ({
       }
       {doc._docType == 'cruise' &&
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-primary">Cruise Details</h2>
+          <h2 className="text-2xl font-bold mb-6 text-primary">Cruise {osuId || doc._osuid}</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Basic Information */}
@@ -605,24 +723,57 @@ export const LandingPage: React.FC<{ data: any }> = ({
 
                       const getFileName = (type: string, path: string) => {
                         if (type) {
-                          return type.split('-').map(word => 
+                          return type.split('-').map(word =>
                             word.charAt(0).toUpperCase() + word.slice(1)
                           ).join(' ');
                         }
                         return path?.split('/').pop() || 'File';
                       };
 
+                      const isImage = (type: string, path: string) => {
+                        const fileType = type?.toLowerCase() || '';
+                        const extension = path?.split('.').pop()?.toLowerCase() || '';
+                        return fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension);
+                      };
+
+                      const imageUrl = isImage(file.type, file.path) ? `/api/file/${file.path}` : null;
+
                       return (
                         <a
                           key={index}
-                          href={`https://haviside.ceoas.oregonstate.edu:6567/${file.path}`}
+                          href={`/api/file/${file.path}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="btn btn-outline flex flex-col items-center justify-center p-3 w-20 h-20 no-underline hover:bg-primary hover:text-white"
+                          className="btn btn-outline flex flex-col items-center justify-center p-3 min-w-20 h-auto min-h-20 no-underline hover:bg-primary hover:text-white"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Icon name={getFileIcon(file.type, file.path)} className="w-6 h-6 mb-1" />
-                          <span className="text-xs text-center leading-tight">{getFileName(file.type, file.path)}</span>
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={getFileName(file.type, file.path)}
+                              className="w-16 h-16 object-cover mb-1 flex-shrink-0"
+                              onLoad={(e) => {
+                                const img = e.target as HTMLImageElement;
+                                if (img.naturalHeight > img.naturalWidth) {
+                                  img.style.transform = 'rotate(90deg)';
+                                  img.style.width = '64px';
+                                  img.style.height = '64px';
+                                }
+                              }}
+                              onError={(e) => {
+                                // If image fails to load, show icon instead
+                                const img = e.target as HTMLImageElement;
+                                img.style.display = 'none';
+                                const icon = img.nextElementSibling as HTMLElement;
+                                if (icon) icon.style.display = 'block';
+                              }}
+                            />
+                          ) : null}
+                          <Icon
+                            name={getFileIcon(file.type, file.path)}
+                            className={`w-6 h-6 mb-1 flex-shrink-0 ${imageUrl ? 'hidden' : 'block'}`}
+                          />
+                          <span className="text-xs text-center leading-tight break-words">{getFileName(file.type, file.path)}</span>
                         </a>
                       );
                     })}
@@ -635,15 +786,15 @@ export const LandingPage: React.FC<{ data: any }> = ({
           </div>
 
           {/* Cruise Cores Panel */}
-          <CruiseCoresPanel cruiseDoc={doc} />
+          <CruiseCoresPanel cruiseDoc={doc} onNavigateToChild={onNavigateToChild} />
 
           {/* Cruise Rocks Panel */}
-          <CruiseRocksPanel cruiseDoc={doc} />
+          <CruiseRocksPanel cruiseDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
       }
       {doc._docType == 'core' && 
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-primary">Core Details</h2>
+          <h2 className="text-2xl font-bold mb-6 text-primary">Core {osuId || doc._osuid}</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Basic Information */}
@@ -654,12 +805,12 @@ export const LandingPage: React.FC<{ data: any }> = ({
                 <p className="m-0"><strong>OSU ID:</strong> {doc._osuid || 'N/A'}</p>
                 <p className="m-0">
                   <strong>Cruise ID:</strong> {doc._cruiseID ? (
-                    <a 
-                      href={`/OSU-${doc._cruiseID}`}
-                      className="text-primary hover:text-primary-focus underline ml-1"
+                    <button
+                      onClick={() => onNavigateToChild?.(`OSU-${doc._cruiseID}`)}
+                      className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._cruiseID}
-                    </a>
+                    </button>
                   ) : 'N/A'}
                 </p>
                 <p className="m-0"><strong>Material:</strong> {doc.material || 'N/A'}</p>
@@ -709,24 +860,57 @@ export const LandingPage: React.FC<{ data: any }> = ({
 
                       const getFileName = (type: string, path: string) => {
                         if (type) {
-                          return type.split('-').map(word => 
+                          return type.split('-').map(word =>
                             word.charAt(0).toUpperCase() + word.slice(1)
                           ).join(' ');
                         }
                         return path?.split('/').pop() || 'File';
                       };
 
+                      const isImage = (type: string, path: string) => {
+                        const fileType = type?.toLowerCase() || '';
+                        const extension = path?.split('.').pop()?.toLowerCase() || '';
+                        return fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension);
+                      };
+
+                      const imageUrl = isImage(file.type, file.path) ? `/api/file/${file.path}` : null;
+
                       return (
                         <a
                           key={index}
-                          href={`https://haviside.ceoas.oregonstate.edu:6567/${file.path}`}
+                          href={`/api/file/${file.path}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="btn btn-outline flex flex-col items-center justify-center p-3 w-20 h-20 no-underline hover:bg-primary hover:text-white"
+                          className="btn btn-outline flex flex-col items-center justify-center p-3 min-w-20 h-auto min-h-20 no-underline hover:bg-primary hover:text-white"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Icon name={getFileIcon(file.type, file.path)} className="w-6 h-6 mb-1" />
-                          <span className="text-xs text-center leading-tight">{getFileName(file.type, file.path)}</span>
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={getFileName(file.type, file.path)}
+                              className="w-16 h-16 object-cover mb-1 flex-shrink-0"
+                              onLoad={(e) => {
+                                const img = e.target as HTMLImageElement;
+                                if (img.naturalHeight > img.naturalWidth) {
+                                  img.style.transform = 'rotate(90deg)';
+                                  img.style.width = '64px';
+                                  img.style.height = '64px';
+                                }
+                              }}
+                              onError={(e) => {
+                                // If image fails to load, show icon instead
+                                const img = e.target as HTMLImageElement;
+                                img.style.display = 'none';
+                                const icon = img.nextElementSibling as HTMLElement;
+                                if (icon) icon.style.display = 'block';
+                              }}
+                            />
+                          ) : null}
+                          <Icon
+                            name={getFileIcon(file.type, file.path)}
+                            className={`w-6 h-6 mb-1 flex-shrink-0 ${imageUrl ? 'hidden' : 'block'}`}
+                          />
+                          <span className="text-xs text-center leading-tight break-words">{getFileName(file.type, file.path)}</span>
                         </a>
                       );
                     })}
@@ -739,12 +923,12 @@ export const LandingPage: React.FC<{ data: any }> = ({
           </div>
 
           {/* Core Sections Panel */}
-          <CoreSectionsPanel coreDoc={doc} />
+          <CoreSectionsPanel coreDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
       }
       {doc._docType == 'section' && 
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-primary">Section Details</h2>
+          <h2 className="text-2xl font-bold mb-6 text-primary">Section {osuId || doc._osuid}</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Basic Information */}
@@ -755,22 +939,22 @@ export const LandingPage: React.FC<{ data: any }> = ({
                 <p className="m-0"><strong>OSU ID:</strong> {doc._osuid || 'N/A'}</p>
                 <p className="m-0">
                   <strong>Core ID:</strong> {doc._coreID ? (
-                    <a 
-                      href={`/${doc._coreID}`}
-                      className="text-primary hover:text-primary-focus underline ml-1"
+                    <button
+                      onClick={() => onNavigateToChild?.(doc._coreID)}
+                      className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._coreID}
-                    </a>
+                    </button>
                   ) : 'N/A'}
                 </p>
                 <p className="m-0">
                   <strong>Cruise ID:</strong> {doc._cruiseID ? (
-                    <a 
-                      href={`/OSU-${doc._cruiseID}`}
-                      className="text-primary hover:text-primary-focus underline ml-1"
+                    <button
+                      onClick={() => onNavigateToChild?.(`OSU-${doc._cruiseID}`)}
+                      className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._cruiseID}
-                    </a>
+                    </button>
                   ) : 'N/A'}
                 </p>
                 <p className="m-0"><strong>Material:</strong> {doc.material || 'N/A'}</p>
@@ -830,24 +1014,57 @@ export const LandingPage: React.FC<{ data: any }> = ({
 
                       const getFileName = (type: string, path: string) => {
                         if (type) {
-                          return type.split('-').map(word => 
+                          return type.split('-').map(word =>
                             word.charAt(0).toUpperCase() + word.slice(1)
                           ).join(' ');
                         }
                         return path?.split('/').pop() || 'File';
                       };
 
+                      const isImage = (type: string, path: string) => {
+                        const fileType = type?.toLowerCase() || '';
+                        const extension = path?.split('.').pop()?.toLowerCase() || '';
+                        return fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension);
+                      };
+
+                      const imageUrl = isImage(file.type, file.path) ? `/api/file/${file.path}` : null;
+
                       return (
                         <a
                           key={index}
-                          href={`https://haviside.ceoas.oregonstate.edu:6567/${file.path}`}
+                          href={`/api/file/${file.path}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="btn btn-outline flex flex-col items-center justify-center p-3 w-20 h-20 no-underline hover:bg-primary hover:text-white"
+                          className="btn btn-outline flex flex-col items-center justify-center p-3 min-w-20 h-auto min-h-20 no-underline hover:bg-primary hover:text-white"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Icon name={getFileIcon(file.type, file.path)} className="w-6 h-6 mb-1" />
-                          <span className="text-xs text-center leading-tight">{getFileName(file.type, file.path)}</span>
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={getFileName(file.type, file.path)}
+                              className="w-16 h-16 object-cover mb-1 flex-shrink-0"
+                              onLoad={(e) => {
+                                const img = e.target as HTMLImageElement;
+                                if (img.naturalHeight > img.naturalWidth) {
+                                  img.style.transform = 'rotate(90deg)';
+                                  img.style.width = '64px';
+                                  img.style.height = '64px';
+                                }
+                              }}
+                              onError={(e) => {
+                                // If image fails to load, show icon instead
+                                const img = e.target as HTMLImageElement;
+                                img.style.display = 'none';
+                                const icon = img.nextElementSibling as HTMLElement;
+                                if (icon) icon.style.display = 'block';
+                              }}
+                            />
+                          ) : null}
+                          <Icon
+                            name={getFileIcon(file.type, file.path)}
+                            className={`w-6 h-6 mb-1 flex-shrink-0 ${imageUrl ? 'hidden' : 'block'}`}
+                          />
+                          <span className="text-xs text-center leading-tight break-words">{getFileName(file.type, file.path)}</span>
                         </a>
                       );
                     })}
@@ -860,12 +1077,12 @@ export const LandingPage: React.FC<{ data: any }> = ({
           </div>
 
           {/* Section halves Panel */}
-          <SectionhalvesPanel sectionDoc={doc} />
+          <SectionhalvesPanel sectionDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
       }
       {doc._docType == 'sectionHalf' && 
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-primary">Section Half Details</h2>
+          <h2 className="text-2xl font-bold mb-6 text-primary">Section Half {osuId || doc._osuid}</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Basic Information */}
@@ -876,32 +1093,32 @@ export const LandingPage: React.FC<{ data: any }> = ({
                 <p className="m-0"><strong>OSU ID:</strong> {doc._osuid || 'N/A'}</p>
                 <p className="m-0">
                   <strong>Section ID:</strong> {doc._sectionID ? (
-                    <a 
-                      href={`/${doc._sectionID}`}
-                      className="text-primary hover:text-primary-focus underline ml-1"
+                    <button
+                      onClick={() => onNavigateToChild?.(doc._sectionID)}
+                      className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._sectionID}
-                    </a>
+                    </button>
                   ) : 'N/A'}
                 </p>
                 <p className="m-0">
                   <strong>Core ID:</strong> {doc._coreID ? (
-                    <a 
-                      href={`/${doc._coreID}`}
-                      className="text-primary hover:text-primary-focus underline ml-1"
+                    <button
+                      onClick={() => onNavigateToChild?.(doc._coreID)}
+                      className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._coreID}
-                    </a>
+                    </button>
                   ) : 'N/A'}
                 </p>
                 <p className="m-0">
                   <strong>Cruise ID:</strong> {doc._cruiseID ? (
-                    <a 
-                      href={`/OSU-${doc._cruiseID}`}
-                      className="text-primary hover:text-primary-focus underline ml-1"
+                    <button
+                      onClick={() => onNavigateToChild?.(`OSU-${doc._cruiseID}`)}
+                      className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._cruiseID}
-                    </a>
+                    </button>
                   ) : 'N/A'}
                 </p>
                 <p className="m-0"><strong>Material:</strong> {doc.material || 'N/A'}</p>
@@ -968,24 +1185,57 @@ export const LandingPage: React.FC<{ data: any }> = ({
 
                       const getFileName = (type: string, path: string) => {
                         if (type) {
-                          return type.split('-').map(word => 
+                          return type.split('-').map(word =>
                             word.charAt(0).toUpperCase() + word.slice(1)
                           ).join(' ');
                         }
                         return path?.split('/').pop() || 'File';
                       };
 
+                      const isImage = (type: string, path: string) => {
+                        const fileType = type?.toLowerCase() || '';
+                        const extension = path?.split('.').pop()?.toLowerCase() || '';
+                        return fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension);
+                      };
+
+                      const imageUrl = isImage(file.type, file.path) ? `/api/file/${file.path}` : null;
+
                       return (
                         <a
                           key={index}
-                          href={`https://haviside.ceoas.oregonstate.edu:6567/${file.path}`}
+                          href={`/api/file/${file.path}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="btn btn-outline flex flex-col items-center justify-center p-3 w-20 h-20 no-underline hover:bg-primary hover:text-white"
+                          className="btn btn-outline flex flex-col items-center justify-center p-3 min-w-20 h-auto min-h-20 no-underline hover:bg-primary hover:text-white"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Icon name={getFileIcon(file.type, file.path)} className="w-6 h-6 mb-1" />
-                          <span className="text-xs text-center leading-tight">{getFileName(file.type, file.path)}</span>
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={getFileName(file.type, file.path)}
+                              className="w-16 h-16 object-cover mb-1 flex-shrink-0"
+                              onLoad={(e) => {
+                                const img = e.target as HTMLImageElement;
+                                if (img.naturalHeight > img.naturalWidth) {
+                                  img.style.transform = 'rotate(90deg)';
+                                  img.style.width = '64px';
+                                  img.style.height = '64px';
+                                }
+                              }}
+                              onError={(e) => {
+                                // If image fails to load, show icon instead
+                                const img = e.target as HTMLImageElement;
+                                img.style.display = 'none';
+                                const icon = img.nextElementSibling as HTMLElement;
+                                if (icon) icon.style.display = 'block';
+                              }}
+                            />
+                          ) : null}
+                          <Icon
+                            name={getFileIcon(file.type, file.path)}
+                            className={`w-6 h-6 mb-1 flex-shrink-0 ${imageUrl ? 'hidden' : 'block'}`}
+                          />
+                          <span className="text-xs text-center leading-tight break-words">{getFileName(file.type, file.path)}</span>
                         </a>
                       );
                     })}
@@ -1000,7 +1250,7 @@ export const LandingPage: React.FC<{ data: any }> = ({
       }
       {doc._docType == 'dive' && 
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-primary">Dive Details</h2>
+          <h2 className="text-2xl font-bold mb-6 text-primary">Rock {osuId || doc._osuid}</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Basic Information */}
@@ -1020,6 +1270,92 @@ export const LandingPage: React.FC<{ data: any }> = ({
               <p className="text-sm">{doc.description || 'No description available'}</p>
             </div>
           </div>
+
+          {/* Metadata */}
+          <div className="bg-base-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-3 text-secondary">Metadata</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <p><strong>Last Modified:</strong> {doc._modified ? new Date(doc._modified).toLocaleDateString() : 'N/A'}</p>
+              <p><strong>Validated:</strong> {doc._validated ? new Date(doc._validated).toLocaleDateString() : 'N/A'}</p>
+              <p><strong>UUID:</strong> <code className="text-xs">{doc._uuid || 'N/A'}</code></p>
+            </div>
+          </div>
+
+          {/* Rock Samples Panel */}
+          <RockSamplesPanel rockDoc={doc} onNavigateToChild={onNavigateToChild} />
+        </div>
+      }
+      {(doc._docType == 'diveSample' || doc._docType == 'diveSubsample') && 
+        <div>
+          <h2 className="text-2xl font-bold mb-6 text-primary">
+            {doc._docType === 'diveSample' ? 'Rock Sample' : 'Rock Subsample'} {osuId || doc._osuid}
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Basic Information */}
+            <div className="bg-base-100 p-4 rounded-lg shadow">
+              <h3 className="text-lg font-semibold mb-3 text-secondary">Basic Information</h3>
+              <div className="space-y-2">
+                <p><strong>Title:</strong> {doc.title || 'N/A'}</p>
+                <p><strong>Type:</strong> {doc._docType === 'diveSample' ? 'Sample' : 'Subsample'}</p>
+                <p><strong>OSU ID:</strong> {doc._osuid || 'N/A'}</p>
+                <p><strong>Date:</strong> {doc.date ? new Date(doc.date).toLocaleDateString() : 'N/A'}</p>
+                {doc.method && <p><strong>Method:</strong> {doc.method}</p>}
+                {doc.weight && <p><strong>Weight:</strong> {doc.weight} kg</p>}
+                {doc.area && <p><strong>Area:</strong> {doc.area}</p>}
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="bg-base-100 p-4 rounded-lg shadow">
+              <h3 className="text-lg font-semibold mb-3 text-secondary">Description</h3>
+              <p className="text-sm">{doc.description || 'No description available'}</p>
+            </div>
+          </div>
+
+          {/* Files */}
+          {doc._files && doc._files.length > 0 && (
+            <div className="bg-base-50 p-4 rounded-lg mb-6">
+              <h3 className="text-lg font-semibold mb-3 text-secondary">Files ({doc._files.length})</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {doc._files.map((file: any, index: any) => {
+                  // Determine icon based on file type
+                  const getFileIcon = (type: string, path: string) => {
+                    const fileType = type?.toLowerCase() || '';
+                    const extension = path?.split('.').pop()?.toLowerCase() || '';
+                    
+                    if (fileType.includes('description') || extension === 'pdf') return 'TbFileText';
+                    if (fileType.includes('xrf') || fileType.includes('data') || extension === 'xlsx' || extension === 'csv') return 'TbFileSpreadsheet';
+                    if (fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) return 'TbPhoto';
+                    return 'TbFile';
+                  };
+
+                  const getFileName = (type: string, path: string) => {
+                    if (type) {
+                      return type.split('-').map(word => 
+                        word.charAt(0).toUpperCase() + word.slice(1)
+                      ).join(' ');
+                    }
+                    return path?.split('/').pop() || 'File';
+                  };
+
+                  return (
+                    <a
+                      key={index}
+                      href={`/api/file/${file.path}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-outline flex flex-col items-center justify-center p-3 w-20 h-20 no-underline hover:bg-primary hover:text-white"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Icon name={getFileIcon(file.type, file.path)} className="w-6 h-6 mb-1" />
+                      <span className="text-xs text-center leading-tight">{getFileName(file.type, file.path)}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Metadata */}
           <div className="bg-base-50 p-4 rounded-lg">
