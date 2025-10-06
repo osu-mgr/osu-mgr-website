@@ -6,6 +6,7 @@ import { Section } from "../util/section";
 import { Container } from "../util/container";
 import { ItemsCount } from '../util/items-count';
 import { CollectionFileButton } from '../util/collection-file-button';
+import { FileCard } from '../util/file-card';
 // import { CollectionImageThumbnail } from './util/collection-image-thumbnail';
 // import { CollectionMapThumbnail } from './util/collection-map-thumbnail';
 // import { itemFieldNames, formatField } from './util/items';
@@ -133,7 +134,7 @@ const CoreSectionsPanel: React.FC<{ coreDoc: any; onNavigateToChild?: (osuid: st
   if (!coreDoc._coreUUID) return null;
 
   return (
-    <div className="bg-base-50 p-6 rounded-lg mt-6">
+    <div className="mt-6">
       <h3 className="text-xl font-bold mb-4 text-primary">Core Sections</h3>
       
       {isSectionsLoading && (
@@ -235,7 +236,7 @@ const RockSamplesPanel: React.FC<{ rockDoc: any; onNavigateToChild?: (osuid: str
   if (!rockDoc._diveUUID) return null;
 
   return (
-    <div className="bg-base-50 p-6 rounded-lg mt-6">
+    <div className="mt-6">
       <h3 className="text-xl font-bold mb-4 text-primary">Rock Samples</h3>
       
       {isSamplesLoading && (
@@ -341,7 +342,7 @@ const CruiseCoresPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: s
   if (!cruiseDoc._cruiseUUID || cores.length === 0) return null;
 
   return (
-    <div className="bg-base-50 p-6 rounded-lg mt-6">
+    <div className="mt-6">
       <h3 className="text-xl font-bold mb-4 text-primary">Cores</h3>
       
       {isCoresLoading && (
@@ -451,7 +452,7 @@ const CruiseRocksPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: s
   if (!cruiseDoc._cruiseUUID || rocks.length === 0) return null;
 
   return (
-    <div className="bg-base-50 p-6 rounded-lg mt-6">
+    <div className="mt-6">
       <h3 className="text-xl font-bold mb-4 text-primary">Rocks</h3>
       
       {isRocksLoading && (
@@ -555,7 +556,7 @@ const SectionhalvesPanel: React.FC<{ sectionDoc: any; onNavigateToChild?: (osuid
   if (!sectionDoc._sectionUUID || halves.length === 0) return null;
 
   return (
-    <div className="bg-base-50 p-6 rounded-lg mt-6">
+    <div className="mt-6">
       <h3 className="text-xl font-bold mb-4 text-primary">Section Halves</h3>
       
       {ishalvesLoading && (
@@ -688,95 +689,32 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Basic Information */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Basic Information</h3>
               <div className="space-y-2">
-                <p><strong>Cruise ID:</strong> {doc.id || 'N/A'}</p>
-                <p><strong>OSU ID:</strong> {doc._osuid || 'N/A'}</p>
-                <p><strong>Date:</strong> {doc.date ? new Date(doc.date).toLocaleDateString() : 'N/A'}</p>
+                {doc.id && <p><strong>Cruise ID:</strong> {doc.id}</p>}
+                {doc._osuid && <p><strong>OSU ID:</strong> {doc._osuid}</p>}
+                {doc.date && <p><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
               </div>
             </div>
 
             {/* Description */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Description</h3>
-              <p className="text-sm">{doc.description || 'No description available'}</p>
-            </div>
+            {doc.description && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mt-0 mb-3">Description</h3>
+                <p className="text-sm">{doc.description}</p>
+              </div>
+            )}
 
             {/* Files & Resources */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Available Files</h3>
               <div>
                 {doc._files && doc._files.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {doc._files.map((file, index) => {
-                      // Determine icon based on file type
-                      const getFileIcon = (type: string, path: string) => {
-                        const fileType = type?.toLowerCase() || '';
-                        const extension = path?.split('.').pop()?.toLowerCase() || '';
-                        
-                        if (fileType.includes('description') || extension === 'pdf') return 'TbFileText';
-                        if (fileType.includes('xrf') || fileType.includes('data') || extension === 'xlsx' || extension === 'csv') return 'TbFileSpreadsheet';
-                        if (fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) return 'TbPhoto';
-                        return 'TbFile';
-                      };
-
-                      const getFileName = (type: string, path: string) => {
-                        if (type) {
-                          return type.split('-').map(word =>
-                            word.charAt(0).toUpperCase() + word.slice(1)
-                          ).join(' ');
-                        }
-                        return path?.split('/').pop() || 'File';
-                      };
-
-                      const isImage = (type: string, path: string) => {
-                        const fileType = type?.toLowerCase() || '';
-                        const extension = path?.split('.').pop()?.toLowerCase() || '';
-                        return fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension);
-                      };
-
-                      const imageUrl = isImage(file.type, file.path) ? `/api/file/${file.path}` : null;
-
-                      return (
-                        <a
-                          key={index}
-                          href={`/api/file/${file.path}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-outline flex flex-col items-center justify-center p-3 min-w-20 h-auto min-h-20 no-underline hover:bg-primary hover:text-white"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={getFileName(file.type, file.path)}
-                              className="w-16 h-16 object-cover mb-1 flex-shrink-0"
-                              onLoad={(e) => {
-                                const img = e.target as HTMLImageElement;
-                                if (img.naturalHeight > img.naturalWidth) {
-                                  img.style.transform = 'rotate(90deg)';
-                                  img.style.width = '64px';
-                                  img.style.height = '64px';
-                                }
-                              }}
-                              onError={(e) => {
-                                // If image fails to load, show icon instead
-                                const img = e.target as HTMLImageElement;
-                                img.style.display = 'none';
-                                const icon = img.nextElementSibling as HTMLElement;
-                                if (icon) icon.style.display = 'block';
-                              }}
-                            />
-                          ) : null}
-                          <Icon
-                            name={getFileIcon(file.type, file.path)}
-                            className={`w-6 h-6 mb-1 flex-shrink-0 ${imageUrl ? 'hidden' : 'block'}`}
-                          />
-                          <span className="text-xs text-center leading-tight break-words">{getFileName(file.type, file.path)}</span>
-                        </a>
-                      );
-                    })}
+                    {doc._files.map((file, index) => (
+                      <FileCard key={index} file={file} variant="button" />
+                    ))}
                   </div>
                 ) : (
                   <p className="text-gray-500 m-0">No files available</p>
@@ -798,122 +736,58 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Basic Information */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Basic Information</h3>
               <div>
-                <p className="m-0"><strong>Core ID:</strong> {doc.id || 'N/A'}</p>
-                <p className="m-0"><strong>OSU ID:</strong> {doc._osuid || 'N/A'}</p>
-                <p className="m-0">
-                  <strong>Cruise ID:</strong> {doc._cruiseID ? (
+                {doc.id && <p className="m-0"><strong>Core ID:</strong> {doc.id}</p>}
+                {doc._osuid && <p className="m-0"><strong>OSU ID:</strong> {doc._osuid}</p>}
+                {doc._cruiseID && (
+                  <p className="m-0">
+                    <strong>Cruise ID:</strong>
                     <button
                       onClick={() => onNavigateToChild?.(`OSU-${doc._cruiseID}`)}
                       className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._cruiseID}
                     </button>
-                  ) : 'N/A'}
-                </p>
-                <p className="m-0"><strong>Material:</strong> {doc.material || 'N/A'}</p>
-                <p className="m-0"><strong>Method:</strong> {doc.method || 'N/A'}</p>
+                  </p>
+                )}
+                {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
+                {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
               </div>
             </div>
 
             {/* Physical Properties */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Physical Properties</h3>
               <div>
-                <p className="m-0"><strong>Diameter:</strong> {doc.diameter ? `${doc.diameter} cm` : 'N/A'}</p>
-                <p className="m-0"><strong>Length:</strong> {doc.length ? `${doc.length} cm` : 'N/A'}</p>
-                <p className="m-0"><strong>Number of Sections:</strong> {doc.nSections || 'N/A'}</p>
+                {doc.diameter && <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>}
+                {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
+                {doc.nSections && <p className="m-0"><strong>Number of Sections:</strong> {doc.nSections}</p>}
               </div>
             </div>
 
             {/* Location & Date */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Location & Date</h3>
               <div>
-                <p className="m-0"><strong>Start Date:</strong> {doc.startDate ? new Date(doc.startDate).toLocaleDateString() : 'N/A'}</p>
-                <p className="m-0"><strong>Start Time:</strong> {doc.startTime ? new Date(doc.startTime).toLocaleTimeString() : 'N/A'}</p>
-                <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart ? `${doc.latitudeStart}°` : 'N/A'}</p>
-                <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart ? `${doc.longitudeStart}°` : 'N/A'}</p>
-                <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart ? `${doc.waterDepthStart} m` : 'N/A'}</p>
+                {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
+                {doc.startTime && <p className="m-0"><strong>Start Time:</strong> {new Date(doc.startTime).toLocaleTimeString()}</p>}
+                {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
+                {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
+                {doc.waterDepthStart && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
               </div>
             </div>
 
             {/* Files & Resources */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Available Files</h3>
               <div>
                 {doc._files && doc._files.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {doc._files.map((file, index) => {
-                      // Determine icon based on file type
-                      const getFileIcon = (type: string, path: string) => {
-                        const fileType = type?.toLowerCase() || '';
-                        const extension = path?.split('.').pop()?.toLowerCase() || '';
-                        
-                        if (fileType.includes('description') || extension === 'pdf') return 'TbFileText';
-                        if (fileType.includes('xrf') || fileType.includes('data') || extension === 'xlsx' || extension === 'csv') return 'TbFileSpreadsheet';
-                        if (fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) return 'TbPhoto';
-                        return 'TbFile';
-                      };
-
-                      const getFileName = (type: string, path: string) => {
-                        if (type) {
-                          return type.split('-').map(word =>
-                            word.charAt(0).toUpperCase() + word.slice(1)
-                          ).join(' ');
-                        }
-                        return path?.split('/').pop() || 'File';
-                      };
-
-                      const isImage = (type: string, path: string) => {
-                        const fileType = type?.toLowerCase() || '';
-                        const extension = path?.split('.').pop()?.toLowerCase() || '';
-                        return fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension);
-                      };
-
-                      const imageUrl = isImage(file.type, file.path) ? `/api/file/${file.path}` : null;
-
-                      return (
-                        <a
-                          key={index}
-                          href={`/api/file/${file.path}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-outline flex flex-col items-center justify-center p-3 min-w-20 h-auto min-h-20 no-underline hover:bg-primary hover:text-white"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={getFileName(file.type, file.path)}
-                              className="w-16 h-16 object-cover mb-1 flex-shrink-0"
-                              onLoad={(e) => {
-                                const img = e.target as HTMLImageElement;
-                                if (img.naturalHeight > img.naturalWidth) {
-                                  img.style.transform = 'rotate(90deg)';
-                                  img.style.width = '64px';
-                                  img.style.height = '64px';
-                                }
-                              }}
-                              onError={(e) => {
-                                // If image fails to load, show icon instead
-                                const img = e.target as HTMLImageElement;
-                                img.style.display = 'none';
-                                const icon = img.nextElementSibling as HTMLElement;
-                                if (icon) icon.style.display = 'block';
-                              }}
-                            />
-                          ) : null}
-                          <Icon
-                            name={getFileIcon(file.type, file.path)}
-                            className={`w-6 h-6 mb-1 flex-shrink-0 ${imageUrl ? 'hidden' : 'block'}`}
-                          />
-                          <span className="text-xs text-center leading-tight break-words">{getFileName(file.type, file.path)}</span>
-                        </a>
-                      );
-                    })}
+                    {doc._files.map((file, index) => (
+                      <FileCard key={index} file={file} variant="button" />
+                    ))}
                   </div>
                 ) : (
                   <p className="text-gray-500 m-0">No files available</p>
@@ -932,37 +806,39 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Basic Information */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Basic Information</h3>
               <div>
-                <p className="m-0"><strong>Section ID:</strong> {doc.id || 'N/A'}</p>
-                <p className="m-0"><strong>OSU ID:</strong> {doc._osuid || 'N/A'}</p>
-                <p className="m-0">
-                  <strong>Core ID:</strong> {doc._coreID ? (
+                {doc.id && <p className="m-0"><strong>Section ID:</strong> {doc.id}</p>}
+                {doc._osuid && <p className="m-0"><strong>OSU ID:</strong> {doc._osuid}</p>}
+                {doc._coreID && (
+                  <p className="m-0">
+                    <strong>Core ID:</strong>
                     <button
                       onClick={() => onNavigateToChild?.(doc._coreID)}
                       className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._coreID}
                     </button>
-                  ) : 'N/A'}
-                </p>
-                <p className="m-0">
-                  <strong>Cruise ID:</strong> {doc._cruiseID ? (
+                  </p>
+                )}
+                {doc._cruiseID && (
+                  <p className="m-0">
+                    <strong>Cruise ID:</strong>
                     <button
                       onClick={() => onNavigateToChild?.(`OSU-${doc._cruiseID}`)}
                       className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._cruiseID}
                     </button>
-                  ) : 'N/A'}
-                </p>
-                <p className="m-0"><strong>Material:</strong> {doc.material || 'N/A'}</p>
+                  </p>
+                )}
+                {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
               </div>
             </div>
 
             {/* Physical Properties */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Physical Properties</h3>
               <div>
                 {doc.depthTop != null && doc.depthBottom != null && (
@@ -983,91 +859,26 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
 
             {/* Location & Date */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Location & Date</h3>
               <div>
-                <p className="m-0"><strong>Start Date:</strong> {doc.startDate ? new Date(doc.startDate).toLocaleDateString() : 'N/A'}</p>
-                <p className="m-0"><strong>Start Time:</strong> {doc.startTime ? new Date(doc.startTime).toLocaleTimeString() : 'N/A'}</p>
-                <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart ? `${doc.latitudeStart}°` : 'N/A'}</p>
-                <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart ? `${doc.longitudeStart}°` : 'N/A'}</p>
-                <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart ? `${doc.waterDepthStart} m` : 'N/A'}</p>
+                {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
+                {doc.startTime && <p className="m-0"><strong>Start Time:</strong> {new Date(doc.startTime).toLocaleTimeString()}</p>}
+                {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
+                {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
+                {doc.waterDepthStart && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
               </div>
             </div>
 
             {/* Files & Resources */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Available Files</h3>
               <div>
                 {doc._files && doc._files.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {doc._files.map((file, index) => {
-                      // Determine icon based on file type
-                      const getFileIcon = (type: string, path: string) => {
-                        const fileType = type?.toLowerCase() || '';
-                        const extension = path?.split('.').pop()?.toLowerCase() || '';
-                        
-                        if (fileType.includes('description') || extension === 'pdf') return 'TbFileText';
-                        if (fileType.includes('xrf') || fileType.includes('data') || extension === 'xlsx' || extension === 'csv') return 'TbFileSpreadsheet';
-                        if (fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) return 'TbPhoto';
-                        return 'TbFile';
-                      };
-
-                      const getFileName = (type: string, path: string) => {
-                        if (type) {
-                          return type.split('-').map(word =>
-                            word.charAt(0).toUpperCase() + word.slice(1)
-                          ).join(' ');
-                        }
-                        return path?.split('/').pop() || 'File';
-                      };
-
-                      const isImage = (type: string, path: string) => {
-                        const fileType = type?.toLowerCase() || '';
-                        const extension = path?.split('.').pop()?.toLowerCase() || '';
-                        return fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension);
-                      };
-
-                      const imageUrl = isImage(file.type, file.path) ? `/api/file/${file.path}` : null;
-
-                      return (
-                        <a
-                          key={index}
-                          href={`/api/file/${file.path}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-outline flex flex-col items-center justify-center p-3 min-w-20 h-auto min-h-20 no-underline hover:bg-primary hover:text-white"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={getFileName(file.type, file.path)}
-                              className="w-16 h-16 object-cover mb-1 flex-shrink-0"
-                              onLoad={(e) => {
-                                const img = e.target as HTMLImageElement;
-                                if (img.naturalHeight > img.naturalWidth) {
-                                  img.style.transform = 'rotate(90deg)';
-                                  img.style.width = '64px';
-                                  img.style.height = '64px';
-                                }
-                              }}
-                              onError={(e) => {
-                                // If image fails to load, show icon instead
-                                const img = e.target as HTMLImageElement;
-                                img.style.display = 'none';
-                                const icon = img.nextElementSibling as HTMLElement;
-                                if (icon) icon.style.display = 'block';
-                              }}
-                            />
-                          ) : null}
-                          <Icon
-                            name={getFileIcon(file.type, file.path)}
-                            className={`w-6 h-6 mb-1 flex-shrink-0 ${imageUrl ? 'hidden' : 'block'}`}
-                          />
-                          <span className="text-xs text-center leading-tight break-words">{getFileName(file.type, file.path)}</span>
-                        </a>
-                      );
-                    })}
+                    {doc._files.map((file, index) => (
+                      <FileCard key={index} file={file} variant="button" />
+                    ))}
                   </div>
                 ) : (
                   <p className="text-gray-500 m-0">No files available</p>
@@ -1086,48 +897,51 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Basic Information */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Basic Information</h3>
               <div>
-                <p className="m-0"><strong>Section Half ID:</strong> {doc.id || 'N/A'}</p>
-                <p className="m-0"><strong>OSU ID:</strong> {doc._osuid || 'N/A'}</p>
-                <p className="m-0">
-                  <strong>Section ID:</strong> {doc._sectionID ? (
+                {doc.id && <p className="m-0"><strong>Section Half ID:</strong> {doc.id}</p>}
+                {doc._osuid && <p className="m-0"><strong>OSU ID:</strong> {doc._osuid}</p>}
+                {doc._sectionID && (
+                  <p className="m-0">
+                    <strong>Section ID:</strong>
                     <button
                       onClick={() => onNavigateToChild?.(doc._sectionID)}
                       className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._sectionID}
                     </button>
-                  ) : 'N/A'}
-                </p>
-                <p className="m-0">
-                  <strong>Core ID:</strong> {doc._coreID ? (
+                  </p>
+                )}
+                {doc._coreID && (
+                  <p className="m-0">
+                    <strong>Core ID:</strong>
                     <button
                       onClick={() => onNavigateToChild?.(doc._coreID)}
                       className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._coreID}
                     </button>
-                  ) : 'N/A'}
-                </p>
-                <p className="m-0">
-                  <strong>Cruise ID:</strong> {doc._cruiseID ? (
+                  </p>
+                )}
+                {doc._cruiseID && (
+                  <p className="m-0">
+                    <strong>Cruise ID:</strong>
                     <button
                       onClick={() => onNavigateToChild?.(`OSU-${doc._cruiseID}`)}
                       className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._cruiseID}
                     </button>
-                  ) : 'N/A'}
-                </p>
-                <p className="m-0"><strong>Material:</strong> {doc.material || 'N/A'}</p>
-                <p className="m-0"><strong>Half Type:</strong> {doc.halfType || 'N/A'}</p>
+                  </p>
+                )}
+                {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
+                {doc.halfType && <p className="m-0"><strong>Half Type:</strong> {doc.halfType}</p>}
               </div>
             </div>
 
             {/* Physical Properties */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Physical Properties</h3>
               <div>
                 {doc.depthTop != null && doc.depthBottom != null && (
@@ -1154,91 +968,26 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
 
             {/* Location & Date */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Location & Date</h3>
               <div>
-                <p className="m-0"><strong>Start Date:</strong> {doc.startDate ? new Date(doc.startDate).toLocaleDateString() : 'N/A'}</p>
-                <p className="m-0"><strong>Start Time:</strong> {doc.startTime ? new Date(doc.startTime).toLocaleTimeString() : 'N/A'}</p>
-                <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart ? `${doc.latitudeStart}°` : 'N/A'}</p>
-                <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart ? `${doc.longitudeStart}°` : 'N/A'}</p>
-                <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart ? `${doc.waterDepthStart} m` : 'N/A'}</p>
+                {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
+                {doc.startTime && <p className="m-0"><strong>Start Time:</strong> {new Date(doc.startTime).toLocaleTimeString()}</p>}
+                {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
+                {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
+                {doc.waterDepthStart && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
               </div>
             </div>
 
             {/* Files & Resources */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
+            <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Available Files</h3>
               <div>
                 {doc._files && doc._files.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
-                    {doc._files.map((file, index) => {
-                      // Determine icon based on file type
-                      const getFileIcon = (type: string, path: string) => {
-                        const fileType = type?.toLowerCase() || '';
-                        const extension = path?.split('.').pop()?.toLowerCase() || '';
-                        
-                        if (fileType.includes('description') || extension === 'pdf') return 'TbFileText';
-                        if (fileType.includes('xrf') || fileType.includes('data') || extension === 'xlsx' || extension === 'csv') return 'TbFileSpreadsheet';
-                        if (fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) return 'TbPhoto';
-                        return 'TbFile';
-                      };
-
-                      const getFileName = (type: string, path: string) => {
-                        if (type) {
-                          return type.split('-').map(word =>
-                            word.charAt(0).toUpperCase() + word.slice(1)
-                          ).join(' ');
-                        }
-                        return path?.split('/').pop() || 'File';
-                      };
-
-                      const isImage = (type: string, path: string) => {
-                        const fileType = type?.toLowerCase() || '';
-                        const extension = path?.split('.').pop()?.toLowerCase() || '';
-                        return fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(extension);
-                      };
-
-                      const imageUrl = isImage(file.type, file.path) ? `/api/file/${file.path}` : null;
-
-                      return (
-                        <a
-                          key={index}
-                          href={`/api/file/${file.path}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-outline flex flex-col items-center justify-center p-3 min-w-20 h-auto min-h-20 no-underline hover:bg-primary hover:text-white"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {imageUrl ? (
-                            <img
-                              src={imageUrl}
-                              alt={getFileName(file.type, file.path)}
-                              className="w-16 h-16 object-cover mb-1 flex-shrink-0"
-                              onLoad={(e) => {
-                                const img = e.target as HTMLImageElement;
-                                if (img.naturalHeight > img.naturalWidth) {
-                                  img.style.transform = 'rotate(90deg)';
-                                  img.style.width = '64px';
-                                  img.style.height = '64px';
-                                }
-                              }}
-                              onError={(e) => {
-                                // If image fails to load, show icon instead
-                                const img = e.target as HTMLImageElement;
-                                img.style.display = 'none';
-                                const icon = img.nextElementSibling as HTMLElement;
-                                if (icon) icon.style.display = 'block';
-                              }}
-                            />
-                          ) : null}
-                          <Icon
-                            name={getFileIcon(file.type, file.path)}
-                            className={`w-6 h-6 mb-1 flex-shrink-0 ${imageUrl ? 'hidden' : 'block'}`}
-                          />
-                          <span className="text-xs text-center leading-tight break-words">{getFileName(file.type, file.path)}</span>
-                        </a>
-                      );
-                    })}
+                    {doc._files.map((file, index) => (
+                      <FileCard key={index} file={file} variant="button" />
+                    ))}
                   </div>
                 ) : (
                   <p className="text-gray-500 m-0">No files available</p>
@@ -1254,31 +1003,23 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Basic Information */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-3 text-secondary">Basic Information</h3>
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3 text-base-content">Basic Information</h3>
               <div className="space-y-2">
-                <p><strong>Title:</strong> {doc.title || 'N/A'}</p>
-                <p><strong>Dive ID:</strong> {doc.id || 'N/A'}</p>
-                <p><strong>OSU ID:</strong> {doc._osuid || 'N/A'}</p>
-                <p><strong>Date:</strong> {doc.date ? new Date(doc.date).toLocaleDateString() : 'N/A'}</p>
+                {doc.title && <p><strong>Title:</strong> {doc.title}</p>}
+                {doc.id && <p><strong>Dive ID:</strong> {doc.id}</p>}
+                {doc._osuid && <p><strong>OSU ID:</strong> {doc._osuid}</p>}
+                {doc.date && <p><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
               </div>
             </div>
 
             {/* Description */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-3 text-secondary">Description</h3>
-              <p className="text-sm">{doc.description || 'No description available'}</p>
-            </div>
-          </div>
-
-          {/* Metadata */}
-          <div className="bg-base-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-3 text-secondary">Metadata</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <p><strong>Last Modified:</strong> {doc._modified ? new Date(doc._modified).toLocaleDateString() : 'N/A'}</p>
-              <p><strong>Validated:</strong> {doc._validated ? new Date(doc._validated).toLocaleDateString() : 'N/A'}</p>
-              <p><strong>UUID:</strong> <code className="text-xs">{doc._uuid || 'N/A'}</code></p>
-            </div>
+            {doc.description && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 text-base-content">Description</h3>
+                <p className="text-sm">{doc.description}</p>
+              </div>
+            )}
           </div>
 
           {/* Rock Samples Panel */}
@@ -1293,13 +1034,13 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             {/* Basic Information */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-3 text-secondary">Basic Information</h3>
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3 text-base-content">Basic Information</h3>
               <div className="space-y-2">
-                <p><strong>Title:</strong> {doc.title || 'N/A'}</p>
+                {doc.title && <p><strong>Title:</strong> {doc.title}</p>}
                 <p><strong>Type:</strong> {doc._docType === 'diveSample' ? 'Sample' : 'Subsample'}</p>
-                <p><strong>OSU ID:</strong> {doc._osuid || 'N/A'}</p>
-                <p><strong>Date:</strong> {doc.date ? new Date(doc.date).toLocaleDateString() : 'N/A'}</p>
+                {doc._osuid && <p><strong>OSU ID:</strong> {doc._osuid}</p>}
+                {doc.date && <p><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
                 {doc.method && <p><strong>Method:</strong> {doc.method}</p>}
                 {doc.weight && <p><strong>Weight:</strong> {doc.weight} kg</p>}
                 {doc.area && <p><strong>Area:</strong> {doc.area}</p>}
@@ -1307,65 +1048,25 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
 
             {/* Description */}
-            <div className="bg-base-100 p-4 rounded-lg shadow">
-              <h3 className="text-lg font-semibold mb-3 text-secondary">Description</h3>
-              <p className="text-sm">{doc.description || 'No description available'}</p>
-            </div>
+            {doc.description && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 text-base-content">Description</h3>
+                <p className="text-sm">{doc.description}</p>
+              </div>
+            )}
           </div>
 
           {/* Files */}
           {doc._files && doc._files.length > 0 && (
-            <div className="bg-base-50 p-4 rounded-lg mb-6">
-              <h3 className="text-lg font-semibold mb-3 text-secondary">Files ({doc._files.length})</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                {doc._files.map((file: any, index: any) => {
-                  // Determine icon based on file type
-                  const getFileIcon = (type: string, path: string) => {
-                    const fileType = type?.toLowerCase() || '';
-                    const extension = path?.split('.').pop()?.toLowerCase() || '';
-                    
-                    if (fileType.includes('description') || extension === 'pdf') return 'TbFileText';
-                    if (fileType.includes('xrf') || fileType.includes('data') || extension === 'xlsx' || extension === 'csv') return 'TbFileSpreadsheet';
-                    if (fileType.includes('image') || ['jpg', 'jpeg', 'png', 'gif'].includes(extension)) return 'TbPhoto';
-                    return 'TbFile';
-                  };
-
-                  const getFileName = (type: string, path: string) => {
-                    if (type) {
-                      return type.split('-').map(word => 
-                        word.charAt(0).toUpperCase() + word.slice(1)
-                      ).join(' ');
-                    }
-                    return path?.split('/').pop() || 'File';
-                  };
-
-                  return (
-                    <a
-                      key={index}
-                      href={`/api/file/${file.path}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-outline flex flex-col items-center justify-center p-3 w-20 h-20 no-underline hover:bg-primary hover:text-white"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Icon name={getFileIcon(file.type, file.path)} className="w-6 h-6 mb-1" />
-                      <span className="text-xs text-center leading-tight">{getFileName(file.type, file.path)}</span>
-                    </a>
-                  );
-                })}
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3 text-base-content">Files</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+                {doc._files.map((file: any, index: any) => (
+                  <FileCard key={index} file={file} variant="thumbnail" />
+                ))}
               </div>
             </div>
           )}
-
-          {/* Metadata */}
-          <div className="bg-base-50 p-4 rounded-lg">
-            <h3 className="text-lg font-semibold mb-3 text-secondary">Metadata</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <p><strong>Last Modified:</strong> {doc._modified ? new Date(doc._modified).toLocaleDateString() : 'N/A'}</p>
-              <p><strong>Validated:</strong> {doc._validated ? new Date(doc._validated).toLocaleDateString() : 'N/A'}</p>
-              <p><strong>UUID:</strong> <code className="text-xs">{doc._uuid || 'N/A'}</code></p>
-            </div>
-          </div>
         </div>
       }
       {viewRawData && (

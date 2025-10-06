@@ -39,6 +39,10 @@ const sortOrders = {
   'rvName desc': [cruisesFirst, { 'rvName.keyword': 'desc' }],
   'method asc': [cruisesFirst, { 'method.keyword': 'asc' }],
   'method desc': [cruisesFirst, { 'method.keyword': 'desc' }],
+  'area asc': [cruisesFirst, { 'area.keyword': 'asc' }],
+  'area desc': [cruisesFirst, { 'area.keyword': 'desc' }],
+  'texture asc': [cruisesFirst, { 'texture.keyword': 'asc' }],
+  'texture desc': [cruisesFirst, { 'texture.keyword': 'desc' }],
   'weight asc': [cruisesFirst, { 'weight': 'asc' }],
   'weight desc': [cruisesFirst, { 'weight': 'desc' }],
   'depth asc': [cruisesFirst, { 'depthTop.keyword': 'asc' }],
@@ -190,7 +194,44 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         });
       }
     }
-    
+
+    // Handle institutions filter
+    if (search.filters.institutions && search.filters.institutions.length > 0) {
+      const institutionLogic = search.filterLogic?.institutions || 'OR';
+      if (institutionLogic === 'AND') {
+        // For AND logic, this doesn't make sense for a single field, so treat as OR
+        filters.push({
+          terms: {
+            'piInstitution.keyword': search.filters.institutions
+          }
+        });
+      } else {
+        filters.push({
+          terms: {
+            'piInstitution.keyword': search.filters.institutions
+          }
+        });
+      }
+    }
+
+    // Handle areas filter
+    if (search.filters.areas && search.filters.areas.length > 0) {
+      filters.push({
+        terms: {
+          'area.keyword': search.filters.areas
+        }
+      });
+    }
+
+    // Handle textures filter
+    if (search.filters.textures && search.filters.textures.length > 0) {
+      filters.push({
+        terms: {
+          'texture.keyword': search.filters.textures
+        }
+      });
+    }
+
     // Apply all filters
     if (filters.length > 0) {
       // Wrap existing query in a bool query if it's not already
@@ -528,7 +569,21 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           });
         }
       }
-      
+
+      // Apply area filters
+      if (search.filters.areas && search.filters.areas.length > 0) {
+        nonMethodFilters.push({
+          terms: { 'area.keyword': search.filters.areas }
+        });
+      }
+
+      // Apply texture filters
+      if (search.filters.textures && search.filters.textures.length > 0) {
+        nonMethodFilters.push({
+          terms: { 'texture.keyword': search.filters.textures }
+        });
+      }
+
       // Apply non-method filters to base query
       if (nonMethodFilters.length > 0) {
         if (baseQuery.bool) {
@@ -575,7 +630,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
   else if (req.query.materialCounts !== undefined && search.types !== undefined) {
     // Return counts for each material type (only for cores)
     const counts: { [key: string]: number } = {};
-    
+
     // Base query without material filter
     let baseQuery: any = {};
     if (search.searchString === '') {
@@ -607,7 +662,88 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         }
       };
     }
-    
+
+    // Apply non-material filters if they exist
+    if (search.filters) {
+      const nonMaterialFilters = [];
+
+      // Apply file type filters with their current logic
+      if (search.filters.fileTypes && search.filters.fileTypes.length > 0) {
+        const fileTypeLogic = search.filterLogic?.fileTypes || 'OR';
+        if (fileTypeLogic === 'AND') {
+          nonMaterialFilters.push({
+            script: {
+              script: {
+                source: `
+                  def selectedTypes = params.fileTypes;
+                  def docFileTypes = new HashSet();
+                  if (doc['_files.type.keyword'].size() > 0) {
+                    for (def fileType : doc['_files.type.keyword']) {
+                      docFileTypes.add(fileType);
+                    }
+                  }
+                  for (def selectedType : selectedTypes) {
+                    if (!docFileTypes.contains(selectedType)) {
+                      return false;
+                    }
+                  }
+                  return true;
+                `,
+                params: {
+                  fileTypes: search.filters.fileTypes
+                }
+              }
+            }
+          });
+        } else {
+          nonMaterialFilters.push({
+            terms: {
+              '_files.type.keyword': search.filters.fileTypes
+            }
+          });
+        }
+      }
+
+      // Apply method filters
+      if (search.filters.methods && search.filters.methods.length > 0) {
+        nonMaterialFilters.push({
+          terms: { 'method.keyword': search.filters.methods }
+        });
+      }
+
+      // Apply RV name filters
+      if (search.filters.rvNames && search.filters.rvNames.length > 0) {
+        nonMaterialFilters.push({
+          terms: { 'rvName.keyword': search.filters.rvNames }
+        });
+      }
+
+      // Apply area filters
+      if (search.filters.areas && search.filters.areas.length > 0) {
+        nonMaterialFilters.push({
+          terms: { 'area.keyword': search.filters.areas }
+        });
+      }
+
+      // Apply texture filters
+      if (search.filters.textures && search.filters.textures.length > 0) {
+        nonMaterialFilters.push({
+          terms: { 'texture.keyword': search.filters.textures }
+        });
+      }
+
+      if (nonMaterialFilters.length > 0) {
+        if (!baseQuery.bool) {
+          baseQuery = {
+            bool: {
+              must: [baseQuery]
+            }
+          };
+        }
+        baseQuery.bool.filter = nonMaterialFilters;
+      }
+    }
+
     // Get aggregation of material field values
     try {
       const aggResp = await client.search({
@@ -698,6 +834,375 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       console.error('Error fetching RV name counts:', error);
     }
     
+    return res.status(200).send(counts);
+  }
+  else if (req.query.institutionCounts !== undefined && search.types !== undefined) {
+    // Return counts for each institution (only for cruises)
+    const counts: { [key: string]: number } = {};
+    const piInstitutions: { [key: string]: string } = {};
+
+    // Base query without institution filter
+    let baseQuery: any = {};
+    if (search.searchString === '') {
+      baseQuery = { terms: { '_docType.keyword': search.types } };
+    } else {
+      baseQuery = {
+        bool: {
+          must: [
+            { terms: { '_docType.keyword': search.types } }],
+          should: [
+            {
+              multi_match: {
+                query: search.searchString.toLowerCase(),
+                type: 'bool_prefix',
+                fields: ['*.substring'],
+                operator: 'and',
+                analyzer: 'whitespace',
+              },
+            },
+            {
+              prefix: {
+                '_osuid.keyword': {
+                  value: search.searchString.toUpperCase(),
+                },
+              },
+            },
+          ],
+          minimum_should_match: 1,
+        }
+      };
+    }
+
+    // Get aggregation of piInstitution field values
+    try {
+      const aggResp = await client.search({
+        index,
+        body: {
+          size: 0,
+          query: baseQuery,
+          aggs: {
+            institutions: {
+              terms: {
+                field: 'pi.keyword',
+                size: 100
+              }
+            }
+          }
+        }
+      } as any);
+
+      const buckets = (aggResp.body.aggregations?.institutions as any)?.buckets || [];
+      buckets.forEach((bucket: any) => {
+        counts[bucket.key] = bucket.doc_count;
+      });
+
+      // Get a sample document for each PI to retrieve their institution
+      for (const pi of Object.keys(counts)) {
+        try {
+          const sampleDoc = await client.search({
+            index,
+            body: {
+              size: 1,
+              query: {
+                bool: {
+                  must: [
+                    baseQuery,
+                    { term: { 'pi.keyword': pi } }
+                  ]
+                }
+              },
+              _source: ['piInstitution']
+            }
+          } as any);
+
+          const hits = sampleDoc.body.hits?.hits || [];
+          if (hits.length > 0 && hits[0]._source?.piInstitution) {
+            piInstitutions[pi] = hits[0]._source.piInstitution;
+          }
+        } catch (error) {
+          console.error(`Error fetching institution for PI ${pi}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching institution counts:', error);
+    }
+
+    return res.status(200).send({ counts, piInstitutions });
+  }
+  else if (req.query.areaCounts !== undefined && search.types !== undefined) {
+    // Return counts for each area (only for dives and dredges)
+    const counts: { [key: string]: number } = {};
+
+    // Base query without area filter
+    let baseQuery: any = {};
+    if (search.searchString === '') {
+      baseQuery = { terms: { '_docType.keyword': search.types } };
+    } else {
+      baseQuery = {
+        bool: {
+          must: [
+            { terms: { '_docType.keyword': search.types } }],
+          should: [
+            {
+              multi_match: {
+                query: search.searchString.toLowerCase(),
+                type: 'bool_prefix',
+                fields: ['*.substring'],
+                operator: 'and',
+                analyzer: 'whitespace',
+              },
+            },
+            {
+              prefix: {
+                '_osuid.keyword': {
+                  value: search.searchString.toUpperCase(),
+                },
+              },
+            },
+          ],
+          minimum_should_match: 1,
+        }
+      };
+    }
+
+    // Apply non-area filters if they exist
+    if (search.filters) {
+      const nonAreaFilters = [];
+
+      // Apply file type filters
+      if (search.filters.fileTypes && search.filters.fileTypes.length > 0) {
+        const fileTypeLogic = search.filterLogic?.fileTypes || 'OR';
+        if (fileTypeLogic === 'AND') {
+          nonAreaFilters.push({
+            script: {
+              script: {
+                source: `
+                  def selectedTypes = params.fileTypes;
+                  def docFileTypes = new HashSet();
+                  if (doc['_files.type.keyword'].size() > 0) {
+                    for (def fileType : doc['_files.type.keyword']) {
+                      docFileTypes.add(fileType);
+                    }
+                  }
+                  for (def selectedType : selectedTypes) {
+                    if (!docFileTypes.contains(selectedType)) {
+                      return false;
+                    }
+                  }
+                  return true;
+                `,
+                params: {
+                  fileTypes: search.filters.fileTypes
+                }
+              }
+            }
+          });
+        } else {
+          nonAreaFilters.push({
+            terms: {
+              '_files.type.keyword': search.filters.fileTypes
+            }
+          });
+        }
+      }
+
+      // Apply method filters
+      if (search.filters.methods && search.filters.methods.length > 0) {
+        nonAreaFilters.push({
+          terms: { 'method.keyword': search.filters.methods }
+        });
+      }
+
+      // Apply material type filters
+      if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
+        nonAreaFilters.push({
+          terms: { 'material.keyword': search.filters.materialTypes }
+        });
+      }
+
+      // Apply texture filters
+      if (search.filters.textures && search.filters.textures.length > 0) {
+        nonAreaFilters.push({
+          terms: { 'texture.keyword': search.filters.textures }
+        });
+      }
+
+      if (nonAreaFilters.length > 0) {
+        if (!baseQuery.bool) {
+          baseQuery = {
+            bool: {
+              must: [baseQuery]
+            }
+          };
+        }
+        baseQuery.bool.filter = nonAreaFilters;
+      }
+    }
+
+    // Get aggregation of area field values
+    try {
+      const aggResp = await client.search({
+        index,
+        body: {
+          size: 0,
+          query: baseQuery,
+          aggs: {
+            areas: {
+              terms: {
+                field: 'area.keyword',
+                size: 100
+              }
+            }
+          }
+        }
+      } as any);
+
+      const buckets = (aggResp.body.aggregations?.areas as any)?.buckets || [];
+      buckets.forEach((bucket: any) => {
+        counts[bucket.key] = bucket.doc_count;
+      });
+    } catch (error) {
+      console.error('Error fetching area counts:', error);
+    }
+
+    return res.status(200).send(counts);
+  }
+  else if (req.query.textureCounts !== undefined && search.types !== undefined) {
+    // Return counts for each texture (only for rocks/dives)
+    const counts: { [key: string]: number } = {};
+
+    // Base query without texture filter
+    let baseQuery: any = {};
+    if (search.searchString === '') {
+      baseQuery = { terms: { '_docType.keyword': search.types } };
+    } else {
+      baseQuery = {
+        bool: {
+          must: [
+            { terms: { '_docType.keyword': search.types } }],
+          should: [
+            {
+              multi_match: {
+                query: search.searchString.toLowerCase(),
+                type: 'bool_prefix',
+                fields: ['*.substring'],
+                operator: 'and',
+                analyzer: 'whitespace',
+              },
+            },
+            {
+              prefix: {
+                '_osuid.keyword': {
+                  value: search.searchString.toUpperCase(),
+                },
+              },
+            },
+          ],
+          minimum_should_match: 1,
+        }
+      };
+    }
+
+    // Apply non-texture filters if they exist
+    if (search.filters) {
+      const nonTextureFilters = [];
+
+      // Apply file type filters
+      if (search.filters.fileTypes && search.filters.fileTypes.length > 0) {
+        const fileTypeLogic = search.filterLogic?.fileTypes || 'OR';
+        if (fileTypeLogic === 'AND') {
+          nonTextureFilters.push({
+            script: {
+              script: {
+                source: `
+                  def selectedTypes = params.fileTypes;
+                  def docFileTypes = new HashSet();
+                  if (doc['_files.type.keyword'].size() > 0) {
+                    for (def fileType : doc['_files.type.keyword']) {
+                      docFileTypes.add(fileType);
+                    }
+                  }
+                  for (def selectedType : selectedTypes) {
+                    if (!docFileTypes.contains(selectedType)) {
+                      return false;
+                    }
+                  }
+                  return true;
+                `,
+                params: {
+                  fileTypes: search.filters.fileTypes
+                }
+              }
+            }
+          });
+        } else {
+          nonTextureFilters.push({
+            terms: {
+              '_files.type.keyword': search.filters.fileTypes
+            }
+          });
+        }
+      }
+
+      // Apply method filters
+      if (search.filters.methods && search.filters.methods.length > 0) {
+        nonTextureFilters.push({
+          terms: { 'method.keyword': search.filters.methods }
+        });
+      }
+
+      // Apply material type filters
+      if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
+        nonTextureFilters.push({
+          terms: { 'material.keyword': search.filters.materialTypes }
+        });
+      }
+
+      // Apply area filters
+      if (search.filters.areas && search.filters.areas.length > 0) {
+        nonTextureFilters.push({
+          terms: { 'area.keyword': search.filters.areas }
+        });
+      }
+
+      if (nonTextureFilters.length > 0) {
+        if (!baseQuery.bool) {
+          baseQuery = {
+            bool: {
+              must: [baseQuery]
+            }
+          };
+        }
+        baseQuery.bool.filter = nonTextureFilters;
+      }
+    }
+
+    // Get aggregation of texture field values
+    try {
+      const aggResp = await client.search({
+        index,
+        body: {
+          size: 0,
+          query: baseQuery,
+          aggs: {
+            textures: {
+              terms: {
+                field: 'texture.keyword',
+                size: 100
+              }
+            }
+          }
+        }
+      } as any);
+
+      const buckets = (aggResp.body.aggregations?.textures as any)?.buckets || [];
+      buckets.forEach((bucket: any) => {
+        counts[bucket.key] = bucket.doc_count;
+      });
+    } catch (error) {
+      console.error('Error fetching texture counts:', error);
+    }
+
     return res.status(200).send(counts);
   }
   else {

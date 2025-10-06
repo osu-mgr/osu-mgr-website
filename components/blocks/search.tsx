@@ -12,9 +12,15 @@ import { ItemsCount } from '../util/items-count';
 import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
 import { LandingPage } from "./landing-page";
+import dynamic from 'next/dynamic';
 import JSZip from 'jszip';
 
-const viewRawData = true; // Set to true to view raw data in the search results
+const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
+  ssr: false,
+  loading: () => <div className="w-full h-full min-h-[300px] flex items-center justify-center">
+    <Icon name="TbLoader2" className="w-8 h-8 animate-spin text-primary" />
+  </div>
+});
 
 const moratoriumCruises = [
 'OSU-KM2201',
@@ -72,7 +78,7 @@ const SearchTab: React.FC<{
 }> = ({ label, isActive, onClick, type, searchString, filters }) => {
   return (
     <div
-      className={`tab tab-lg tab-bordered ${isActive ? 'tab-active text-primary' : ''}`}
+      className={`tab tab-lg tab-bordered px-0 ${isActive ? 'tab-active text-primary' : ''}`}
       onClick={onClick}
     >
       <b>{label}</b>
@@ -343,14 +349,14 @@ const FileTypesFilterDropdown: React.FC<{
                 return (
                   <div key={fileType} className="form-control">
                     <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
-                      <input 
-                        type="checkbox" 
-                        className="checkbox checkbox-sm"
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm flex-shrink-0"
                         checked={isSelected}
                         onChange={(e) => handleFileTypeChange(fileType, e.target.checked)}
                       />
-                      <span className="label-text text-sm flex-1">{getFileTypeLabel(fileType)}</span>
-                      <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                      <span className="label-text text-sm flex-1 break-words whitespace-normal">{getFileTypeLabel(fileType)}</span>
+                      <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
                         {numeral(count).format('0,0')}
                       </span>
                     </label>
@@ -529,25 +535,6 @@ const RvNameFilterDropdown: React.FC<{
                 </button>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="join leading-none">
-                <button
-                  className={`btn btn-xs join-item ${(search.filterLogic?.rvNames || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => toggleFilterLogic('rvNames')}
-                >
-                  OR
-                </button>
-                <button
-                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.rvNames || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => toggleFilterLogic('rvNames')}
-                >
-                  AND
-                </button>
-              </div>
-              <span className="text-xs text-gray-500">
-                {(search.filterLogic?.rvNames || 'OR') === 'OR' ? 'Match ANY selected RV' : 'Match ALL selected RVs'}
-              </span>
-            </div>
           </div>
 
           {/* Scrollable filter list */}
@@ -572,12 +559,615 @@ const RvNameFilterDropdown: React.FC<{
                     <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
                       <input
                         type="checkbox"
-                        className="checkbox checkbox-sm"
+                        className="checkbox checkbox-sm flex-shrink-0"
                         checked={isSelected}
                         onChange={(e) => handleRvNameChange(rvName, e.target.checked)}
                       />
-                      <span className="label-text text-sm flex-1">{rvName}</span>
-                      <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                      <span className="label-text text-sm flex-1 break-words whitespace-normal">{rvName}</span>
+                      <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                        {numeral(count).format('0,0')}
+                      </span>
+                    </label>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Close button */}
+          <div className="p-2 border-t">
+            <button
+              className="btn btn-sm btn-block"
+              onClick={() => setIsOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </span>
+  );
+};
+
+// Institution Filter Dropdown Component
+const InstitutionFilterDropdown: React.FC<{
+  search: any;
+  setSearch: (search: any) => void;
+}> = ({ search, setSearch }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedInstitutions = search.filters?.institutions || [];
+
+  const toggleFilterLogic = (filterType: string) => {
+    const currentLogic = search.filterLogic?.[filterType] || 'OR';
+    const newLogic = currentLogic === 'OR' ? 'AND' : 'OR';
+
+    setSearch({
+      ...search,
+      filterLogic: {
+        ...search.filterLogic,
+        [filterType]: newLogic
+      }
+    });
+  };
+
+  // Fetch counts for each institution
+  const { data: institutionData, isLoading: countsLoading } = useQuery({
+    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions],
+    queryFn: async () => {
+      const res = await fetch('/api/opensearch?institutionCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+      return { counts: {}, piInstitutions: {} };
+    },
+    enabled: search.types.includes('cruise')
+  });
+
+  const institutionCounts = institutionData?.counts || {};
+  const piInstitutions = institutionData?.piInstitutions || {};
+
+  const handleInstitutionChange = (institution: string, checked: boolean) => {
+    const currentInstitutions = search.filters?.institutions || [];
+    const newInstitutions = checked
+      ? [...currentInstitutions, institution]
+      : currentInstitutions.filter((name: string) => name !== institution);
+
+    setSearch({
+      ...search,
+      filters: {
+        ...search.filters,
+        institutions: newInstitutions
+      }
+    });
+  };
+
+  const toggleAllInstitutions = () => {
+    const availableInstitutionsWithResults = availableInstitutions.filter(institution =>
+      (institutionCounts?.[institution] || 0) > 0
+    );
+    const allAvailableSelected = availableInstitutionsWithResults.every(institution =>
+      selectedInstitutions.includes(institution)
+    );
+
+    if (allAvailableSelected) {
+      setSearch({
+        ...search,
+        filters: {
+          ...search.filters,
+          institutions: selectedInstitutions.filter((institution: string) =>
+            !availableInstitutionsWithResults.includes(institution)
+          )
+        }
+      });
+    } else {
+      const newInstitutions = Array.from(new Set([...selectedInstitutions, ...availableInstitutionsWithResults]));
+      setSearch({
+        ...search,
+        filters: {
+          ...search.filters,
+          institutions: newInstitutions
+        }
+      });
+    }
+  };
+
+  const availableInstitutions = institutionCounts
+    ? Object.keys(institutionCounts)
+        .filter(institution =>
+          (institutionCounts[institution] || 0) > 0 || selectedInstitutions.includes(institution)
+        )
+        .sort((a, b) => {
+          const aSelected = selectedInstitutions.includes(a);
+          const bSelected = selectedInstitutions.includes(b);
+          if (aSelected && !bSelected) return -1;
+          if (!aSelected && bSelected) return 1;
+          return a.localeCompare(b);
+        })
+    : [];
+
+
+  return (
+    <span className="relative inline ml-1">
+      <button
+        className="flex items-center gap-1 hover:bg-base-200 px-2 py-1 rounded"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <Icon name="LuFilter" size="xxs" />
+        {selectedInstitutions.length > 0 && (
+          <span className="badge badge-primary badge-sm">{selectedInstitutions.length}</span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-1 w-80 bg-base-100 rounded-box shadow-lg border z-20 font-normal normal-case">
+          {/* Header with AND/OR toggle */}
+          <div className="p-3 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-sm">Cruise PI</span>
+              <div className="flex gap-1">
+                <button
+                  className="btn btn-xs btn-ghost"
+                  onClick={toggleAllInstitutions}
+                  disabled={countsLoading}
+                >
+                  {(() => {
+                    const availableInstitutionsWithResults = availableInstitutions.filter(institution =>
+                      (institutionCounts?.[institution] || 0) > 0
+                    );
+                    const allAvailableSelected = availableInstitutionsWithResults.every(institution =>
+                      selectedInstitutions.includes(institution)
+                    );
+                    return allAvailableSelected ? 'Deselect All' : 'Select All';
+                  })()}
+                </button>
+                <button
+                  className="btn btn-xs btn-outline"
+                  onClick={() => {
+                    setSearch({
+                      ...search,
+                      filters: {
+                        ...search.filters,
+                        institutions: []
+                      }
+                    });
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable filter list */}
+          <div className="max-h-64 overflow-y-auto overflow-x-hidden p-2">
+            {countsLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading filters...</span>
+              </div>
+            ) : availableInstitutions.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No Cruise PIs available
+              </div>
+            ) : (
+              availableInstitutions.map((institution) => {
+                const count = institutionCounts?.[institution] || 0;
+                const isSelected = selectedInstitutions.includes(institution);
+                const hasResults = count > 0;
+                const piInstitution = piInstitutions?.[institution];
+
+                return (
+                  <div key={institution} className="form-control">
+                    <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm flex-shrink-0"
+                        checked={isSelected}
+                        onChange={(e) => handleInstitutionChange(institution, e.target.checked)}
+                      />
+                      <span className="label-text text-sm flex-1 break-words whitespace-normal">
+                        <div>{institution}</div>
+                        {piInstitution && <div className="text-xs text-gray-500">{piInstitution}</div>}
+                      </span>
+                      <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                        {numeral(count).format('0,0')}
+                      </span>
+                    </label>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Close button */}
+          <div className="p-2 border-t">
+            <button
+              className="btn btn-sm btn-block"
+              onClick={() => setIsOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </span>
+  );
+};
+
+// Area Filter Dropdown Component
+const AreaFilterDropdown: React.FC<{
+  search: any;
+  setSearch: (search: any) => void;
+}> = ({ search, setSearch }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedAreas = search.filters?.areas || [];
+
+  // Fetch counts for each area
+  const { data: areaCounts, isLoading: countsLoading } = useQuery({
+    queryKey: ['areaCountsDropdown', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.areas],
+    queryFn: async () => {
+      const res = await fetch('/api/opensearch?areaCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    },
+    enabled: search.types.includes('dive')
+  });
+
+  const handleAreaChange = (area: string, checked: boolean) => {
+    const currentAreas = search.filters?.areas || [];
+    const newAreas = checked
+      ? [...currentAreas, area]
+      : currentAreas.filter((a: string) => a !== area);
+
+    setSearch({
+      ...search,
+      filters: {
+        ...search.filters,
+        areas: newAreas
+      }
+    });
+  };
+
+  const toggleAllAreas = () => {
+    const availableAreasWithResults = availableAreas.filter(area =>
+      (areaCounts?.[area] || 0) > 0
+    );
+    const allAvailableSelected = availableAreasWithResults.every(area =>
+      selectedAreas.includes(area)
+    );
+
+    if (allAvailableSelected) {
+      setSearch({
+        ...search,
+        filters: {
+          ...search.filters,
+          areas: selectedAreas.filter((area: string) =>
+            !availableAreasWithResults.includes(area)
+          )
+        }
+      });
+    } else {
+      const newAreas = Array.from(new Set([...selectedAreas, ...availableAreasWithResults]));
+      setSearch({
+        ...search,
+        filters: {
+          ...search.filters,
+          areas: newAreas
+        }
+      });
+    }
+  };
+
+  const availableAreas = areaCounts
+    ? Object.keys(areaCounts).filter(area =>
+        (areaCounts[area] || 0) > 0 || selectedAreas.includes(area)
+      ).sort((a, b) => {
+        const aSelected = selectedAreas.includes(a);
+        const bSelected = selectedAreas.includes(b);
+        if (aSelected && !bSelected) return -1;
+        if (!aSelected && bSelected) return 1;
+        return a.localeCompare(b);
+      })
+    : [];
+
+  const activeFilterCount = selectedAreas.length;
+
+  return (
+    <span className="relative inline-block">
+      <button
+        className={`btn btn-xs ${activeFilterCount > 0 ? 'btn-primary' : 'btn-ghost'}`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <Icon name="LuFilter" size="xxs" />
+        {activeFilterCount > 0 && (
+          <span className="badge badge-sm">{activeFilterCount}</span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full right-0 mt-1 bg-base-100 border rounded-lg shadow-lg z-50 min-w-[300px]">
+          {/* Header with action buttons */}
+          <div className="p-2 border-b">
+            <div className="flex justify-between items-center gap-2">
+              <span className="font-semibold">Filter by Area</span>
+              <div className="flex gap-1">
+                <button
+                  className="btn btn-xs btn-ghost"
+                  onClick={toggleAllAreas}
+                  disabled={countsLoading}
+                >
+                  {(() => {
+                    const availableAreasWithResults = availableAreas.filter(area =>
+                      (areaCounts?.[area] || 0) > 0
+                    );
+                    const allAvailableSelected = availableAreasWithResults.every(area =>
+                      selectedAreas.includes(area)
+                    );
+                    return allAvailableSelected ? 'Deselect All' : 'Select All';
+                  })()}
+                </button>
+                <button
+                  className="btn btn-xs btn-outline"
+                  onClick={() => {
+                    setSearch({
+                      ...search,
+                      filters: {
+                        ...search.filters,
+                        areas: []
+                      }
+                    });
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable filter list */}
+          <div className="max-h-64 overflow-y-auto overflow-x-hidden p-2">
+            {countsLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading filters...</span>
+              </div>
+            ) : availableAreas.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No areas available
+              </div>
+            ) : (
+              availableAreas.map((area) => {
+                const count = areaCounts?.[area] || 0;
+                const isSelected = selectedAreas.includes(area);
+                const hasResults = count > 0;
+
+                return (
+                  <div key={area} className="form-control">
+                    <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm flex-shrink-0"
+                        checked={isSelected}
+                        onChange={(e) => handleAreaChange(area, e.target.checked)}
+                      />
+                      <span className="label-text text-sm flex-1 break-words whitespace-normal">{area}</span>
+                      <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                        {numeral(count).format('0,0')}
+                      </span>
+                    </label>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Close button */}
+          <div className="p-2 border-t">
+            <button
+              className="btn btn-sm btn-block"
+              onClick={() => setIsOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+    </span>
+  );
+};
+
+// Texture Filter Dropdown Component
+const TextureFilterDropdown: React.FC<{
+  search: any;
+  setSearch: (search: any) => void;
+}> = ({ search, setSearch }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectedTextures = search.filters?.textures || [];
+
+  // Fetch counts for each texture
+  const { data: textureCounts, isLoading: countsLoading } = useQuery({
+    queryKey: ['textureCountsDropdown', search.types, search.searchString, JSON.stringify(search.filters?.fileTypes), search.filterLogic?.fileTypes, JSON.stringify(search.filters?.methods), JSON.stringify(search.filters?.materialTypes), JSON.stringify(search.filters?.areas), JSON.stringify(search.filters?.textures)],
+    queryFn: async () => {
+      const res = await fetch('/api/opensearch?textureCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    },
+    enabled: search.types.some((type: string) => ['dive', 'diveSample'].includes(type))
+  });
+
+  const handleTextureChange = (texture: string, checked: boolean) => {
+    const currentTextures = search.filters?.textures || [];
+    const newTextures = checked
+      ? [...currentTextures, texture]
+      : currentTextures.filter((t: string) => t !== texture);
+
+    setSearch({
+      ...search,
+      filters: {
+        ...search.filters,
+        textures: newTextures
+      }
+    });
+  };
+
+  const toggleAllTextures = () => {
+    const availableTexturesWithResults = availableTextures.filter(texture =>
+      (textureCounts?.[texture] || 0) > 0
+    );
+    const allAvailableSelected = availableTexturesWithResults.every(texture =>
+      selectedTextures.includes(texture)
+    );
+
+    if (allAvailableSelected) {
+      setSearch({
+        ...search,
+        filters: {
+          ...search.filters,
+          textures: selectedTextures.filter((texture: string) =>
+            !availableTexturesWithResults.includes(texture)
+          )
+        }
+      });
+    } else {
+      const newTextures = Array.from(new Set([...selectedTextures, ...availableTexturesWithResults]));
+      setSearch({
+        ...search,
+        filters: {
+          ...search.filters,
+          textures: newTextures
+        }
+      });
+    }
+  };
+
+  const availableTextures = textureCounts
+    ? Object.keys(textureCounts).filter(texture =>
+        (textureCounts[texture] || 0) > 0 || selectedTextures.includes(texture)
+      ).sort((a, b) => {
+        const aSelected = selectedTextures.includes(a);
+        const bSelected = selectedTextures.includes(b);
+        if (aSelected && !bSelected) return -1;
+        if (!aSelected && bSelected) return 1;
+        return a.localeCompare(b);
+      })
+    : [];
+
+  const activeFilterCount = selectedTextures.length;
+
+  return (
+    <span className="relative inline-block">
+      <button
+        className={`btn btn-xs ${activeFilterCount > 0 ? 'btn-primary' : 'btn-ghost'}`}
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <Icon name="LuFilter" size="xxs" />
+        {activeFilterCount > 0 && (
+          <span className="badge badge-sm">{activeFilterCount}</span>
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full right-0 mt-1 bg-base-100 border rounded-lg shadow-lg z-50 min-w-[300px]">
+          {/* Header with action buttons */}
+          <div className="p-2 border-b">
+            <div className="flex justify-between items-center gap-2">
+              <span className="font-semibold">Filter by Texture</span>
+              <div className="flex gap-1">
+                <button
+                  className="btn btn-xs btn-ghost"
+                  onClick={toggleAllTextures}
+                  disabled={countsLoading}
+                >
+                  {(() => {
+                    const availableTexturesWithResults = availableTextures.filter(texture =>
+                      (textureCounts?.[texture] || 0) > 0
+                    );
+                    const allAvailableSelected = availableTexturesWithResults.every(texture =>
+                      selectedTextures.includes(texture)
+                    );
+                    return allAvailableSelected ? 'Deselect All' : 'Select All';
+                  })()}
+                </button>
+                <button
+                  className="btn btn-xs btn-outline"
+                  onClick={() => {
+                    setSearch({
+                      ...search,
+                      filters: {
+                        ...search.filters,
+                        textures: []
+                      }
+                    });
+                  }}
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable filter list */}
+          <div className="max-h-64 overflow-y-auto overflow-x-hidden p-2">
+            {countsLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading filters...</span>
+              </div>
+            ) : availableTextures.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No textures available
+              </div>
+            ) : (
+              availableTextures.map((texture) => {
+                const count = textureCounts?.[texture] || 0;
+                const isSelected = selectedTextures.includes(texture);
+                const hasResults = count > 0;
+
+                return (
+                  <div key={texture} className="form-control">
+                    <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm flex-shrink-0"
+                        checked={isSelected}
+                        onChange={(e) => handleTextureChange(texture, e.target.checked)}
+                      />
+                      <span className="label-text text-sm flex-1 break-words whitespace-normal">{texture}</span>
+                      <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
                         {numeral(count).format('0,0')}
                       </span>
                     </label>
@@ -626,7 +1216,7 @@ const CollectionFilterDropdown: React.FC<{
 
   // Fetch counts for each method
   const { data: methodCounts, isLoading: methodCountsLoading } = useQuery({
-    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryKey: ['methodCounts', search.types, search.searchString, JSON.stringify(search.filters?.fileTypes), search.filterLogic?.fileTypes, JSON.stringify(search.filters?.methods), JSON.stringify(search.filters?.materialTypes), JSON.stringify(search.filters?.rvNames), JSON.stringify(search.filters?.areas)],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?methodCounts', {
         method: 'POST',
@@ -649,7 +1239,7 @@ const CollectionFilterDropdown: React.FC<{
 
   // Fetch counts for each material type
   const { data: materialCounts, isLoading: materialCountsLoading } = useQuery({
-    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryKey: ['materialCounts', search.types, search.searchString, JSON.stringify(search.filters?.fileTypes), search.filterLogic?.fileTypes, JSON.stringify(search.filters?.methods), JSON.stringify(search.filters?.materialTypes), JSON.stringify(search.filters?.rvNames), JSON.stringify(search.filters?.areas)],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?materialCounts', {
         method: 'POST',
@@ -764,25 +1354,6 @@ const CollectionFilterDropdown: React.FC<{
                 Clear
               </button>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="join leading-none">
-                <button
-                  className={`btn btn-xs join-item ${(search.filterLogic?.methods || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => toggleFilterLogic('methods')}
-                >
-                  OR
-                </button>
-                <button
-                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.methods || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => toggleFilterLogic('methods')}
-                >
-                  AND
-                </button>
-              </div>
-              <span className="text-xs text-gray-500">
-                {(search.filterLogic?.methods || 'OR') === 'OR' ? 'Match ANY selected method' : 'Match ALL selected methods'}
-              </span>
-            </div>
           </div>
 
           {/* Scrollable methods list */}
@@ -803,16 +1374,16 @@ const CollectionFilterDropdown: React.FC<{
                 const hasResults = count > 0;
 
                 return (
-                  <div key={method} className="form-control">
+                  <div key={`method-${method}`} className="form-control">
                     <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
                       <input
                         type="checkbox"
-                        className="checkbox checkbox-sm"
+                        className="checkbox checkbox-sm flex-shrink-0"
                         checked={isSelected}
                         onChange={(e) => handleMethodChange(method, e.target.checked)}
                       />
-                      <span className="label-text text-sm flex-1">{method}</span>
-                      <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                      <span className="label-text text-sm flex-1 break-words whitespace-normal">{method}</span>
+                      <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
                         {numeral(count).format('0,0')}
                       </span>
                     </label>
@@ -841,25 +1412,6 @@ const CollectionFilterDropdown: React.FC<{
                 Clear
               </button>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="join leading-none">
-                <button
-                  className={`btn btn-xs join-item ${(search.filterLogic?.materialTypes || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => toggleFilterLogic('materialTypes')}
-                >
-                  OR
-                </button>
-                <button
-                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.materialTypes || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => toggleFilterLogic('materialTypes')}
-                >
-                  AND
-                </button>
-              </div>
-              <span className="text-xs text-gray-500">
-                {(search.filterLogic?.materialTypes || 'OR') === 'OR' ? 'Match ANY selected material' : 'Match ALL selected materials'}
-              </span>
-            </div>
           </div>
 
           {/* Scrollable materials list */}
@@ -880,16 +1432,16 @@ const CollectionFilterDropdown: React.FC<{
                 const hasResults = count > 0;
 
                 return (
-                  <div key={material} className="form-control">
+                  <div key={`material-${material}`} className="form-control">
                     <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
                       <input
                         type="checkbox"
-                        className="checkbox checkbox-sm"
+                        className="checkbox checkbox-sm flex-shrink-0"
                         checked={isSelected}
                         onChange={(e) => handleMaterialChange(material, e.target.checked)}
                       />
-                      <span className="label-text text-sm flex-1">{material}</span>
-                      <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                      <span className="label-text text-sm flex-1 break-words whitespace-normal">{material}</span>
+                      <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
                         {numeral(count).format('0,0')}
                       </span>
                     </label>
@@ -1180,12 +1732,31 @@ const FilterPanel: React.FC<{
   const selectedRvNames = search.filters?.rvNames || [];
   const selectedFileTypes = search.filters?.fileTypes || [];
 
+  // Collapse state for each filter section
+  const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({
+    methods: false,
+    materialTypes: false,
+    rvNames: false,
+    institutions: false,
+    areas: false,
+    textures: false,
+    fileTypes: false,
+  });
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
   // Count active filter types
   const activeFilterCount = [
     selectedFileTypes.length > 0,
     selectedMethods.length > 0,
     selectedMaterialTypes.length > 0,
-    selectedRvNames.length > 0
+    selectedRvNames.length > 0,
+    (search.filters?.institutions || []).length > 0
   ].filter(Boolean).length;
   
   const toggleFilterLogic = (filterType: string) => {
@@ -1525,12 +2096,282 @@ const FilterPanel: React.FC<{
 
   // Filter out RV names with 0 counts, but keep selected ones visible
   // Sort selected items to the top
-  const availableRvNames = rvNameCounts 
-    ? Object.keys(rvNameCounts).filter(rvName => 
+  const availableRvNames = rvNameCounts
+    ? Object.keys(rvNameCounts).filter(rvName =>
         (rvNameCounts[rvName] || 0) > 0 || selectedRvNames.includes(rvName)
       ).sort((a, b) => {
         const aSelected = selectedRvNames.includes(a);
         const bSelected = selectedRvNames.includes(b);
+        if (aSelected && !bSelected) return -1;
+        if (!aSelected && bSelected) return 1;
+        return a.localeCompare(b);
+      })
+    : [];
+
+  // Fetch available institutions for cruises only
+  const { data: institutionData, isLoading: institutionsLoading } = useQuery({
+    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.institutions, search.filterLogic?.institutions, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryFn: async () => {
+      // Only fetch institution counts for cruises
+      if (!search.types.includes('cruise')) {
+        return { counts: {}, piInstitutions: {} };
+      }
+
+      const res = await fetch('/api/opensearch?institutionCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+      return { counts: {}, piInstitutions: {} };
+    },
+    enabled: search.types.includes('cruise')
+  });
+
+  const institutionCounts = institutionData?.counts || {};
+  const piInstitutions = institutionData?.piInstitutions || {};
+
+  const selectedInstitutions = search.filters?.institutions || [];
+
+  const handleInstitutionChange = (institution: string, checked: boolean) => {
+    const currentInstitutions = search.filters?.institutions || [];
+    const newInstitutions = checked
+      ? [...currentInstitutions, institution]
+      : currentInstitutions.filter((inst: string) => inst !== institution);
+
+    setSearch((prevSearch: any) => ({
+      ...prevSearch,
+      filters: {
+        ...prevSearch.filters,
+        institutions: newInstitutions
+      }
+    }));
+  };
+
+  const toggleAllInstitutions = () => {
+    const availableInstitutionsWithResults = availableInstitutions.filter(institution =>
+      (institutionCounts?.[institution] || 0) > 0
+    );
+    const allAvailableSelected = availableInstitutionsWithResults.every(institution =>
+      selectedInstitutions.includes(institution)
+    );
+
+    if (allAvailableSelected) {
+      setSearch((prevSearch: any) => ({
+        ...prevSearch,
+        filters: {
+          ...prevSearch.filters,
+          institutions: selectedInstitutions.filter((institution: string) =>
+            !availableInstitutionsWithResults.includes(institution)
+          )
+        }
+      }));
+    } else {
+      const newInstitutions = Array.from(new Set([...selectedInstitutions, ...availableInstitutionsWithResults]));
+      setSearch((prevSearch: any) => ({
+        ...prevSearch,
+        filters: {
+          ...prevSearch.filters,
+          institutions: newInstitutions
+        }
+      }));
+    }
+  };
+
+  // Filter out institutions with 0 counts, but keep selected ones visible
+  // Sort selected items to the top
+  const availableInstitutions = institutionCounts
+    ? Object.keys(institutionCounts).filter(institution =>
+        (institutionCounts[institution] || 0) > 0 || selectedInstitutions.includes(institution)
+      ).sort((a, b) => {
+        const aSelected = selectedInstitutions.includes(a);
+        const bSelected = selectedInstitutions.includes(b);
+        if (aSelected && !bSelected) return -1;
+        if (!aSelected && bSelected) return 1;
+        return a.localeCompare(b);
+      })
+    : [];
+
+  // Fetch available areas for dives/dredges only
+  const { data: areaCounts, isLoading: areasLoading } = useQuery({
+    queryKey: ['areaCounts', search.types, search.searchString, search.filters?.areas, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes],
+    queryFn: async () => {
+      // Only fetch area counts for dives and dredges
+      if (!search.types.includes('dive')) {
+        return {};
+      }
+
+      const res = await fetch('/api/opensearch?areaCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    },
+    enabled: search.types.includes('dive')
+  });
+
+  const selectedAreas = search.filters?.areas || [];
+
+  const handleAreaChange = (area: string, checked: boolean) => {
+    const currentAreas = search.filters?.areas || [];
+    const newAreas = checked
+      ? [...currentAreas, area]
+      : currentAreas.filter((a: string) => a !== area);
+
+    setSearch((prevSearch: any) => ({
+      ...prevSearch,
+      filters: {
+        ...prevSearch.filters,
+        areas: newAreas
+      }
+    }));
+  };
+
+  const toggleAllAreas = () => {
+    const availableAreasWithResults = availableAreas.filter(area =>
+      (areaCounts?.[area] || 0) > 0
+    );
+    const allAvailableSelected = availableAreasWithResults.every(area =>
+      selectedAreas.includes(area)
+    );
+
+    if (allAvailableSelected) {
+      setSearch((prevSearch: any) => ({
+        ...prevSearch,
+        filters: {
+          ...prevSearch.filters,
+          areas: selectedAreas.filter((area: string) =>
+            !availableAreasWithResults.includes(area)
+          )
+        }
+      }));
+    } else {
+      const newAreas = Array.from(new Set([...selectedAreas, ...availableAreasWithResults]));
+      setSearch((prevSearch: any) => ({
+        ...prevSearch,
+        filters: {
+          ...prevSearch.filters,
+          areas: newAreas
+        }
+      }));
+    }
+  };
+
+  // Filter out areas with 0 counts, but keep selected ones visible
+  // Sort selected items to the top
+  const availableAreas = areaCounts
+    ? Object.keys(areaCounts).filter(area =>
+        (areaCounts[area] || 0) > 0 || selectedAreas.includes(area)
+      ).sort((a, b) => {
+        const aSelected = selectedAreas.includes(a);
+        const bSelected = selectedAreas.includes(b);
+        if (aSelected && !bSelected) return -1;
+        if (!aSelected && bSelected) return 1;
+        return a.localeCompare(b);
+      })
+    : [];
+
+  // Fetch available textures for dives/rocks only
+  const { data: textureCounts, isLoading: texturesLoading } = useQuery({
+    queryKey: ['textureCounts', search.types, search.searchString, JSON.stringify(search.filters?.textures), JSON.stringify(search.filters?.fileTypes), search.filterLogic?.fileTypes, JSON.stringify(search.filters?.methods), JSON.stringify(search.filters?.materialTypes), JSON.stringify(search.filters?.areas)],
+    queryFn: async () => {
+      // Only fetch texture counts for dives and rocks
+      if (!search.types.some((type: string) => ['dive', 'diveSample'].includes(type))) {
+        return {};
+      }
+
+      const res = await fetch('/api/opensearch?textureCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+
+      if (res.ok) {
+        return await res.json();
+      }
+      return {};
+    },
+    enabled: search.types.some((type: string) => ['dive', 'diveSample'].includes(type))
+  });
+
+  const selectedTextures = search.filters?.textures || [];
+
+  const handleTextureChange = (texture: string, checked: boolean) => {
+    const currentTextures = search.filters?.textures || [];
+    const newTextures = checked
+      ? [...currentTextures, texture]
+      : currentTextures.filter((t: string) => t !== texture);
+
+    setSearch((prevSearch: any) => ({
+      ...prevSearch,
+      filters: {
+        ...prevSearch.filters,
+        textures: newTextures
+      }
+    }));
+  };
+
+  const toggleAllTextures = () => {
+    const availableTexturesWithResults = availableTextures.filter(texture =>
+      (textureCounts?.[texture] || 0) > 0
+    );
+    const allAvailableSelected = availableTexturesWithResults.every(texture =>
+      selectedTextures.includes(texture)
+    );
+
+    if (allAvailableSelected) {
+      setSearch((prevSearch: any) => ({
+        ...prevSearch,
+        filters: {
+          ...prevSearch.filters,
+          textures: selectedTextures.filter((texture: string) =>
+            !availableTexturesWithResults.includes(texture)
+          )
+        }
+      }));
+    } else {
+      const newTextures = Array.from(new Set([...selectedTextures, ...availableTexturesWithResults]));
+      setSearch((prevSearch: any) => ({
+        ...prevSearch,
+        filters: {
+          ...prevSearch.filters,
+          textures: newTextures
+        }
+      }));
+    }
+  };
+
+  // Filter out textures with 0 counts, but keep selected ones visible
+  // Sort selected items to the top
+  const availableTextures = textureCounts
+    ? Object.keys(textureCounts).filter(texture =>
+        (textureCounts[texture] || 0) > 0 || selectedTextures.includes(texture)
+      ).sort((a, b) => {
+        const aSelected = selectedTextures.includes(a);
+        const bSelected = selectedTextures.includes(b);
         if (aSelected && !bSelected) return -1;
         if (!aSelected && bSelected) return 1;
         return a.localeCompare(b);
@@ -1556,8 +2397,8 @@ const FilterPanel: React.FC<{
     <div className="pr-4 w-[320px] flex-shrink-0 border-r-2">
       <div className="sticky top-0 bg-white pb-2">
         <div className="flex items-center justify-between">
-          <div className="tabs min-w-full">
-            <div className="tab tab-lg tab-bordered text-primary flex-grow justify-start"
+          <div className="tabs min-w-full px-0">
+            <div className="tab tab-lg tab-bordered text-primary flex-grow justify-start px-0"
                 onClick={onToggle}>
               <b>Filters</b>
               <span className="badge bg-white text-primary ml-2 font-bold">{activeFilterCount}</span>
@@ -1573,7 +2414,10 @@ const FilterPanel: React.FC<{
                         fileTypes: [],
                         methods: [],
                         materialTypes: [],
-                        rvNames: []
+                        rvNames: [],
+                        institutions: [],
+                        areas: [],
+                        textures: []
                       }
                     });
                   }}
@@ -1583,11 +2427,10 @@ const FilterPanel: React.FC<{
                 </button>
               </div>
             )}
-            <div className="tab tab-lg tab-bordered text-primary">
+            <div className="tab tab-lg tab-bordered text-primary px-0">
               <button
-                className="btn btn-sm btn-ghost"
+                className="btn btn-sm btn-ghost px-0"
                 onClick={onToggle}
-                title="Hide filters panel"
               >
                 <Icon name="LuChevronLeft" size="sm" />
               </button>
@@ -1598,28 +2441,31 @@ const FilterPanel: React.FC<{
       
 
       {/* Collection Method Filter - only show for cores and rocks and if there are methods with results */}
-      {search.types.some((type: string) => ['core', 'dive'].includes(type)) && 
+      {search.types.some((type: string) => ['core', 'dive'].includes(type)) &&
        availableMethods.some(method => (methodCounts?.[method] || 0) > 0) && (
         <div className="form-control mb-4">
-          <label className="label">
-            <span className="label-text font-semibold">Collection Method</span>
+          <div className="label">
+            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('methods')}>
+              <Icon name={collapsedSections.methods ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+              Collection Method
+            </span>
             <div className="flex gap-1">
-              <button 
+              <button
                 className="btn btn-xs btn-ghost"
                 onClick={toggleAllMethods}
                 disabled={methodsLoading}
               >
                 {(() => {
-                  const availableMethodsWithResults = availableMethods.filter(method => 
+                  const availableMethodsWithResults = availableMethods.filter(method =>
                     (methodCounts?.[method] || 0) > 0
                   );
-                  const allAvailableSelected = availableMethodsWithResults.every(method => 
+                  const allAvailableSelected = availableMethodsWithResults.every(method =>
                     selectedMethods.includes(method)
                   );
                   return allAvailableSelected ? 'Deselect All' : 'Select All';
                 })()}
               </button>
-              <button 
+              <button
                 className="btn btn-xs btn-outline"
                 onClick={() => {
                   setSearch({
@@ -1634,32 +2480,10 @@ const FilterPanel: React.FC<{
               Clear
             </button>
           </div>
-        </label>
-        
+        </div>
+
+        {!collapsedSections.methods && (
         <div className="border rounded bg-base-100">
-          {/* AND/OR Toggle - always visible at the top */}
-          <div className="p-2 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center gap-2">
-              <div className="join leading-none">
-                <button 
-                  className={`btn btn-xs join-item ${(search.filterLogic?.methods || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => toggleFilterLogic('methods')}
-                >
-                  OR
-                </button>
-                <button 
-                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.methods || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => toggleFilterLogic('methods')}
-                >
-                  AND
-                </button>
-              </div>
-              <span className="text-xs text-gray-500">
-                {(search.filterLogic?.methods || 'OR') === 'OR' ? 'Match ANY selected method' : 'Match ALL selected methods'}
-              </span>
-            </div>
-          </div>
-          
           {/* Scrollable filter list */}
           <div className="max-h-[200px] overflow-y-auto p-2">
             {methodsLoading ? (
@@ -1681,51 +2505,55 @@ const FilterPanel: React.FC<{
                   return (
                     <div key={method} className="form-control">
                       <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
-                        <input 
-                          type="checkbox" 
-                          className="checkbox checkbox-sm"
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm flex-shrink-0"
                           checked={isSelected}
                           onChange={(e) => handleMethodChange(method, e.target.checked)}
                         />
-                        <span className="label-text text-sm flex-1">{method || 'Unknown'}</span>
-                        <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                        <span className="label-text text-sm flex-1 break-words">{method || 'Unknown'}</span>
+                        <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
                           {numeral(count).format('0,0')}
                         </span>
                       </label>
                     </div>
                   );
                 })}
-                
+
               </>
             )}
           </div>
         </div>
+        )}
       </div>
       )}
 
       {/* Material Type Filter - only show for cores and if there are materials with results */}
-      {search.types.includes('core') && 
+      {search.types.includes('core') &&
        availableMaterialTypes.some(materialType => (materialCounts?.[materialType] || 0) > 0) && (
         <div className="form-control mb-4">
-          <label className="label">
-            <span className="label-text font-semibold">Material Type</span>
+          <div className="label">
+            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('materialTypes')}>
+              <Icon name={collapsedSections.materialTypes ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+              Material Type
+            </span>
             <div className="flex gap-1">
-              <button 
+              <button
                 className="btn btn-xs btn-ghost"
                 onClick={toggleAllMaterialTypes}
                 disabled={materialsLoading}
               >
                 {(() => {
-                  const availableMaterialTypesWithResults = availableMaterialTypes.filter(materialType => 
+                  const availableMaterialTypesWithResults = availableMaterialTypes.filter(materialType =>
                     (materialCounts?.[materialType] || 0) > 0
                   );
-                  const allAvailableSelected = availableMaterialTypesWithResults.every(materialType => 
+                  const allAvailableSelected = availableMaterialTypesWithResults.every(materialType =>
                     selectedMaterialTypes.includes(materialType)
                   );
                   return allAvailableSelected ? 'Deselect All' : 'Select All';
                 })()}
               </button>
-              <button 
+              <button
                 className="btn btn-xs btn-outline"
                 onClick={() => {
                   setSearch({
@@ -1740,32 +2568,10 @@ const FilterPanel: React.FC<{
               Clear
             </button>
           </div>
-        </label>
-        
+        </div>
+
+        {!collapsedSections.materialTypes && (
         <div className="border rounded bg-base-100">
-          {/* AND/OR Toggle - always visible at the top */}
-          <div className="p-2 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center gap-2">
-              <div className="join leading-none">
-                <button 
-                  className={`btn btn-xs join-item ${(search.filterLogic?.materialTypes || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => toggleFilterLogic('materialTypes')}
-                >
-                  OR
-                </button>
-                <button 
-                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.materialTypes || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => toggleFilterLogic('materialTypes')}
-                >
-                  AND
-                </button>
-              </div>
-              <span className="text-xs text-gray-500">
-                {(search.filterLogic?.materialTypes || 'OR') === 'OR' ? 'Match ANY selected material' : 'Match ALL selected materials'}
-              </span>
-            </div>
-          </div>
-          
           {/* Scrollable filter list */}
           <div className="max-h-[200px] overflow-y-auto p-2">
             {materialsLoading ? (
@@ -1787,51 +2593,55 @@ const FilterPanel: React.FC<{
                   return (
                     <div key={materialType} className="form-control">
                       <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
-                        <input 
-                          type="checkbox" 
-                          className="checkbox checkbox-sm"
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm flex-shrink-0"
                           checked={isSelected}
                           onChange={(e) => handleMaterialTypeChange(materialType, e.target.checked)}
                         />
-                        <span className="label-text text-sm flex-1">{materialType || 'Unknown'}</span>
-                        <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                        <span className="label-text text-sm flex-1 break-words">{materialType || 'Unknown'}</span>
+                        <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
                           {numeral(count).format('0,0')}
                         </span>
                       </label>
                     </div>
                   );
                 })}
-                
+
               </>
             )}
           </div>
         </div>
+        )}
       </div>
       )}
 
       {/* RV Name Filter - only show for cruises and if there are RV names with results */}
-      {search.types.includes('cruise') && 
+      {search.types.includes('cruise') &&
        availableRvNames.some(rvName => (rvNameCounts?.[rvName] || 0) > 0) && (
         <div className="form-control mb-4">
-          <label className="label">
-            <span className="label-text font-semibold">RV Name</span>
+          <div className="label">
+            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('rvNames')}>
+              <Icon name={collapsedSections.rvNames ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+              RV Name
+            </span>
             <div className="flex gap-1">
-              <button 
+              <button
                 className="btn btn-xs btn-ghost"
                 onClick={toggleAllRvNames}
                 disabled={rvNamesLoading}
               >
                 {(() => {
-                  const availableRvNamesWithResults = availableRvNames.filter(rvName => 
+                  const availableRvNamesWithResults = availableRvNames.filter(rvName =>
                     (rvNameCounts?.[rvName] || 0) > 0
                   );
-                  const allAvailableSelected = availableRvNamesWithResults.every(rvName => 
+                  const allAvailableSelected = availableRvNamesWithResults.every(rvName =>
                     selectedRvNames.includes(rvName)
                   );
                   return allAvailableSelected ? 'Deselect All' : 'Select All';
                 })()}
               </button>
-              <button 
+              <button
                 className="btn btn-xs btn-outline"
                 onClick={() => {
                   setSearch({
@@ -1846,32 +2656,10 @@ const FilterPanel: React.FC<{
               Clear
             </button>
           </div>
-        </label>
-        
+        </div>
+
+        {!collapsedSections.rvNames && (
         <div className="border rounded bg-base-100">
-          {/* AND/OR Toggle - always visible at the top */}
-          <div className="p-2 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center gap-2">
-              <div className="join leading-none">
-                <button 
-                  className={`btn btn-xs join-item ${(search.filterLogic?.rvNames || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => toggleFilterLogic('rvNames')}
-                >
-                  OR
-                </button>
-                <button 
-                  className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.rvNames || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
-                  onClick={() => toggleFilterLogic('rvNames')}
-                >
-                  AND
-                </button>
-              </div>
-              <span className="text-xs text-gray-500">
-                {(search.filterLogic?.rvNames || 'OR') === 'OR' ? 'Match ANY selected RV name' : 'Match ALL selected RV names'}
-              </span>
-            </div>
-          </div>
-          
           {/* Scrollable filter list */}
           <div className="max-h-[200px] overflow-y-auto p-2">
             {rvNamesLoading ? (
@@ -1893,50 +2681,321 @@ const FilterPanel: React.FC<{
                   return (
                     <div key={rvName} className="form-control">
                       <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
-                        <input 
-                          type="checkbox" 
-                          className="checkbox checkbox-sm"
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm flex-shrink-0"
                           checked={isSelected}
                           onChange={(e) => handleRvNameChange(rvName, e.target.checked)}
                         />
-                        <span className="label-text text-sm flex-1">{rvName || 'Unknown'}</span>
-                        <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                        <span className="label-text text-sm flex-1 break-words">{rvName || 'Unknown'}</span>
+                        <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
                           {numeral(count).format('0,0')}
                         </span>
                       </label>
                     </div>
                   );
                 })}
-                
+
               </>
             )}
           </div>
         </div>
+        )}
       </div>
       )}
 
-      {/* File Types Filter - show if there are file types with results */}
-      {availableFileTypes.some(fileType => (fileTypeCounts?.[fileType] || 0) > 0) && (
+      {/* Institution Filter - only show for cruises */}
+      {search.types.includes('cruise') && (
         <div className="form-control mb-4">
-          <label className="label">
-            <span className="label-text font-semibold">File Types</span>
+          <div className="label">
+            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('institutions')}>
+              <Icon name={collapsedSections.institutions ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+              Cruise PI
+            </span>
             <div className="flex gap-1">
-              <button 
+              <button
+                className="btn btn-xs btn-ghost"
+                onClick={toggleAllInstitutions}
+                disabled={institutionsLoading}
+              >
+                {(() => {
+                  const availableInstitutionsWithResults = availableInstitutions.filter(institution =>
+                    (institutionCounts?.[institution] || 0) > 0
+                  );
+                  const allAvailableSelected = availableInstitutionsWithResults.every(institution =>
+                    selectedInstitutions.includes(institution)
+                  );
+                  return allAvailableSelected ? 'Deselect All' : 'Select All';
+                })()}
+              </button>
+              <button
+                className="btn btn-xs btn-outline"
+                onClick={() => {
+                  setSearch({
+                    ...search,
+                    filters: {
+                      ...search.filters,
+                      institutions: []
+                    }
+                  });
+                }}
+              >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {!collapsedSections.institutions && (
+        <div className="border rounded bg-base-100">
+          {/* Scrollable filter list */}
+          <div className="max-h-[200px] overflow-y-auto p-2">
+            {institutionsLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading Cruise PIs...</span>
+              </div>
+            ) : availableInstitutions.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No Cruise PIs available
+              </div>
+            ) : (
+              <>
+                {availableInstitutions.map((institution) => {
+                  const count = institutionCounts?.[institution] || 0;
+                  const isSelected = selectedInstitutions.includes(institution);
+                  const hasResults = count > 0;
+                  const piInstitution = piInstitutions?.[institution];
+
+                  return (
+                    <div key={institution} className="form-control">
+                      <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm flex-shrink-0"
+                          checked={isSelected}
+                          onChange={(e) => handleInstitutionChange(institution, e.target.checked)}
+                        />
+                        <span className="label-text text-sm flex-1 break-words">
+                          <div>{institution || 'Unknown'}</div>
+                          {piInstitution && <div className="text-xs text-gray-500">{piInstitution}</div>}
+                        </span>
+                        <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                          {numeral(count).format('0,0')}
+                        </span>
+                      </label>
+                    </div>
+                  );
+                })}
+
+              </>
+            )}
+          </div>
+        </div>
+        )}
+      </div>
+      )}
+
+      {/* Area Filter - only show for dives/dredges */}
+      {search.types.includes('dive') &&
+       availableAreas.some(area => (areaCounts?.[area] || 0) > 0) && (
+        <div className="form-control mb-4">
+          <div className="label">
+            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('areas')}>
+              <Icon name={collapsedSections.areas ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+              Area
+            </span>
+            <div className="flex gap-1">
+              <button
+                className="btn btn-xs btn-ghost"
+                onClick={toggleAllAreas}
+                disabled={areasLoading}
+              >
+                {(() => {
+                  const availableAreasWithResults = availableAreas.filter(area =>
+                    (areaCounts?.[area] || 0) > 0
+                  );
+                  const allAvailableSelected = availableAreasWithResults.every(area =>
+                    selectedAreas.includes(area)
+                  );
+                  return allAvailableSelected ? 'Deselect All' : 'Select All';
+                })()}
+              </button>
+              <button
+                className="btn btn-xs btn-outline"
+                onClick={() => {
+                  setSearch({
+                    ...search,
+                    filters: {
+                      ...search.filters,
+                      areas: []
+                    }
+                  });
+                }}
+              >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {!collapsedSections.areas && (
+        <div className="border rounded bg-base-100">
+          {/* Scrollable filter list */}
+          <div className="max-h-[200px] overflow-y-auto p-2">
+            {areasLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading areas...</span>
+              </div>
+            ) : availableAreas.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No areas available
+              </div>
+            ) : (
+              <>
+                {availableAreas.map((area) => {
+                  const count = areaCounts?.[area] || 0;
+                  const isSelected = selectedAreas.includes(area);
+                  const hasResults = count > 0;
+
+                  return (
+                    <div key={area} className="form-control">
+                      <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm flex-shrink-0"
+                          checked={isSelected}
+                          onChange={(e) => handleAreaChange(area, e.target.checked)}
+                        />
+                        <span className="label-text text-sm flex-1 break-words">{area || 'Unknown'}</span>
+                        <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                          {numeral(count).format('0,0')}
+                        </span>
+                      </label>
+                    </div>
+                  );
+                })}
+
+              </>
+            )}
+          </div>
+        </div>
+        )}
+      </div>
+      )}
+
+      {/* Texture Filter - only show for dives/rocks */}
+      {search.types.some((type: string) => ['dive', 'diveSample'].includes(type)) &&
+       availableTextures.some(texture => (textureCounts?.[texture] || 0) > 0) && (
+        <div className="form-control mb-4">
+          <div className="label">
+            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('textures')}>
+              <Icon name={collapsedSections.textures ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+              Texture
+            </span>
+            <div className="flex gap-1">
+              <button
+                className="btn btn-xs btn-ghost"
+                onClick={toggleAllTextures}
+                disabled={texturesLoading}
+              >
+                {(() => {
+                  const availableTexturesWithResults = availableTextures.filter(texture =>
+                    (textureCounts?.[texture] || 0) > 0
+                  );
+                  const allAvailableSelected = availableTexturesWithResults.every(texture =>
+                    selectedTextures.includes(texture)
+                  );
+                  return allAvailableSelected ? 'Deselect All' : 'Select All';
+                })()}
+              </button>
+              <button
+                className="btn btn-xs btn-outline"
+                onClick={() => {
+                  setSearch({
+                    ...search,
+                    filters: {
+                      ...search.filters,
+                      textures: []
+                    }
+                  });
+                }}
+              >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {!collapsedSections.textures && (
+        <div className="border rounded bg-base-100">
+          {/* Scrollable filter list */}
+          <div className="max-h-[200px] overflow-y-auto p-2">
+            {texturesLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                <span className="ml-2 text-sm">Loading textures...</span>
+              </div>
+            ) : availableTextures.length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No textures available
+              </div>
+            ) : (
+              <>
+                {availableTextures.map((texture) => {
+                  const count = textureCounts?.[texture] || 0;
+                  const isSelected = selectedTextures.includes(texture);
+                  const hasResults = count > 0;
+
+                  return (
+                    <div key={texture} className="form-control">
+                      <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm flex-shrink-0"
+                          checked={isSelected}
+                          onChange={(e) => handleTextureChange(texture, e.target.checked)}
+                        />
+                        <span className="label-text text-sm flex-1 break-words">{texture || 'Unknown'}</span>
+                        <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                          {numeral(count).format('0,0')}
+                        </span>
+                      </label>
+                    </div>
+                  );
+                })}
+
+              </>
+            )}
+          </div>
+        </div>
+        )}
+      </div>
+      )}
+
+      {/* File Types Filter - show if there are file types with results or any selected */}
+      {(availableFileTypes.some(fileType => (fileTypeCounts?.[fileType] || 0) > 0) || selectedFileTypes.length > 0) && (
+        <div className="form-control mb-4">
+          <div className="label">
+            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('fileTypes')}>
+              <Icon name={collapsedSections.fileTypes ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+              File Types
+            </span>
+            <div className="flex gap-1">
+              <button
                 className="btn btn-xs btn-ghost"
                 onClick={toggleAllFileTypes}
                 disabled={fileTypesLoading}
               >
                 {(() => {
-                  const availableFileTypesWithResults = availableFileTypes.filter(fileType => 
+                  const availableFileTypesWithResults = availableFileTypes.filter(fileType =>
                     (fileTypeCounts?.[fileType] || 0) > 0
                   );
-                  const allAvailableSelected = availableFileTypesWithResults.every(fileType => 
+                  const allAvailableSelected = availableFileTypesWithResults.every(fileType =>
                     selectedFileTypes.includes(fileType)
                   );
                   return allAvailableSelected ? 'Deselect All' : 'Select All';
                 })()}
               </button>
-              <button 
+              <button
                 className="btn btn-xs btn-outline"
                 onClick={() => {
                   setSearch({
@@ -1951,8 +3010,9 @@ const FilterPanel: React.FC<{
                 Clear
               </button>
             </div>
-          </label>
-          
+          </div>
+
+          {!collapsedSections.fileTypes && (
           <div className="border rounded bg-base-100">
             {/* AND/OR Toggle - always visible at the top */}
             <div className="p-2 border-b border-gray-200 bg-gray-50">
@@ -1998,14 +3058,14 @@ const FilterPanel: React.FC<{
                     return (
                       <div key={fileType} className="form-control">
                         <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
-                          <input 
-                            type="checkbox" 
-                            className="checkbox checkbox-sm"
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
                             checked={isSelected}
                             onChange={(e) => handleFileTypeChange(fileType, e.target.checked)}
                           />
-                          <span className="label-text text-sm flex-1">{getFileTypeLabel(fileType)}</span>
-                          <span className={`badge badge-sm ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                          <span className="label-text text-sm flex-1 break-words">{getFileTypeLabel(fileType)}</span>
+                          <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
                             {numeral(count).format('0,0')}
                           </span>
                         </label>
@@ -2017,6 +3077,7 @@ const FilterPanel: React.FC<{
               )}
             </div>
           </div>
+          )}
         </div>
       )}
     </div>
@@ -2028,7 +3089,9 @@ export const Search: React.FC<{ data: any }> = ({
 }) => {
   const pageSize = 10;
   const router = useRouter();
-  const [search, setSearch] = useLocalStorage('search-2025-08-06-v2', {
+  const viewRawData = process.env.NODE_ENV === 'development';
+  console.log('viewRawData:', viewRawData);
+  const [search, setSearch] = useLocalStorage('search-2025-08-06-v3', {
     sortOrder: 'alpha asc',
     searchString: '',
     types: ['cruise'],
@@ -2037,12 +3100,14 @@ export const Search: React.FC<{ data: any }> = ({
       methods: [], // Array of selected collection methods
       materialTypes: [], // Array of selected material types
       rvNames: [], // Array of selected RV names
+      institutions: [], // Array of selected institutions
     },
     filterLogic: {
       fileTypes: 'OR', // 'OR' or 'AND'
       methods: 'OR',
       materialTypes: 'OR',
       rvNames: 'OR',
+      institutions: 'OR',
     }
   });
   const [searchString, setSearchString] = useState(search.searchString || '');
@@ -2133,7 +3198,7 @@ export const Search: React.FC<{ data: any }> = ({
       queryKey: ['coreForBreadcrumb', coreUUID],
       queryFn: async () => {
         if (!coreUUID) return null;
-        
+
         const payload = {
           types: ['core'],
           terms: {
@@ -2157,14 +3222,51 @@ export const Search: React.FC<{ data: any }> = ({
     });
   };
 
+  // Hook to fetch dive/dredge data by UUID for breadcrumbs
+  const useDiveData = (diveUUID: string | null) => {
+    return useQuery({
+      queryKey: ['diveForBreadcrumb', diveUUID],
+      queryFn: async () => {
+        if (!diveUUID) return null;
+
+        const payload = {
+          types: ['dive'],
+          terms: {
+            "_diveUUID.keyword": [diveUUID],
+          },
+        };
+        const res = await fetch('/api/opensearch?search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const errorresults = await res.json();
+          throw new Error(errorresults.message || 'Failed to fetch dive');
+        }
+        const results = await res.json();
+        return results?.hits?.hits?.[0]?._source || null;
+      },
+      enabled: !!diveUUID,
+      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    });
+  };
+
   // Breadcrumb component for modal header
   const Breadcrumbs: React.FC<{ doc: any }> = ({ doc }) => {
     if (!doc || !doc._docType) return <span>{osuId}</span>;
 
     // Fetch core data if this is a section/sectionHalf and has _coreUUID
     const { data: coreData } = useCoreData(
-      (doc._docType === 'section' || doc._docType === 'sectionHalf') && doc._coreUUID 
-        ? doc._coreUUID 
+      (doc._docType === 'section' || doc._docType === 'sectionHalf') && doc._coreUUID
+        ? doc._coreUUID
+        : null
+    );
+
+    // Fetch dive/dredge data if this is a diveSample (rock) and has _diveUUID
+    const { data: diveData } = useDiveData(
+      doc._docType === 'diveSample' && doc._diveUUID
+        ? doc._diveUUID
         : null
     );
 
@@ -2210,7 +3312,7 @@ export const Search: React.FC<{ data: any }> = ({
         current: true
       });
     } else if (doc._docType === 'dive') {
-      // Dive/Rock -> Cruise
+      // Dive -> Cruise
       if (doc._cruiseID) {
         breadcrumbs.push({
           label: `OSU-${doc._cruiseID}`,
@@ -2222,6 +3324,29 @@ export const Search: React.FC<{ data: any }> = ({
         label: doc._osuid || osuId,
         osuid: doc._osuid || osuId,
         type: 'dive',
+        current: true
+      });
+    } else if (doc._docType === 'diveSample') {
+      // Rock -> Dive/Dredge -> Cruise
+      if (doc._cruiseID) {
+        breadcrumbs.push({
+          label: `OSU-${doc._cruiseID}`,
+          osuid: `OSU-${doc._cruiseID}`,
+          type: 'cruise'
+        });
+      }
+      // Use fetched dive/dredge data
+      if (diveData && diveData._osuid) {
+        breadcrumbs.push({
+          label: diveData._osuid,
+          osuid: diveData._osuid,
+          type: 'dive'
+        });
+      }
+      breadcrumbs.push({
+        label: doc._osuid || osuId,
+        osuid: doc._osuid || osuId,
+        type: 'diveSample',
         current: true
       });
     } else {
@@ -2421,7 +3546,7 @@ export const Search: React.FC<{ data: any }> = ({
         {/* Responsive tabs - full tabs on large screens, dropdown on small */}
         <div className="mb-2">
           {/* Desktop tabs - hidden on small screens */}
-          <div className="hidden 2xl:flex tabs min-w-full">
+          <div className="hidden 2xl:flex tabs min-w-full px-0">
             <SearchTab
               label="Cruises"
               isActive={search.types.includes('cruise')}
@@ -2430,6 +3555,7 @@ export const Search: React.FC<{ data: any }> = ({
               searchString={search.searchString}
               filters={search.filters}
             />
+            <div className="tab tab-lg tab-bordered px-2"></div> 
             <SearchTab
               label="Cores"
               isActive={search.types.includes('core')}
@@ -2438,6 +3564,7 @@ export const Search: React.FC<{ data: any }> = ({
               searchString={search.searchString}
               filters={search.filters}
             />
+            <div className="tab tab-lg tab-bordered px-2"></div> 
             <SearchTab
               label="Sections"
               isActive={search.types.includes('section')}
@@ -2446,6 +3573,7 @@ export const Search: React.FC<{ data: any }> = ({
               searchString={search.searchString}
               filters={search.filters}
             />
+            <div className="tab tab-lg tab-bordered px-2"></div> 
             <SearchTab
               label="Section Halves"
               isActive={search.types.includes('sectionHalf')}
@@ -2454,6 +3582,7 @@ export const Search: React.FC<{ data: any }> = ({
               searchString={search.searchString}
               filters={search.filters}
             />
+            <div className="tab tab-lg tab-bordered px-2"></div> 
             <SearchTab
               label="Dredges/Dives"
               isActive={search.types.includes('dive')}
@@ -2462,6 +3591,7 @@ export const Search: React.FC<{ data: any }> = ({
               searchString={search.searchString}
               filters={search.filters}
             />
+            <div className="tab tab-lg tab-bordered px-2"></div> 
             <SearchTab
               label="Rocks"
               isActive={search.types.includes('diveSample')}
@@ -2474,13 +3604,13 @@ export const Search: React.FC<{ data: any }> = ({
           </div>
 
           {/* Mobile menu - shown on small screens */}
-          <div className="2xl:hidden relative">
-            <button 
-              className="btn btn-active btn-ghost w-full justify-between no-animation px-2"
+          <div className="2xl:hidden relative tabs min-w-full px-0">
+            <button
+              className="tab tab-lg tab-bordered tab-active text-primary justify-between no-animation px-0"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
             >
-              <div className="flex items-center gap-2">
-                <span className="text-primary normal-case font-bold text-lg">
+              <div className="flex items-center gap-2 mr-2">
+                <b>
                   {(() => {
                     if (search.types.includes('cruise')) return 'Cruises';
                     if (search.types.includes('core')) return 'Cores';
@@ -2489,9 +3619,9 @@ export const Search: React.FC<{ data: any }> = ({
                     if (search.types.includes('dive')) return 'Dredges/Dives';
                     if (search.types.includes('diveSample')) return 'Rocks';
                     return 'Select Type';
-                  })()} 
-                </span>
-                <span className="badge badge-primary">
+                  })()}
+                </b>
+                <span className="badge badge-primary badge-md">
                   <ItemsCount
                     searchString={search.searchString}
                     types={search.types}
@@ -2502,10 +3632,11 @@ export const Search: React.FC<{ data: any }> = ({
                 </span>
               </div>
               <Icon name={isMenuOpen ? "LuChevronUp" : "LuChevronDown"} size="xxs" />
-            </button>
-            
+            </button> 
+            <div className="tab tab-lg tab-bordered flex-grow" onClick={() => setIsMenuOpen(!isMenuOpen)}></div>
+
             {isMenuOpen && (
-              <ul className="menu bg-base-100 rounded-box z-30 w-full p-1 shadow border absolute top-full mt-1">
+              <ul className="menu bg-base-100 rounded-box z-30 min-w-[300px] p-1 shadow border absolute top-full mt-1 left-0">
                 <li>
                   <div
                     onClick={() => {
@@ -2651,7 +3782,12 @@ export const Search: React.FC<{ data: any }> = ({
                       <RvNameFilterDropdown search={search} setSearch={setSearch} />
                     </div>
                   </th>
-                  <th className="rounded-none">Institution</th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Cruise PI</span>
+                      <InstitutionFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
                   <th className="rounded-none">
                     <div className="flex items-center gap-1">
                       <span>Files</span>
@@ -2689,22 +3825,37 @@ export const Search: React.FC<{ data: any }> = ({
 
                           // Group files by type and count them
                           const fileTypeCounts: { [key: string]: number } = {};
+                          const moratoriumFileCounts: { [key: string]: number } = {};
+
                           match._source._files.forEach((file: any) => {
-                            fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                            if (hasFileTypeLabel(file.type)) {
+                              fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                            } else {
+                              // Unlabeled files are moratorium files
+                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            }
                           });
 
-                          const displayableFiles = Object.entries(fileTypeCounts)
-                            .filter(([fileType]) => hasFileTypeLabel(fileType));
+                          const displayableFiles = Object.entries(fileTypeCounts);
 
-                          if (displayableFiles.length === 0) {
+                          if (displayableFiles.length === 0 && Object.keys(moratoriumFileCounts).length === 0) {
                             return <span className="text-gray-500 text-sm">No files</span>;
                           }
 
                           return (
                             <div className="flex flex-col gap-1">
-                              {displayableFiles.map(([fileType, count]) => (
+                              {displayableFiles.map(([fileType, count]) => {
+                                const moratoriumCount = moratoriumFileCounts[fileType] || 0;
+                                return (
+                                  <div key={fileType} className="text-sm">
+                                    <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                    {moratoriumCount > 0 && <span className="text-gray-500"> ({moratoriumCount} under moratorium)</span>}
+                                  </div>
+                                );
+                              })}
+                              {Object.entries(moratoriumFileCounts).filter(([type]) => !fileTypeCounts[type]).map(([fileType, count]) => (
                                 <div key={fileType} className="text-sm">
-                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> <span className="text-gray-500">({count} under moratorium)</span>
                                 </div>
                               ))}
                             </div>
@@ -2803,7 +3954,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {(match._source.waterDepthStart != null || match._source.waterDepthEnd != null) &&
                           <>
                             <b>Water Depth:</b><br />
-                            {match._source.waterDepthStart && numeral(match._source.waterDepthStart).format(0.00) || ""} {match._source.waterDepthStart && match._source.waterDepthEnd && match._source.waterDepthStart !== match._source.waterDepthEnd && "-" || ""} {match._source.waterDepthEnd && match._source.waterDepthStart !== match._source.waterDepthEnd && numeral(match._source.waterDepthEnd).format(0.00) || ""} mbsf<br />
+                            {match._source.waterDepthStart && numeral(match._source.waterDepthStart).format(0.00) || ""} {match._source.waterDepthStart && match._source.waterDepthEnd && match._source.waterDepthStart !== match._source.waterDepthEnd && "-" || ""} {match._source.waterDepthEnd && match._source.waterDepthStart !== match._source.waterDepthEnd && numeral(match._source.waterDepthEnd).format(0.00) || ""} m<br />
                           </>
                         }
                       </td>
@@ -2888,22 +4039,37 @@ export const Search: React.FC<{ data: any }> = ({
 
                           // Group files by type and count them
                           const fileTypeCounts: { [key: string]: number } = {};
+                          const moratoriumFileCounts: { [key: string]: number } = {};
+
                           match._source._files.forEach((file: any) => {
-                            fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                            if (hasFileTypeLabel(file.type)) {
+                              fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                            } else {
+                              // Unlabeled files are moratorium files
+                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            }
                           });
 
-                          const displayableFiles = Object.entries(fileTypeCounts)
-                            .filter(([fileType]) => hasFileTypeLabel(fileType));
+                          const displayableFiles = Object.entries(fileTypeCounts);
 
-                          if (displayableFiles.length === 0) {
+                          if (displayableFiles.length === 0 && Object.keys(moratoriumFileCounts).length === 0) {
                             return <span className="text-gray-500 text-sm">No files</span>;
                           }
 
                           return (
                             <div className="flex flex-col gap-1">
-                              {displayableFiles.map(([fileType, count]) => (
+                              {displayableFiles.map(([fileType, count]) => {
+                                const moratoriumCount = moratoriumFileCounts[fileType] || 0;
+                                return (
+                                  <div key={fileType} className="text-sm">
+                                    <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                    {moratoriumCount > 0 && <span className="text-gray-500"> ({moratoriumCount} under moratorium)</span>}
+                                  </div>
+                                );
+                              })}
+                              {Object.entries(moratoriumFileCounts).filter(([type]) => !fileTypeCounts[type]).map(([fileType, count]) => (
                                 <div key={fileType} className="text-sm">
-                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> <span className="text-gray-500">({count} under moratorium)</span>
                                 </div>
                               ))}
                             </div>
@@ -3010,22 +4176,37 @@ export const Search: React.FC<{ data: any }> = ({
 
                           // Group files by type and count them
                           const fileTypeCounts: { [key: string]: number } = {};
+                          const moratoriumFileCounts: { [key: string]: number } = {};
+
                           match._source._files.forEach((file: any) => {
-                            fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                            if (hasFileTypeLabel(file.type)) {
+                              fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                            } else {
+                              // Unlabeled files are moratorium files
+                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            }
                           });
 
-                          const displayableFiles = Object.entries(fileTypeCounts)
-                            .filter(([fileType]) => hasFileTypeLabel(fileType));
+                          const displayableFiles = Object.entries(fileTypeCounts);
 
-                          if (displayableFiles.length === 0) {
+                          if (displayableFiles.length === 0 && Object.keys(moratoriumFileCounts).length === 0) {
                             return <span className="text-gray-500 text-sm">No files</span>;
                           }
 
                           return (
                             <div className="flex flex-col gap-1">
-                              {displayableFiles.map(([fileType, count]) => (
+                              {displayableFiles.map(([fileType, count]) => {
+                                const moratoriumCount = moratoriumFileCounts[fileType] || 0;
+                                return (
+                                  <div key={fileType} className="text-sm">
+                                    <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                    {moratoriumCount > 0 && <span className="text-gray-500"> ({moratoriumCount} under moratorium)</span>}
+                                  </div>
+                                );
+                              })}
+                              {Object.entries(moratoriumFileCounts).filter(([type]) => !fileTypeCounts[type]).map(([fileType, count]) => (
                                 <div key={fileType} className="text-sm">
-                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> <span className="text-gray-500">({count} under moratorium)</span>
                                 </div>
                               ))}
                             </div>
@@ -3174,7 +4355,17 @@ export const Search: React.FC<{ data: any }> = ({
                       <CollectionFilterDropdown search={search} setSearch={setSearch} />
                     </div>
                   </th>
-                  <th className="rounded-none">Area</th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span
+                        className="cursor-pointer hover:text-primary"
+                        onClick={() => toggleSort('area')}
+                      >
+                        Area {getSortIcon('area')}
+                      </span>
+                      <AreaFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
                   <th className="rounded-none">
                     <div className="flex items-center gap-1">
                       <span>Files</span>
@@ -3203,22 +4394,37 @@ export const Search: React.FC<{ data: any }> = ({
 
                           // Group files by type and count them
                           const fileTypeCounts: { [key: string]: number } = {};
+                          const moratoriumFileCounts: { [key: string]: number } = {};
+
                           match._source._files.forEach((file: any) => {
-                            fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                            if (hasFileTypeLabel(file.type)) {
+                              fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                            } else {
+                              // Unlabeled files are moratorium files
+                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            }
                           });
 
-                          const displayableFiles = Object.entries(fileTypeCounts)
-                            .filter(([fileType]) => hasFileTypeLabel(fileType));
+                          const displayableFiles = Object.entries(fileTypeCounts);
 
-                          if (displayableFiles.length === 0) {
+                          if (displayableFiles.length === 0 && Object.keys(moratoriumFileCounts).length === 0) {
                             return <span className="text-gray-500 text-sm">No files</span>;
                           }
 
                           return (
                             <div className="flex flex-col gap-1">
-                              {displayableFiles.map(([fileType, count]) => (
+                              {displayableFiles.map(([fileType, count]) => {
+                                const moratoriumCount = moratoriumFileCounts[fileType] || 0;
+                                return (
+                                  <div key={fileType} className="text-sm">
+                                    <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                    {moratoriumCount > 0 && <span className="text-gray-500"> ({moratoriumCount} under moratorium)</span>}
+                                  </div>
+                                );
+                              })}
+                              {Object.entries(moratoriumFileCounts).filter(([type]) => !fileTypeCounts[type]).map(([fileType, count]) => (
                                 <div key={fileType} className="text-sm">
-                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> <span className="text-gray-500">({count} under moratorium)</span>
                                 </div>
                               ))}
                             </div>
@@ -3265,7 +4471,17 @@ export const Search: React.FC<{ data: any }> = ({
                   </th>
                   <th className="rounded-none">Date Time</th>
                   <th className="rounded-none">Water Depth</th>
-                  <th className="rounded-none">Texture</th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span
+                        className="cursor-pointer hover:text-primary"
+                        onClick={() => toggleSort('texture')}
+                      >
+                        Texture {getSortIcon('texture')}
+                      </span>
+                      <TextureFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
                   <th className="rounded-none">Location</th>
                   <th className="rounded-none">
                     <div className="flex items-center gap-1">
@@ -3334,7 +4550,7 @@ export const Search: React.FC<{ data: any }> = ({
                           if (ws != null || we != null) {
                             const left = ws != null ? numeral(ws).format('0.00') : '';
                             const right = we != null && ws !== we ? numeral(we).format('0.00') : '';
-                            return <span>{left}{(ws != null && we != null && ws !== we) ? ' to ' : ''}{right} mbsf</span>;
+                            return <span>{left}{(ws != null && we != null && ws !== we) ? ' to ' : ''}{right} m</span>;
                           }
                           return <span className="text-gray-500">—</span>;
                         })()}
@@ -3372,22 +4588,37 @@ export const Search: React.FC<{ data: any }> = ({
 
                           // Group files by type and count them
                           const fileTypeCounts: { [key: string]: number } = {};
+                          const moratoriumFileCounts: { [key: string]: number } = {};
+
                           match._source._files.forEach((file: any) => {
-                            fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                            if (hasFileTypeLabel(file.type)) {
+                              fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                            } else {
+                              // Unlabeled files are moratorium files
+                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            }
                           });
 
-                          const displayableFiles = Object.entries(fileTypeCounts)
-                            .filter(([fileType]) => hasFileTypeLabel(fileType));
+                          const displayableFiles = Object.entries(fileTypeCounts);
 
-                          if (displayableFiles.length === 0) {
+                          if (displayableFiles.length === 0 && Object.keys(moratoriumFileCounts).length === 0) {
                             return <span className="text-gray-500 text-sm">No files</span>;
                           }
 
                           return (
                             <div className="flex flex-col gap-1">
-                              {displayableFiles.map(([fileType, count]) => (
+                              {displayableFiles.map(([fileType, count]) => {
+                                const moratoriumCount = moratoriumFileCounts[fileType] || 0;
+                                return (
+                                  <div key={fileType} className="text-sm">
+                                    <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                    {moratoriumCount > 0 && <span className="text-gray-500"> ({moratoriumCount} under moratorium)</span>}
+                                  </div>
+                                );
+                              })}
+                              {Object.entries(moratoriumFileCounts).filter(([type]) => !fileTypeCounts[type]).map(([fileType, count]) => (
                                 <div key={fileType} className="text-sm">
-                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> <span className="text-gray-500">({count} under moratorium)</span>
                                 </div>
                               ))}
                             </div>
@@ -3455,42 +4686,96 @@ export const Search: React.FC<{ data: any }> = ({
         {hasNextPage && <div ref={ref} className="h-1" /> }
       </Container>
 
-      {/* Landing Page Modal */}
+      {/* Landing Page Modal - Redesigned */}
       {showLandingModal && (
-        <div className="modal modal-open" onClick={() => setShowLandingModal(false)}>
-          <div className="modal-box max-w-6xl w-11/12 h-[90vh] flex flex-col p-0" onClick={(e) => e.stopPropagation()}>
-            {/* Fixed header with breadcrumbs and close button */}
-            <div className="flex justify-between items-center p-6 border-b border-base-300 flex-shrink-0">
-              <div className="flex-1">
-                <Breadcrumbs doc={currentDoc} />
+        <div className="fixed inset-0 z-50 overflow-hidden" onClick={() => setShowLandingModal(false)}>
+          {/* Backdrop with blur */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"></div>
+
+          {/* Modal Container */}
+          <div className="flex items-center justify-center min-h-screen p-4">
+<div
+              className="relative bg-base-100 rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header with Title and Close Button */}
+              <div className="relative border-b border-base-300">
+                <div className="flex justify-between items-center p-6">
+                  <div className="flex-1">
+                    <Breadcrumbs doc={currentDoc} />
+                  </div>
+                  <button
+                    className="btn btn-sm btn-circle btn-ghost hover:bg-base-300 transition-colors ml-4"
+                    onClick={() => setShowLandingModal(false)}
+                  >
+                    <Icon name="BiX" size="sm" />
+                  </button>
+                </div>
               </div>
-              <button 
-                className="btn btn-sm btn-circle btn-ghost ml-4"
-                onClick={() => setShowLandingModal(false)}
-              >
-                <Icon name="BiX" />
-              </button>
-            </div>
-            
-            {/* Scrollable content area */}
-            <div className="flex-1 overflow-y-scroll overflow-x-hidden" style={{ scrollbarGutter: 'stable' }}>
-              <div className="p-6">
-                <LandingPage 
-                  data={{}} 
-                  osuId={osuId} 
-                  onDocumentLoaded={(doc) => setCurrentDoc(doc)}
-                  onNavigateToChild={(childOsuId) => {
-                    setOsuId(childOsuId);
-                    setCurrentDoc(null); // Clear current doc to trigger loading state
-                  }}
-                />
+
+              {/* Scrollable Container */}
+              <div className="flex-1 overflow-y-auto">
+                {/* Globe Hero Section */}
+                {currentDoc && (currentDoc.latitudeStart != null || currentDoc.latitudeEnd != null ||
+                               currentDoc.longitudeStart != null || currentDoc.longitudeEnd != null) && (
+                  <div className="relative bg-gradient-to-br from-primary/10 via-base-100 to-base-100 border-b border-base-300">
+                    <div className="min-h-[300px]">
+                      <Globe
+                        latitudeStart={currentDoc.latitudeStart}
+                        latitudeEnd={currentDoc.latitudeEnd}
+                        longitudeStart={currentDoc.longitudeStart}
+                        longitudeEnd={currentDoc.longitudeEnd}
+                      />
+                    </div>
+                    {/* Coordinate Overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pointer-events-none">
+                      <div className="flex gap-6 text-white">
+                        {currentDoc.latitudeStart != null && (
+                          <div>
+                            <div className="text-xs opacity-80 font-medium mb-1 uppercase tracking-wide">Latitude</div>
+                            <div className="font-bold">
+                              {numeral(currentDoc.latitudeStart).format('0.0000')}°
+                              {currentDoc.latitudeEnd != null && currentDoc.latitudeStart !== currentDoc.latitudeEnd && (
+                                <span className="text-sm opacity-90 font-normal ml-1">
+                                  to {numeral(currentDoc.latitudeEnd).format('0.0000')}°
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {currentDoc.longitudeStart != null && (
+                          <div>
+                            <div className="text-xs opacity-80 font-medium mb-1 uppercase tracking-wide">Longitude</div>
+                            <div className="font-bold">
+                              {numeral(currentDoc.longitudeStart).format('0.0000')}°
+                              {currentDoc.longitudeEnd != null && currentDoc.longitudeStart !== currentDoc.longitudeEnd && (
+                                <span className="text-sm opacity-90 font-normal ml-1">
+                                  to {numeral(currentDoc.longitudeEnd).format('0.0000')}°
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Content */}
+                <div className="p-6 lg:p-8">
+                  <LandingPage
+                    data={{}}
+                    osuId={osuId}
+                    onDocumentLoaded={(doc) => setCurrentDoc(doc)}
+                    onNavigateToChild={(childOsuId) => {
+                      setOsuId(childOsuId);
+                      setCurrentDoc(null);
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
-          <div 
-            className="modal-backdrop"
-            onClick={() => setShowLandingModal(false)}
-          ></div>
         </div>
       )}
     </Section>
