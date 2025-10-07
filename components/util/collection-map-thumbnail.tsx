@@ -60,7 +60,7 @@ export const CollectionMapThumbnail: React.FC<{ lat: number, lon: number }> = ({
       .attr("stroke-width", 0.5);
 
     // Add high-resolution countries/land masses with realistic colors
-    const countries = feature(worldData, worldData.objects.countries);
+    const countries = feature(worldData, worldData.objects.countries) as any;
     
     // Function to determine color based on country properties
     const getCountryColor = (d) => {

@@ -4,7 +4,7 @@
   "private": false,
   "scripts": {
     "dev": "TINA_PUBLIC_IS_LOCAL=true tinacms dev -c \"next dev -p 4100\" --datalayer-port 4101",
-    "build": "tinacms build -p 4102 --datalayer-port 4103 && next build",
+    "build": "NODE_OPTIONS=--max-old-space-size=8192 tinacms build -p 4102 --datalayer-port 4103 && NODE_OPTIONS=--max-old-space-size=8192 next build",
     "start": "tinacms build -p 4104 --datalayer-port 4105 && next start",
     "export": "tinacms build -p 4106 --datalayer-port 4107 && next export",
     "lint": "eslint . --ext .ts,.tsx"
