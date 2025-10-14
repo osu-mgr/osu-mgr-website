@@ -90,12 +90,12 @@
             "label": "Repository Calendar\n"
           },
           {
-            "href": "visitor-request-form",
-            "label": ""
-          },
-          {
             "href": "parking",
             "label": "Parking Information\n"
+          },
+          {
+            "href": "visitor-request-form",
+            "label": ""
           }
         ]
       },
