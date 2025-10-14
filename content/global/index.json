@@ -65,7 +65,7 @@
         "subnav": [
           {
             "href": "request-samples",
-            "label": "Request\n\nSamples\n"
+            "label": "Sample\n\nRequests\n"
           },
           {
             "href": "analytical-requests",
