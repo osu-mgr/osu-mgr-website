@@ -17,8 +17,11 @@ export const Actions = ({
       {actions &&
         actions.map((action, index) => {
           const IconSVG = action.icon && IconOptions[action.icon];
+          // Add #page-top anchor to scroll to top on navigation
+          const href = action.link ? action.link : "/";
+          const hrefWithAnchor = href === "/" ? "/#page-top" : `${href}#page-top`;
           return (
-            <Link key={index} href={action.link ? action.link : "/"}>
+            <Link key={index} href={hrefWithAnchor}>
               <button
                 data-tina-field={tinaField(action)}
                 className="btn btn-primary btn-lg rounded-lg"

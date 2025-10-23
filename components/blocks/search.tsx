@@ -75,7 +75,8 @@ const SearchTab: React.FC<{
   type: string;
   searchString?: string;
   filters?: any;
-}> = ({ label, isActive, onClick, type, searchString, filters }) => {
+  filterLogic?: any;
+}> = ({ label, isActive, onClick, type, searchString, filters, filterLogic }) => {
   return (
     <div
       className={`tab tab-lg tab-bordered px-0 ${isActive ? 'tab-active text-primary' : ''}`}
@@ -87,6 +88,7 @@ const SearchTab: React.FC<{
           searchString={searchString}
           types={[type]}
           filters={filters}
+          filterLogic={filterLogic}
           singularLabel=""
           pluralLabel=""
         />
@@ -3554,6 +3556,7 @@ export const Search: React.FC<{ data: any }> = ({
               type="cruise"
               searchString={search.searchString}
               filters={search.filters}
+              filterLogic={search.filterLogic}
             />
             <div className="tab tab-lg tab-bordered px-2"></div> 
             <SearchTab
@@ -3563,6 +3566,7 @@ export const Search: React.FC<{ data: any }> = ({
               type="core"
               searchString={search.searchString}
               filters={search.filters}
+              filterLogic={search.filterLogic}
             />
             <div className="tab tab-lg tab-bordered px-2"></div> 
             <SearchTab
@@ -3572,6 +3576,7 @@ export const Search: React.FC<{ data: any }> = ({
               type="section"
               searchString={search.searchString}
               filters={search.filters}
+              filterLogic={search.filterLogic}
             />
             <div className="tab tab-lg tab-bordered px-2"></div> 
             <SearchTab
@@ -3581,6 +3586,7 @@ export const Search: React.FC<{ data: any }> = ({
               type="sectionHalf"
               searchString={search.searchString}
               filters={search.filters}
+              filterLogic={search.filterLogic}
             />
             <div className="tab tab-lg tab-bordered px-2"></div> 
             <SearchTab
@@ -3590,6 +3596,7 @@ export const Search: React.FC<{ data: any }> = ({
               type="dive"
               searchString={search.searchString}
               filters={search.filters}
+              filterLogic={search.filterLogic}
             />
             <div className="tab tab-lg tab-bordered px-2"></div> 
             <SearchTab
@@ -3599,6 +3606,7 @@ export const Search: React.FC<{ data: any }> = ({
               type="diveSample"
               searchString={search.searchString}
               filters={search.filters}
+              filterLogic={search.filterLogic}
             />
             <div className="tab tab-lg tab-bordered flex-grow"></div>  
           </div>
@@ -3626,6 +3634,7 @@ export const Search: React.FC<{ data: any }> = ({
                     searchString={search.searchString}
                     types={search.types}
                     filters={search.filters}
+                    filterLogic={search.filterLogic}
                     singularLabel=""
                     pluralLabel=""
                   />
@@ -3651,6 +3660,7 @@ export const Search: React.FC<{ data: any }> = ({
                         searchString={search.searchString}
                         types={['cruise']}
                         filters={search.filters}
+                        filterLogic={search.filterLogic}
                         singularLabel=""
                         pluralLabel=""
                       />
@@ -3671,6 +3681,7 @@ export const Search: React.FC<{ data: any }> = ({
                         searchString={search.searchString}
                         types={['core']}
                         filters={search.filters}
+                        filterLogic={search.filterLogic}
                         singularLabel=""
                         pluralLabel=""
                       />
@@ -3691,6 +3702,7 @@ export const Search: React.FC<{ data: any }> = ({
                         searchString={search.searchString}
                         types={['section']}
                         filters={search.filters}
+                        filterLogic={search.filterLogic}
                         singularLabel=""
                         pluralLabel=""
                       />
@@ -3711,6 +3723,7 @@ export const Search: React.FC<{ data: any }> = ({
                         searchString={search.searchString}
                         types={['sectionHalf']}
                         filters={search.filters}
+                        filterLogic={search.filterLogic}
                         singularLabel=""
                         pluralLabel=""
                       />
@@ -3731,6 +3744,7 @@ export const Search: React.FC<{ data: any }> = ({
                         searchString={search.searchString}
                         types={['dive']}
                         filters={search.filters}
+                        filterLogic={search.filterLogic}
                         singularLabel=""
                         pluralLabel=""
                       />
@@ -3751,6 +3765,7 @@ export const Search: React.FC<{ data: any }> = ({
                         searchString={search.searchString}
                         types={['diveSample']}
                         filters={search.filters}
+                        filterLogic={search.filterLogic}
                         singularLabel=""
                         pluralLabel=""
                       />

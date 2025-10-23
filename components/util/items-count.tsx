@@ -14,16 +14,17 @@ export const ItemsCount: React.FC<{
   terms?: any;
   searchString?: string;
   filters?: any;
+  filterLogic?: any;
   singularLabel?: string;
   pluralLabel?: string;
-}> = ({ types, terms, searchString, filters, singularLabel, pluralLabel }) => {
+}> = ({ types, terms, searchString, filters, filterLogic, singularLabel, pluralLabel }) => {
   const { data: countData, isLoading } = useQuery({
-    queryKey: ['itemsCount', types, searchString, filters],
+    queryKey: ['itemsCount', types, searchString, filters, filterLogic],
     queryFn: async (): Promise<CountData> => {
       const res = await fetch('/api/opensearch?count', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ types, searchString, terms, filters }),
+        body: JSON.stringify({ types, searchString, terms, filters, filterLogic }),
       });
       if (!res.ok) {
         const errorData = await res.json();

@@ -52,6 +52,7 @@ export const Features = ({ data }) => {
     <Section color={data.color}>
       <Container
         className={`m-6 flex flex-wrap gap-x-10 gap-y-8 text-left`}
+        width="medium"
       >
         {data.items &&
           data.items.map(function (block, i) {

@@ -27,6 +27,19 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
     }
   }, []);
 
+  // Handle scrolling to hash anchor
+  React.useEffect(() => {
+    if (router.asPath.includes("#page-top")) {
+      const drawercontent = document.querySelector(".drawer-content");
+      if (drawercontent) {
+        // Scroll to top of drawer-content
+        setTimeout(() => {
+          drawercontent.scrollTop = 0;
+        }, 0);
+      }
+    }
+  }, [router.asPath]);
+
   const items = data?.header?.nav?.map((item) => {
     let isActive = false;
     if (item.href === "" || item.href === "/")
@@ -50,12 +63,12 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
     <div className={`z-50 p-0 bg-neutral-900 hidden lg:block ${ fixed && "fixed"}`} style={fixed && { width: `calc(100% - ${scrollbarWidth}px)` } || { visibility: 'hidden' }}>
       <div className="navbar flex">
         <div className="relative p-4 h-28 flex-shrink-0">
-          <Link href="/" className="h-20"><Image alt="Logo" src={logo} style={{ position: 'relative', height: '100%', width: '100%', inset: 0, objectFit: 'contain' }} /></Link>
+          <Link href="/#page-top" className="h-20"><Image alt="Logo" src={logo} style={{ position: 'relative', height: '100%', width: '100%', inset: 0, objectFit: 'contain' }} /></Link>
         </div>
         <div className="tabs h-28 items-center flex-nowrap overflow-clip">
           {items.map((item, i) => 
             <Link 
-                key={i} href={`${prefix}${prefix && "/"}${item.href}`} passHref legacyBehavior>
+                key={i} href={`${prefix}${prefix && "/"}${item.href}#page-top`} passHref legacyBehavior>
               <a
                 className={`tab tab-lg h-28 tab-bordered border-b-4 ${item.isActive ? "tab-active !border-primary" : ""} text-white`}
               >
@@ -90,7 +103,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
   const SmallHorizontalHeader = ({ fixed = false }) => 
     <div className={`navbar z-50 p-0 bg-neutral-900 lg:hidden ${ fixed && "fixed"}`} style={fixed && {width: `calc(100% - ${scrollbarWidth}px)`} || {visibility: 'hidden'}}>
       <div className="navbar-start relative p-4 h-20">
-        <Link href="/" className="h-16"><Image alt="Logo" src={logo} style={{ position: 'relative', height: '100%', width: '100%', inset: 0, objectFit: 'contain' }} /></Link>
+        <Link href="/#page-top" className="h-16"><Image alt="Logo" src={logo} style={{ position: 'relative', height: '100%', width: '100%', inset: 0, objectFit: 'contain' }} /></Link>
       </div>
       <div className="navbar-end">
         <label tabIndex={0} htmlFor="side-menu" className="drawer-button btn btn-primary btn-link text-4xl">
@@ -111,7 +124,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
           key={i}
           className={`${item.isActive ? "bordered !border-primary" : ""}`} 
         >
-          <Link href={`${prefix}${prefix && "/"}${item.href}`} passHref legacyBehavior>
+          <Link href={`${prefix}${prefix && "/"}${item.href}#page-top`} passHref legacyBehavior>
             <a>
               <span data-tina-field={tinaField(item)}><TinaMarkdown content={item.label as unknown as TinaMarkdownContent} /></span>
             </a>
@@ -172,7 +185,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
         >
           <div className="drawer drawer-end">
             <input id="side-menu" type="checkbox" className="drawer-toggle" />
-            <div className="drawer-content !overflow-y-scroll bg-neutral-900">
+            <div id="page-top" className="drawer-content !overflow-y-scroll bg-neutral-900">
               <SmallHorizontalHeader />
               <LargeHorizontalHeader fixed />
               <LargeHorizontalHeader />
