@@ -8,9 +8,6 @@ import { Container } from "../util/container";
 import { ItemsCount } from '../util/items-count';
 import { CollectionFileButton } from '../util/collection-file-button';
 import { FileCard } from '../util/file-card';
-// import { CollectionImageThumbnail } from './util/collection-image-thumbnail';
-// import { CollectionMapThumbnail } from './util/collection-map-thumbnail';
-// import { itemFieldNames, formatField } from './util/items';
 import { Icon } from "../util/icon";
 
 const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
@@ -18,7 +15,7 @@ const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
   loading: () => <div className="w-full h-[300px] flex items-center justify-center bg-base-200">Loading globe...</div>,
 });
 
-const viewRawData = true; // Set to true to view raw data in the search results
+const viewRawData = process.env.NODE_ENV === 'development';
 
 const r2rCruiseLinks: { [key: string]: string[] } = {
   'OSU-AT0003': ['https://www.rvdata.us/search/cruise/AT3-49'],
