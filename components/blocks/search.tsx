@@ -11,7 +11,7 @@ import { Container } from "../util/container";
 import { ItemsCount } from '../util/items-count';
 import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
-import { LandingPage } from "./landing-page";
+import { LandingPage, CruiseGlobe, DiveGlobe } from "./landing-page";
 import dynamic from 'next/dynamic';
 import JSZip from 'jszip';
 
@@ -23,50 +23,114 @@ const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
 });
 
 const moratoriumCruises = [
-'OSU-KM2201',
-'OSU-NBP1808',
-'OSU-NBP2002',
-'OSU-NBP1902',
-'OSU-SLM1801',
-'OSU-DLOR2201',
-'OSU-FROR2206',
-'OSU-FOOR2201',
-'OSU-OC1706B',
-'OSU-OC1804C',
-'OSU-OC1906A',
-'OSU-OC1908B',
-'OSU-OC2006A',
-'OSU-PMOR1806',
-'OSU-PMOR1808',
-'OSU-PMOR1907',
-'OSU-RR1807',
-'OSU-RR2208',
-'OSU-SP1716',
-'OSU-SR1801',
-'OSU-SR2113',
-'OSU-TT1811',
-'OSU-TT1909',
-'OSU-NRS2207',
-'OSU-SKQ2211',
-'OSU-OC2109A',
-'OSU-SKQ2303',
-'OSU-SKQ2306',
-'OSU-NBP2301',
-'OSU-NBP2302',
-'OSU-NBP2202',
-'OSU-CGOR2308',
-'OSU-CGOR2309',
-'OSU-DOOR2308',
-'OSU-DOOR2309',
-'OSU-LPOR2308',
-'OSU-LPOR2309',
-'OSU-AR2307',
-'OSU-SKQ202309T',
-'OSU-TN314',
-'OSU-PE2111',
-'OSU-SAFFONZ Torres',
-]
+  'OSU-KM2201',
+  'OSU-NBP1808',
+  'OSU-NBP2002',
+  'OSU-NBP1902',
+  'OSU-SLM1801',
+  'OSU-DLOR2201',
+  'OSU-FROR2206',
+  'OSU-FOOR2201',
+  'OSU-OC1706B',
+  'OSU-OC1804C',
+  'OSU-OC1906A',
+  'OSU-OC1908B',
+  'OSU-OC2006A',
+  'OSU-PMOR1806',
+  'OSU-PMOR1808',
+  'OSU-PMOR1907',
+  'OSU-RR1807',
+  'OSU-RR2208',
+  'OSU-SP1716',
+  'OSU-SR1801',
+  'OSU-SR2113',
+  'OSU-TT1811',
+  'OSU-TT1909',
+  'OSU-NRS2207',
+  'OSU-SKQ2211',
+  'OSU-OC2109A',
+  'OSU-SKQ2303',
+  'OSU-SKQ2306',
+  'OSU-NBP2301',
+  'OSU-NBP2302',
+  'OSU-NBP2202',
+  'OSU-CGOR2308',
+  'OSU-CGOR2309',
+  'OSU-DOOR2308',
+  'OSU-DOOR2309',
+  'OSU-LPOR2308',
+  'OSU-LPOR2309',
+  'OSU-AR2307',
+  'OSU-SKQ202309T',
+  'OSU-TN314',
+  'OSU-PE2111',
+  'OSU-SAFFONZ Torres',
+];
 
+const r2rCruiseLinks = {
+  'OSU-AT0003': ['https://www.rvdata.us/search/cruise/AT3-49'],
+  'OSU-BENTHIC3': ['https://www.rvdata.us/search/cruise/BNTH03MV'],
+  'OSU-EW0104': ['https://www.rvdata.us/search/cruise/EW0104'],
+  'OSU-EW0408': ['https://www.rvdata.us/search/cruise/EW0408'],
+  'OSU-EW9504': ['https://www.rvdata.us/search/cruise/EW9504'],
+  'OSU-EW9505': ['https://www.rvdata.us/search/cruise/EW9505'],
+  'OSU-EW9709': ['https://www.rvdata.us/search/cruise/EW9709'],
+  'OSU-FD7503': ['https://www.rvdata.us/search/cruise/FDRK03MV'],
+  'OSU-HE0002': ['https://www.rvdata.us/search/cruise/HLY0001'],
+  'OSU-INMD01': ['https://www.rvdata.us/search/cruise/INMD01MV'],
+  'OSU-KM0419': ['https://www.rvdata.us/search/cruise/KM0419'],
+  'OSU-M8011': ['https://www.rvdata.us/search/cruise/VLCN03MV','https://www.rvdata.us/search/cruise/VLCN04MV'],
+  'OSU-M9907': ['https://www.rvdata.us/search/cruise/AVON09MV'],
+  'OSU-ME0005A': ['https://www.rvdata.us/search/cruise/NEMO03MV'],
+  'OSU-MV0209': ['https://www.rvdata.us/search/cruise/VANC02MV'],
+  'OSU-MV0502': ['https://www.rvdata.us/search/cruise/TUIM03MV'],
+  'OSU-MV0508': ['https://www.rvdata.us/search/cruise/TUIM13MV'],
+  'OSU-MV0811': ['https://www.rvdata.us/search/cruise/BOLT02MV'],
+  'OSU-MV1014': ['https://www.rvdata.us/search/cruise/MV1014'],
+  'OSU-PE2111': ['https://www.rvdata.us/search/cruise/PE21-11'],
+  'OSU-PLDS2': ['https://www.rvdata.us/search/cruise/PLDS02MV'],
+  'OSU-PLUME02': ['https://www.rvdata.us/search/cruise/PLUM02WT'],
+  'OSU-PLUTO3': ['https://www.rvdata.us/search/cruise/PLTO03MV'],
+  'OSU-RAMA1': ['https://www.rvdata.us/search/cruise/RAMA01WT'],
+  'OSU-RR0207': ['https://www.rvdata.us/search/cruise/LPRS02RR'],
+  'OSU-RR0503': ['https://www.rvdata.us/search/cruise/ZHNG03RR'],
+  'OSU-RR0603': ['https://www.rvdata.us/search/cruise/AMAT03RR'],
+  'OSU-RR1310': ['https://www.rvdata.us/search/cruise/RR1310'],
+  'OSU-RR1807': ['https://www.rvdata.us/search/cruise/RR1807'],
+  'OSU-RR2208': ['https://www.rvdata.us/search/vessel/Revelle'],
+  'OSU-RR9702A': ['https://www.rvdata.us/search/cruise/GENE03RR'],
+  'OSU-SH1710': ['https://www.rvdata.us/search/cruise/HRS1710JH'],
+  'OSU-SKQ1603': ['https://www.rvdata.us/search/cruise/SKQ201602S'],
+  'OSU-SKQ1903': ['https://www.rvdata.us/search/cruise/SKQ201905S'],
+  'OSU-SP1716': ['https://www.rvdata.us/search/cruise/SP1716'],
+  'OSU-SR1801': ['https://www.rvdata.us/search/cruise/SR1801'],
+  'OSU-SR2113': ['https://www.rvdata.us/search/cruise/SR2113'],
+  'OSU-TN037': ['https://www.rvdata.us/search/cruise/TN037'],
+  'OSU-TN0909': ['https://www.rvdata.us/search/cruise/TN240'],
+  'OSU-TN314': ['https://www.rvdata.us/search/cruise/TN314'],
+  'OSU-TT1811': ['https://www.rvdata.us/search/cruise/TN362'],
+  'OSU-TT1909': ['https://www.rvdata.us/search/cruise/TN372'],
+  'OSU-OC2109A': ['https://www.rvdata.us/search/cruise/OC2109A'],
+  'OSU-OC1706B': ['https://www.rvdata.us/search/cruise/OC1706B'],
+  'OSU-OC1804C': ['https://www.rvdata.us/search/cruise/OC1804C'],
+  'OSU-OC1906A': ['https://www.rvdata.us/search/cruise/OC1906A'],
+  'OSU-OC1908B': ['https://www.rvdata.us/search/cruise/OC1908B'],
+  'OSU-OC2006A': ['https://www.rvdata.us/search/cruise/OC2006A'],
+  'OSU-SKQ202309T': ['https://www.rvdata.us/search/cruise/SKQ202309T'],
+  'OSU-SKQ202311S': ['https://www.rvdata.us/search/cruise/SKQ202311S'],
+  'OSU-SKQ202404S': ['https://www.rvdata.us/search/cruise/SKQ202404S'],
+  'OSU-SKQ202410S': ['https://www.rvdata.us/search/cruise/SKQ202410S'],
+  'OSU-SKQ2012': ['https://www.rvdata.us/search/cruise/SKQ202016S'],
+  'OSU-SKQ2211': ['https://www.rvdata.us/search/cruise/SKQ202215S'],
+  'OSU-SKQ2303': ['https://www.rvdata.us/search/cruise/SKQ202305S'],
+  'OSU-SKQ202206S': ['https://www.rvdata.us/search/cruise/SKQ202206S'],
+  'OSU-SP2323': ['https://www.rvdata.us/search/cruise/SP2323'],
+  'OSU-SR2510': ['https://www.rvdata.us/search/cruise/SR2510'],
+  'OSU-W0903B': ['https://www.rvdata.us/search/cruise/W0903B'],
+  'OSU-W0906A': ['https://www.rvdata.us/search/cruise/W0906A'],
+  'OSU-W0906C': ['https://www.rvdata.us/search/cruise/W0906C'],
+  'OSU-W0910B': ['https://www.rvdata.us/search/cruise/W0910B']
+};
 
 const SearchTab: React.FC<{
   label: string;
@@ -108,8 +172,8 @@ const fileTypes = [
   'ct-image',
   'dredge-log',
   'field-image',
-  'itrax-image',
-  'itrax-xray-image',
+  //'itrax-image',
+  //'itrax-xray-image',
   'mst-data',
   'ptmag-data',
   'publications-data',
@@ -135,8 +199,8 @@ const fileTypeLabelMap: { [key: string]: string } = {
   'ct-image': 'CT Image',
   'dredge-log': 'Dredge Log',
   'field-image': 'Field Image',
-  'itrax-image': 'ITRAX Image',
-  'itrax-xray-image': 'ITRAX X-Ray Image',
+  //'itrax-image': 'ITRAX Image',
+  //'itrax-xray-image': 'ITRAX X-Ray Image',
   'mst-data': 'MST Data',
   'ptmag-data': 'Point MS Data',
   'publications-data': 'Publications Data',
@@ -1709,7 +1773,7 @@ const DownloadFilesButton: React.FC<{
                 <span className="relative z-10 bg-transparent">
                   {isDownloading ? (
                     <span className="text-black bg-transparent">
-                      <Icon name="TbLoader2" size="sm" className="animate-spin inline-block mr-1" />
+                      <Icon name="TbLoader2" size="small" className="animate-spin inline-block mr-1" />
                       Downloading... {Math.round(downloadProgress)}%
                     </span>
                   ) : (
@@ -2434,7 +2498,7 @@ const FilterPanel: React.FC<{
                 className="btn btn-sm btn-ghost px-0"
                 onClick={onToggle}
               >
-                <Icon name="LuChevronLeft" size="sm" />
+                <Icon name="LuChevronLeft" size="small" />
               </button>
             </div>
           </div>
@@ -3481,7 +3545,6 @@ export const Search: React.FC<{ data: any }> = ({
     );
   };
   
-  console.log("Search types: ", search.types);
   return (
     <Section>
       <Container className="my-4 prose max-w-none" width="custom">
@@ -3824,8 +3887,27 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0"><b>{match._source._osuid}</b>
-                      { moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        <b>{match._source._osuid}</b>
+                        {moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {r2rCruiseLinks[match._source._osuid] && (
+                          <div className="mt-1 flex flex-row flex-wrap gap-1">
+                            {r2rCruiseLinks[match._source._osuid].map((link: string, idx: number) => (
+                              <a 
+                                key={idx}
+                                href={link} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1"
+                              >
+                                R2R
+                                <Icon name="BiLinkExternal" size="xxs" />
+                                <span className="font-normal">{link.split('/').pop()}</span>
+                              </a>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">{match._source.rvName}</td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
@@ -4723,7 +4805,7 @@ export const Search: React.FC<{ data: any }> = ({
                     className="btn btn-sm btn-circle btn-ghost hover:bg-base-300 transition-colors ml-4"
                     onClick={() => setShowLandingModal(false)}
                   >
-                    <Icon name="BiX" size="sm" />
+                    <Icon name="BiX" size="small" />
                   </button>
                 </div>
               </div>
@@ -4774,6 +4856,16 @@ export const Search: React.FC<{ data: any }> = ({
                       </div>
                     </div>
                   </div>
+                )}
+
+                {/* Cruise Globe Hero Section */}
+                {currentDoc && currentDoc._docType === 'cruise' && currentDoc._cruiseUUID && (
+                  <CruiseGlobe cruiseDoc={currentDoc} />
+                )}
+
+                {/* Dive/Rock Globe Hero Section */}
+                {currentDoc && currentDoc._docType === 'dive' && currentDoc._diveUUID && (
+                  <DiveGlobe diveDoc={currentDoc} />
                 )}
 
                 {/* Content */}

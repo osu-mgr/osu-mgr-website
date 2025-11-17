@@ -2,6 +2,7 @@ import _ from 'lodash';
 import { useRouter } from 'next/router';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { Section } from "../util/section";
 import { Container } from "../util/container";
 import { ItemsCount } from '../util/items-count';
@@ -12,7 +13,77 @@ import { FileCard } from '../util/file-card';
 // import { itemFieldNames, formatField } from './util/items';
 import { Icon } from "../util/icon";
 
+const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
+  ssr: false,
+  loading: () => <div className="w-full h-[300px] flex items-center justify-center bg-base-200">Loading globe...</div>,
+});
+
 const viewRawData = true; // Set to true to view raw data in the search results
+
+const r2rCruiseLinks: { [key: string]: string[] } = {
+  'OSU-AT0003': ['https://www.rvdata.us/search/cruise/AT3-49'],
+  'OSU-BENTHIC3': ['https://www.rvdata.us/search/cruise/BNTH03MV'],
+  'OSU-EW0104': ['https://www.rvdata.us/search/cruise/EW0104'],
+  'OSU-EW0408': ['https://www.rvdata.us/search/cruise/EW0408'],
+  'OSU-EW9504': ['https://www.rvdata.us/search/cruise/EW9504'],
+  'OSU-EW9505': ['https://www.rvdata.us/search/cruise/EW9505'],
+  'OSU-EW9709': ['https://www.rvdata.us/search/cruise/EW9709'],
+  'OSU-FD7503': ['https://www.rvdata.us/search/cruise/FDRK03MV'],
+  'OSU-HE0002': ['https://www.rvdata.us/search/cruise/HLY0001'],
+  'OSU-INMD01': ['https://www.rvdata.us/search/cruise/INMD01MV'],
+  'OSU-KM0419': ['https://www.rvdata.us/search/cruise/KM0419'],
+  'OSU-M8011': ['https://www.rvdata.us/search/cruise/VLCN03MV','https://www.rvdata.us/search/cruise/VLCN04MV'],
+  'OSU-M9907': ['https://www.rvdata.us/search/cruise/AVON09MV'],
+  'OSU-ME0005A': ['https://www.rvdata.us/search/cruise/NEMO03MV'],
+  'OSU-MV0209': ['https://www.rvdata.us/search/cruise/VANC02MV'],
+  'OSU-MV0502': ['https://www.rvdata.us/search/cruise/TUIM03MV'],
+  'OSU-MV0508': ['https://www.rvdata.us/search/cruise/TUIM13MV'],
+  'OSU-MV0811': ['https://www.rvdata.us/search/cruise/BOLT02MV'],
+  'OSU-MV1014': ['https://www.rvdata.us/search/cruise/MV1014'],
+  'OSU-PE2111': ['https://www.rvdata.us/search/cruise/PE21-11'],
+  'OSU-PLDS2': ['https://www.rvdata.us/search/cruise/PLDS02MV'],
+  'OSU-PLUME02': ['https://www.rvdata.us/search/cruise/PLUM02WT'],
+  'OSU-PLUTO3': ['https://www.rvdata.us/search/cruise/PLTO03MV'],
+  'OSU-RAMA1': ['https://www.rvdata.us/search/cruise/RAMA01WT'],
+  'OSU-RR0207': ['https://www.rvdata.us/search/cruise/LPRS02RR'],
+  'OSU-RR0503': ['https://www.rvdata.us/search/cruise/ZHNG03RR'],
+  'OSU-RR0603': ['https://www.rvdata.us/search/cruise/AMAT03RR'],
+  'OSU-RR1310': ['https://www.rvdata.us/search/cruise/RR1310'],
+  'OSU-RR1807': ['https://www.rvdata.us/search/cruise/RR1807'],
+  'OSU-RR2208': ['https://www.rvdata.us/search/vessel/Revelle'],
+  'OSU-RR9702A': ['https://www.rvdata.us/search/cruise/GENE03RR'],
+  'OSU-SH1710': ['https://www.rvdata.us/search/cruise/HRS1710JH'],
+  'OSU-SKQ1603': ['https://www.rvdata.us/search/cruise/SKQ201602S'],
+  'OSU-SKQ1903': ['https://www.rvdata.us/search/cruise/SKQ201905S'],
+  'OSU-SP1716': ['https://www.rvdata.us/search/cruise/SP1716'],
+  'OSU-SR1801': ['https://www.rvdata.us/search/cruise/SR1801'],
+  'OSU-SR2113': ['https://www.rvdata.us/search/cruise/SR2113'],
+  'OSU-TN037': ['https://www.rvdata.us/search/cruise/TN037'],
+  'OSU-TN0909': ['https://www.rvdata.us/search/cruise/TN240'],
+  'OSU-TN314': ['https://www.rvdata.us/search/cruise/TN314'],
+  'OSU-TT1811': ['https://www.rvdata.us/search/cruise/TN362'],
+  'OSU-TT1909': ['https://www.rvdata.us/search/cruise/TN372'],
+  'OSU-OC2109A': ['https://www.rvdata.us/search/cruise/OC2109A'],
+  'OSU-OC1706B': ['https://www.rvdata.us/search/cruise/OC1706B'],
+  'OSU-OC1804C': ['https://www.rvdata.us/search/cruise/OC1804C'],
+  'OSU-OC1906A': ['https://www.rvdata.us/search/cruise/OC1906A'],
+  'OSU-OC1908B': ['https://www.rvdata.us/search/cruise/OC1908B'],
+  'OSU-OC2006A': ['https://www.rvdata.us/search/cruise/OC2006A'],
+  'OSU-SKQ202309T': ['https://www.rvdata.us/search/cruise/SKQ202309T'],
+  'OSU-SKQ202311S': ['https://www.rvdata.us/search/cruise/SKQ202311S'],
+  'OSU-SKQ202404S': ['https://www.rvdata.us/search/cruise/SKQ202404S'],
+  'OSU-SKQ202410S': ['https://www.rvdata.us/search/cruise/SKQ202410S'],
+  'OSU-SKQ2012': ['https://www.rvdata.us/search/cruise/SKQ202016S'],
+  'OSU-SKQ2211': ['https://www.rvdata.us/search/cruise/SKQ202215S'],
+  'OSU-SKQ2303': ['https://www.rvdata.us/search/cruise/SKQ202305S'],
+  'OSU-SKQ202206S': ['https://www.rvdata.us/search/cruise/SKQ202206S'],
+  'OSU-SP2323': ['https://www.rvdata.us/search/cruise/SP2323'],
+  'OSU-SR2510': ['https://www.rvdata.us/search/cruise/SR2510'],
+  'OSU-W0903B': ['https://www.rvdata.us/search/cruise/W0903B'],
+  'OSU-W0906A': ['https://www.rvdata.us/search/cruise/W0906A'],
+  'OSU-W0906C': ['https://www.rvdata.us/search/cruise/W0906C'],
+  'OSU-W0910B': ['https://www.rvdata.us/search/cruise/W0910B']
+};
 
 const TypeTab: React.FC<{
   label: string;
@@ -301,6 +372,162 @@ const RockSamplesPanel: React.FC<{ rockDoc: any; onNavigateToChild?: (osuid: str
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+export const CruiseGlobe: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
+  const {
+    data: coresResults,
+    isLoading: isCoresLoading,
+  } = useQuery({
+    queryKey: ['cruiseGlobeCores', cruiseDoc._cruiseUUID],
+    queryFn: async () => { 
+      if (!cruiseDoc._cruiseUUID) return null;
+      
+      const payload = {
+        types: ['core'],
+        terms: {
+          "_cruiseUUID.keyword": [cruiseDoc._cruiseUUID],
+        },
+        sortOrder: 'ids asc',
+        size: 500, // Get more cores for the globe
+      };
+      const res = await fetch('/api/opensearch?search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorresults = await res.json();
+        throw new Error(errorresults.message || 'Failed to fetch cores');
+      }
+      return res.json();
+    },
+    enabled: !!cruiseDoc._cruiseUUID,
+  });
+
+  const cores = coresResults?.hits?.hits || [];
+  
+  // Extract coordinates from cores
+  const coordinates = cores
+    .map((core: any) => {
+      const coreData = core._source;
+      const lat = coreData.latitudeStart ?? coreData.latitude;
+      const lon = coreData.longitudeStart ?? coreData.longitude;
+      
+      if (lat != null && lon != null) {
+        return {
+          lat: Number(lat),
+          lon: Number(lon),
+          name: coreData._osuid || coreData.id
+        };
+      }
+      return null;
+    })
+    .filter((coord: any) => coord !== null);
+
+  if (!cruiseDoc._cruiseUUID || coordinates.length === 0) return null;
+
+  return (
+    <div className="relative bg-gradient-to-br from-primary/10 via-base-100 to-base-100 border-b border-base-300">
+      {isCoresLoading ? (
+        <div className="flex justify-center items-center py-8 min-h-[300px]">
+          <Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" />
+          <span className="ml-2">Loading core locations...</span>
+        </div>
+      ) : (
+        <>
+          <div className="min-h-[300px]">
+            <Globe coordinates={coordinates} />
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pointer-events-none">
+            <div className="text-white">
+              <div className="text-xs opacity-80 font-medium mb-1 uppercase tracking-wide">
+                Showing {coordinates.length} core location{coordinates.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+export const DiveGlobe: React.FC<{ diveDoc: any }> = ({ diveDoc }) => {
+  const {
+    data: samplesResults,
+    isLoading: isSamplesLoading,
+  } = useQuery({
+    queryKey: ['diveGlobeSamples', diveDoc._diveUUID],
+    queryFn: async () => { 
+      if (!diveDoc._diveUUID) return null;
+      
+      const payload = {
+        types: ['diveSample'],
+        terms: {
+          "_diveUUID.keyword": [diveDoc._diveUUID],
+        },
+        sortOrder: 'ids asc',
+        size: 500, // Get more samples for the globe
+      };
+      const res = await fetch('/api/opensearch?search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorresults = await res.json();
+        throw new Error(errorresults.message || 'Failed to fetch rock samples');
+      }
+      return res.json();
+    },
+    enabled: !!diveDoc._diveUUID,
+  });
+
+  const samples = samplesResults?.hits?.hits || [];
+  
+  // Extract coordinates from samples
+  const coordinates = samples
+    .map((sample: any) => {
+      const sampleData = sample._source;
+      const lat = sampleData.latitudeStart ?? sampleData.latitude;
+      const lon = sampleData.longitudeStart ?? sampleData.longitude;
+      
+      if (lat != null && lon != null) {
+        return {
+          lat: Number(lat),
+          lon: Number(lon),
+          name: sampleData._osuid || sampleData.id
+        };
+      }
+      return null;
+    })
+    .filter((coord: any) => coord !== null);
+
+  if (!diveDoc._diveUUID || coordinates.length === 0) return null;
+
+  return (
+    <div className="relative bg-gradient-to-br from-primary/10 via-base-100 to-base-100 border-b border-base-300">
+      {isSamplesLoading ? (
+        <div className="flex justify-center items-center py-8 min-h-[300px]">
+          <Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" />
+          <span className="ml-2">Loading rock sample locations...</span>
+        </div>
+      ) : (
+        <>
+          <div className="min-h-[300px]">
+            <Globe coordinates={coordinates} />
+          </div>
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pointer-events-none">
+            <div className="text-white">
+              <div className="text-xs opacity-80 font-medium mb-1 uppercase tracking-wide">
+                Showing {coordinates.length} rock sample location{coordinates.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -691,10 +918,28 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             {/* Basic Information */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold mt-0 mb-3">Basic Information</h3>
-              <div className="space-y-2">
-                {doc.id && <p><strong>Cruise ID:</strong> {doc.id}</p>}
-                {doc._osuid && <p><strong>OSU ID:</strong> {doc._osuid}</p>}
-                {doc.date && <p><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+              <div>
+                {doc.id && <p className="m-0"><strong>Cruise ID:</strong> {doc.id}</p>}
+                {doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+                {r2rCruiseLinks[doc._osuid] && (
+                  <div className="mt-2">
+                    <strong>R2R Links:</strong>
+                    <div className="flex flex-row flex-wrap gap-1 mt-1">
+                      {r2rCruiseLinks[doc._osuid].map((link: string, idx: number) => (
+                        <a 
+                          key={idx}
+                          href={link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1"
+                        >
+                          <Icon name="BiLinkExternal" size="xxs" />
+                          R2R: {link.split('/').pop()}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -740,13 +985,12 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               <h3 className="text-lg font-semibold mt-0 mb-3">Basic Information</h3>
               <div>
                 {doc.id && <p className="m-0"><strong>Core ID:</strong> {doc.id}</p>}
-                {doc._osuid && <p className="m-0"><strong>OSU ID:</strong> {doc._osuid}</p>}
                 {doc._cruiseID && (
                   <p className="m-0">
                     <strong>Cruise ID:</strong>
                     <button
                       onClick={() => onNavigateToChild?.(`OSU-${doc._cruiseID}`)}
-                      className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
+                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._cruiseID}
                     </button>
@@ -757,9 +1001,9 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               </div>
             </div>
 
-            {/* Physical Properties */}
+            {/* Core Size */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Physical Properties</h3>
+              <h3 className="text-lg font-semibold mt-0 mb-3">Core Size</h3>
               <div>
                 {doc.diameter && <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>}
                 {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
@@ -772,7 +1016,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               <h3 className="text-lg font-semibold mt-0 mb-3">Location & Date</h3>
               <div>
                 {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-                {doc.startTime && <p className="m-0"><strong>Start Time:</strong> {new Date(doc.startTime).toLocaleTimeString()}</p>}
+                {doc.endDate && <p className="m-0"><strong>End Date:</strong> {new Date(doc.endDate).toLocaleDateString()}</p>}
                 {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
                 {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
                 {doc.waterDepthStart && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
@@ -810,13 +1054,12 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               <h3 className="text-lg font-semibold mt-0 mb-3">Basic Information</h3>
               <div>
                 {doc.id && <p className="m-0"><strong>Section ID:</strong> {doc.id}</p>}
-                {doc._osuid && <p className="m-0"><strong>OSU ID:</strong> {doc._osuid}</p>}
                 {doc._coreID && (
                   <p className="m-0">
                     <strong>Core ID:</strong>
                     <button
                       onClick={() => onNavigateToChild?.(doc._coreID)}
-                      className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
+                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._coreID}
                     </button>
@@ -827,7 +1070,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
                     <strong>Cruise ID:</strong>
                     <button
                       onClick={() => onNavigateToChild?.(`OSU-${doc._cruiseID}`)}
-                      className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
+                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._cruiseID}
                     </button>
@@ -837,9 +1080,9 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               </div>
             </div>
 
-            {/* Physical Properties */}
+            {/* Section Length */}
             <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Physical Properties</h3>
+              <h3 className="text-lg font-semibold mt-0 mb-3">Section Length</h3>
               <div>
                 {doc.depthTop != null && doc.depthBottom != null && (
                   <p className="m-0">
@@ -901,13 +1144,12 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               <h3 className="text-lg font-semibold mt-0 mb-3">Basic Information</h3>
               <div>
                 {doc.id && <p className="m-0"><strong>Section Half ID:</strong> {doc.id}</p>}
-                {doc._osuid && <p className="m-0"><strong>OSU ID:</strong> {doc._osuid}</p>}
                 {doc._sectionID && (
                   <p className="m-0">
                     <strong>Section ID:</strong>
                     <button
                       onClick={() => onNavigateToChild?.(doc._sectionID)}
-                      className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
+                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._sectionID}
                     </button>
@@ -918,7 +1160,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
                     <strong>Core ID:</strong>
                     <button
                       onClick={() => onNavigateToChild?.(doc._coreID)}
-                      className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
+                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._coreID}
                     </button>
@@ -929,7 +1171,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
                     <strong>Cruise ID:</strong>
                     <button
                       onClick={() => onNavigateToChild?.(`OSU-${doc._cruiseID}`)}
-                      className="text-primary hover:text-primary-focus underline ml-1 bg-transparent border-none p-0 cursor-pointer"
+                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
                       {doc._cruiseID}
                     </button>
@@ -1006,10 +1248,9 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-3 text-base-content">Basic Information</h3>
               <div className="space-y-2">
-                {doc.title && <p><strong>Title:</strong> {doc.title}</p>}
-                {doc.id && <p><strong>Dive ID:</strong> {doc.id}</p>}
-                {doc._osuid && <p><strong>OSU ID:</strong> {doc._osuid}</p>}
-                {doc.date && <p><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+                {doc.title && <p className="m-0"><strong>Title:</strong> {doc.title}</p>}
+                {doc.id && <p className="m-0"><strong>Dive ID:</strong> {doc.id}</p>}
+                {doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
               </div>
             </div>
 

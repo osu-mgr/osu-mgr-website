@@ -9,6 +9,7 @@ interface GlobeProps {
   latitudeEnd?: number;
   longitudeStart?: number;
   longitudeEnd?: number;
+  coordinates?: Array<{ lat: number; lon: number; name?: string }>;
 }
 
 export const Globe: React.FC<GlobeProps> = ({
@@ -18,6 +19,7 @@ export const Globe: React.FC<GlobeProps> = ({
   latitudeEnd,
   longitudeStart,
   longitudeEnd,
+  coordinates,
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
@@ -25,34 +27,79 @@ export const Globe: React.FC<GlobeProps> = ({
   useEffect(() => {
     if (!chartRef.current) return;
 
-    // Determine coordinates to display - use center point if range exists
-    let lat: number | undefined;
-    let lon: number | undefined;
+    // Prepare data points
+    const points: any[] = [];
 
-    if (latitudeStart != null && latitudeEnd != null && longitudeStart != null && longitudeEnd != null) {
-      // Calculate center point when we have a range
-      lat = (Number(latitudeStart) + Number(latitudeEnd)) / 2;
-      lon = (Number(longitudeStart) + Number(longitudeEnd)) / 2;
+    // If we have an array of coordinates, use that
+    if (coordinates && coordinates.length > 0) {
+      coordinates.forEach((coord, index) => {
+        points.push({
+          name: coord.name || `Point ${index + 1}`,
+          value: [coord.lon, coord.lat, 0],
+          itemStyle: {
+            color: '#ff6600' // Orange primary color
+          }
+        });
+      });
     } else {
-      // Use single point
-      const rawLat = latitude ?? latitudeStart ?? latitudeEnd;
-      const rawLon = longitude ?? longitudeStart ?? longitudeEnd;
-      lat = rawLat != null ? Number(rawLat) : undefined;
-      lon = rawLon != null ? Number(rawLon) : undefined;
+      // Legacy single/range coordinate handling
+      // Add start point if available
+      if (latitudeStart != null && longitudeStart != null) {
+        points.push({
+          name: 'Start',
+          value: [Number(longitudeStart), Number(latitudeStart), 0],
+          itemStyle: {
+            color: '#ff6600'
+          }
+        });
+      }
+
+      // Add end point if available and different from start
+      if (latitudeEnd != null && longitudeEnd != null &&
+          (latitudeEnd !== latitudeStart || longitudeEnd !== longitudeStart)) {
+        points.push({
+          name: 'End',
+          value: [Number(longitudeEnd), Number(latitudeEnd), 0],
+          itemStyle: {
+            color: '#ff6600'
+          }
+        });
+      }
+
+      // If only one point using single lat/lon, add it
+      if (points.length === 0 && latitude != null && longitude != null) {
+        points.push({
+          name: 'Location',
+          value: [Number(longitude), Number(latitude), 0],
+          itemStyle: {
+            color: '#ff6600'
+          }
+        });
+      }
     }
 
-    if (lat == null || lon == null) return;
+    if (points.length === 0) return;
+
+    // Calculate center point for camera
+    let centerLat: number;
+    let centerLon: number;
+
+    if (points.length === 1) {
+      centerLat = points[0].value[1];
+      centerLon = points[0].value[0];
+    } else {
+      // Calculate average position
+      const sumLat = points.reduce((sum, p) => sum + p.value[1], 0);
+      const sumLon = points.reduce((sum, p) => sum + p.value[0], 0);
+      centerLat = sumLat / points.length;
+      centerLon = sumLon / points.length;
+    }
 
     console.log('Globe Debug:', {
-      latitude,
-      longitude,
-      latitudeStart,
-      latitudeEnd,
-      longitudeStart,
-      longitudeEnd,
-      calculatedLat: lat,
-      calculatedLon: lon,
-      targetCoord: [lon, lat]
+      pointsCount: points.length,
+      centerLat,
+      centerLon,
+      points
     });
 
     // Initialize chart
@@ -61,43 +108,6 @@ export const Globe: React.FC<GlobeProps> = ({
     }
 
     const chart = chartInstance.current;
-
-    // Prepare data points
-    const points: any[] = [];
-
-    // Add start point if available
-    if (latitudeStart != null && longitudeStart != null) {
-      points.push({
-        name: 'Start',
-        value: [Number(longitudeStart), Number(latitudeStart), 0],
-        itemStyle: {
-          color: '#ff6600' // Orange primary color
-        }
-      });
-    }
-
-    // Add end point if available and different from start
-    if (latitudeEnd != null && longitudeEnd != null &&
-        (latitudeEnd !== latitudeStart || longitudeEnd !== longitudeStart)) {
-      points.push({
-        name: 'End',
-        value: [Number(longitudeEnd), Number(latitudeEnd), 0],
-        itemStyle: {
-          color: '#ff6600' // Orange primary color
-        }
-      });
-    }
-
-    // If only one point, add it
-    if (points.length === 0 && lat != null && lon != null) {
-      points.push({
-        name: 'Location',
-        value: [lon, lat, 0],
-        itemStyle: {
-          color: '#ff6600' // Orange primary color
-        }
-      });
-    }
 
     console.log('Globe Points:', points);
 
@@ -117,7 +127,7 @@ export const Globe: React.FC<GlobeProps> = ({
           center: [0, 0, 0],
           alpha: 0,
           beta: 0,
-          targetCoord: [lon, lat]
+          targetCoord: [centerLon, centerLat]
         },
         itemStyle: {
           color: '#1e3a8a',
@@ -155,7 +165,7 @@ export const Globe: React.FC<GlobeProps> = ({
     return () => {
       window.removeEventListener('resize', handleResize);
     };
-  }, [latitude, longitude, latitudeStart, latitudeEnd, longitudeStart, longitudeEnd]);
+  }, [latitude, longitude, latitudeStart, latitudeEnd, longitudeStart, longitudeEnd, coordinates]);
 
   useEffect(() => {
     return () => {

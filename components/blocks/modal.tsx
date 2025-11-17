@@ -38,7 +38,7 @@ export const Modal = ({ data }) => {
                 className="tab tab-lg tab-bordered border-b-4"
                 onClick={() => setShowModal(false)}
               >
-                <Icon name="BiX" />
+                <Icon name="BiX" size="small" />
               </button>
             </div>
         </div>
