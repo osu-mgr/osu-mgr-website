@@ -202,13 +202,13 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         // For AND logic, this doesn't make sense for a single field, so treat as OR
         filters.push({
           terms: {
-            'piInstitution.keyword': search.filters.institutions
+            'pi.keyword': search.filters.institutions
           }
         });
       } else {
         filters.push({
           terms: {
-            'piInstitution.keyword': search.filters.institutions
+            'pi.keyword': search.filters.institutions
           }
         });
       }
@@ -808,6 +808,94 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       };
     }
     
+    // Apply non-RV name filters if they exist
+    if (search.filters) {
+      const nonRvFilters = [];
+
+      // Apply file type filters with their current logic
+      if (search.filters.fileTypes && search.filters.fileTypes.length > 0) {
+        const fileTypeLogic = search.filterLogic?.fileTypes || 'OR';
+        if (fileTypeLogic === 'AND') {
+          nonRvFilters.push({
+            script: {
+              script: {
+                source: `
+                  def selectedTypes = params.fileTypes;
+                  def docFileTypes = new HashSet();
+                  if (doc['_files.type.keyword'].size() > 0) {
+                    for (def fileType : doc['_files.type.keyword']) {
+                      docFileTypes.add(fileType);
+                    }
+                  }
+                  for (def selectedType : selectedTypes) {
+                    if (!docFileTypes.contains(selectedType)) {
+                      return false;
+                    }
+                  }
+                  return true;
+                `,
+                params: {
+                  fileTypes: search.filters.fileTypes
+                }
+              }
+            }
+          });
+        } else {
+          nonRvFilters.push({
+            terms: {
+              '_files.type.keyword': search.filters.fileTypes
+            }
+          });
+        }
+      }
+
+      // Apply method filters
+      if (search.filters.methods && search.filters.methods.length > 0) {
+        nonRvFilters.push({
+          terms: { 'method.keyword': search.filters.methods }
+        });
+      }
+
+      // Apply material type filters
+      if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
+        nonRvFilters.push({
+          terms: { 'material.keyword': search.filters.materialTypes }
+        });
+      }
+
+      // Apply institution filters
+      if (search.filters.institutions && search.filters.institutions.length > 0) {
+        nonRvFilters.push({
+          terms: { 'pi.keyword': search.filters.institutions }
+        });
+      }
+
+      // Apply area filters
+      if (search.filters.areas && search.filters.areas.length > 0) {
+        nonRvFilters.push({
+          terms: { 'area.keyword': search.filters.areas }
+        });
+      }
+
+      // Apply texture filters
+      if (search.filters.textures && search.filters.textures.length > 0) {
+        nonRvFilters.push({
+          terms: { 'texture.keyword': search.filters.textures }
+        });
+      }
+
+      if (nonRvFilters.length > 0) {
+        if (!baseQuery.bool) {
+          baseQuery = {
+            bool: {
+              must: [baseQuery]
+            }
+          };
+        }
+        baseQuery.bool.filter = nonRvFilters;
+      }
+    }
+    
     // Get aggregation of rvName field values
     try {
       const aggResp = await client.search({
@@ -871,6 +959,97 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           minimum_should_match: 1,
         }
       };
+    }
+
+    // Apply non-institution filters if they exist
+    if (search.filters) {
+      const nonInstitutionFilters = [];
+
+      // Apply file type filters with their current logic
+      if (search.filters.fileTypes && search.filters.fileTypes.length > 0) {
+        const fileTypeLogic = search.filterLogic?.fileTypes || 'OR';
+        if (fileTypeLogic === 'AND') {
+          nonInstitutionFilters.push({
+            script: {
+              script: {
+                source: `
+                  def selectedTypes = params.fileTypes;
+                  def docFileTypes = new HashSet();
+                  if (doc['_files.type.keyword'].size() > 0) {
+                    for (def fileType : doc['_files.type.keyword']) {
+                      docFileTypes.add(fileType);
+                    }
+                  }
+                  for (def selectedType : selectedTypes) {
+                    if (!docFileTypes.contains(selectedType)) {
+                      return false;
+                    }
+                  }
+                  return true;
+                `,
+                params: {
+                  fileTypes: search.filters.fileTypes
+                }
+              }
+            }
+          });
+        } else {
+          nonInstitutionFilters.push({
+            terms: {
+              '_files.type.keyword': search.filters.fileTypes
+            }
+          });
+        }
+      }
+
+      // Apply method filters
+      if (search.filters.methods && search.filters.methods.length > 0) {
+        nonInstitutionFilters.push({
+          terms: { 'method.keyword': search.filters.methods }
+        });
+      }
+
+      // Apply material type filters
+      if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
+        nonInstitutionFilters.push({
+          terms: { 'material.keyword': search.filters.materialTypes }
+        });
+      }
+
+      // Apply RV name filters
+      if (search.filters.rvNames && search.filters.rvNames.length > 0) {
+        nonInstitutionFilters.push({
+          terms: { 'rvName.keyword': search.filters.rvNames }
+        });
+      }
+
+      // Apply area filters
+      if (search.filters.areas && search.filters.areas.length > 0) {
+        nonInstitutionFilters.push({
+          terms: { 'area.keyword': search.filters.areas }
+        });
+      }
+
+      // Apply texture filters
+      if (search.filters.textures && search.filters.textures.length > 0) {
+        nonInstitutionFilters.push({
+          terms: { 'texture.keyword': search.filters.textures }
+        });
+      }
+
+      // Do NOT apply PI/institution filters here - we're getting counts for ALL institutions
+      // The institution filter should only be applied to the main search results, not to count aggregations
+
+      if (nonInstitutionFilters.length > 0) {
+        if (!baseQuery.bool) {
+          baseQuery = {
+            bool: {
+              must: [baseQuery]
+            }
+          };
+        }
+        baseQuery.bool.filter = nonInstitutionFilters;
+      }
     }
 
     // Get aggregation of piInstitution field values

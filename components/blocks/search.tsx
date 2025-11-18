@@ -678,7 +678,7 @@ const InstitutionFilterDropdown: React.FC<{
 
   // Fetch counts for each institution
   const { data: institutionData, isLoading: countsLoading } = useQuery({
-    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions],
+    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.areas, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?institutionCounts', {
         method: 'POST',
@@ -961,23 +961,23 @@ const AreaFilterDropdown: React.FC<{
   const activeFilterCount = selectedAreas.length;
 
   return (
-    <span className="relative inline-block">
+    <span className="relative inline ml-1">
       <button
-        className={`btn btn-xs ${activeFilterCount > 0 ? 'btn-primary' : 'btn-ghost'}`}
+        className="flex items-center gap-1 hover:bg-base-200 px-2 py-1 rounded"
         onClick={() => setIsOpen(!isOpen)}
       >
         <Icon name="LuFilter" size="xxs" />
         {activeFilterCount > 0 && (
-          <span className="badge badge-sm">{activeFilterCount}</span>
+          <span className="badge badge-primary badge-sm">{activeFilterCount}</span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-1 bg-base-100 border rounded-lg shadow-lg z-50 min-w-[300px]">
+        <div className="absolute right-0 top-full mt-1 w-80 bg-base-100 rounded-box shadow-lg border z-20 font-normal normal-case">
           {/* Header with action buttons */}
-          <div className="p-2 border-b">
-            <div className="flex justify-between items-center gap-2">
-              <span className="font-semibold">Filter by Area</span>
+          <div className="p-3 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-sm">Areas</span>
               <div className="flex gap-1">
                 <button
                   className="btn btn-xs btn-ghost"
@@ -1013,7 +1013,7 @@ const AreaFilterDropdown: React.FC<{
           </div>
 
           {/* Scrollable filter list */}
-          <div className="max-h-64 overflow-y-auto overflow-x-hidden p-2">
+          <div className="max-h-[200px] overflow-y-auto p-2">
             {countsLoading ? (
               <div className="flex justify-center items-center py-4">
                 <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
@@ -1155,23 +1155,23 @@ const TextureFilterDropdown: React.FC<{
   const activeFilterCount = selectedTextures.length;
 
   return (
-    <span className="relative inline-block">
+    <span className="relative inline ml-1">
       <button
-        className={`btn btn-xs ${activeFilterCount > 0 ? 'btn-primary' : 'btn-ghost'}`}
+        className="flex items-center gap-1 hover:bg-base-200 px-2 py-1 rounded"
         onClick={() => setIsOpen(!isOpen)}
       >
         <Icon name="LuFilter" size="xxs" />
         {activeFilterCount > 0 && (
-          <span className="badge badge-sm">{activeFilterCount}</span>
+          <span className="badge badge-primary badge-sm">{activeFilterCount}</span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute top-full right-0 mt-1 bg-base-100 border rounded-lg shadow-lg z-50 min-w-[300px]">
+        <div className="absolute right-0 top-full mt-1 w-80 bg-base-100 rounded-box shadow-lg border z-20 font-normal normal-case">
           {/* Header with action buttons */}
-          <div className="p-2 border-b">
-            <div className="flex justify-between items-center gap-2">
-              <span className="font-semibold">Filter by Texture</span>
+          <div className="p-3 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold text-sm">Textures</span>
               <div className="flex gap-1">
                 <button
                   className="btn btn-xs btn-ghost"
@@ -1207,7 +1207,7 @@ const TextureFilterDropdown: React.FC<{
           </div>
 
           {/* Scrollable filter list */}
-          <div className="max-h-64 overflow-y-auto overflow-x-hidden p-2">
+          <div className="max-h-[200px] overflow-y-auto p-2">
             {countsLoading ? (
               <div className="flex justify-center items-center py-4">
                 <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
@@ -1282,7 +1282,7 @@ const CollectionFilterDropdown: React.FC<{
 
   // Fetch counts for each method
   const { data: methodCounts, isLoading: methodCountsLoading } = useQuery({
-    queryKey: ['methodCounts', search.types, search.searchString, JSON.stringify(search.filters?.fileTypes), search.filterLogic?.fileTypes, JSON.stringify(search.filters?.methods), JSON.stringify(search.filters?.materialTypes), JSON.stringify(search.filters?.rvNames), JSON.stringify(search.filters?.areas)],
+    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?methodCounts', {
         method: 'POST',
@@ -1300,12 +1300,12 @@ const CollectionFilterDropdown: React.FC<{
       }
       return {};
     },
-    enabled: search.types.includes('core')
+    enabled: search.types.includes('core') || search.types.includes('dive')
   });
 
   // Fetch counts for each material type
   const { data: materialCounts, isLoading: materialCountsLoading } = useQuery({
-    queryKey: ['materialCounts', search.types, search.searchString, JSON.stringify(search.filters?.fileTypes), search.filterLogic?.fileTypes, JSON.stringify(search.filters?.methods), JSON.stringify(search.filters?.materialTypes), JSON.stringify(search.filters?.rvNames), JSON.stringify(search.filters?.areas)],
+    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?materialCounts', {
         method: 'POST',
@@ -1323,7 +1323,7 @@ const CollectionFilterDropdown: React.FC<{
       }
       return {};
     },
-    enabled: search.types.includes('core')
+    enabled: search.types.includes('core') || search.types.includes('dive')
   });
 
   const handleMethodChange = (method: string, checked: boolean) => {
@@ -1840,7 +1840,7 @@ const FilterPanel: React.FC<{
 
   // Fetch available collection methods for cores and rocks
   const { data: methodCounts, isLoading: methodsLoading } = useQuery({
-    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.methods, search.filterLogic?.methods, search.filters?.fileTypes, search.filters?.materialTypes, search.filters?.rvNames],
+    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.methods, search.filterLogic?.methods, search.filters?.fileTypes, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
     queryFn: async () => {
       // Only fetch method counts for cores and dive (rocks)
       if (!search.types.some((type: string) => ['core', 'dive'].includes(type))) {
@@ -1868,7 +1868,7 @@ const FilterPanel: React.FC<{
 
   // Fetch available material types for cores only
   const { data: materialCounts, isLoading: materialsLoading } = useQuery({
-    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.materialTypes, search.filterLogic?.materialTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.rvNames],
+    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.materialTypes, search.filterLogic?.materialTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
     queryFn: async () => {
       // Only fetch material counts for cores
       if (!search.types.includes('core')) {
@@ -1896,7 +1896,7 @@ const FilterPanel: React.FC<{
 
   // Fetch available RV names for cruises only
   const { data: rvNameCounts, isLoading: rvNamesLoading } = useQuery({
-    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters?.rvNames, search.filterLogic?.rvNames, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes],
+    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters?.rvNames, search.filterLogic?.rvNames, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
     queryFn: async () => {
       // Only fetch RV name counts for cruises
       if (!search.types.includes('cruise')) {
@@ -1924,7 +1924,7 @@ const FilterPanel: React.FC<{
 
   // Fetch counts for each file type - reuse the same query as FileTypesFilterDropdown
   const { data: fileTypeCounts, isLoading: fileTypesLoading } = useQuery({
-    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?fileTypeCounts', {
         method: 'POST',
@@ -2176,7 +2176,7 @@ const FilterPanel: React.FC<{
 
   // Fetch available institutions for cruises only
   const { data: institutionData, isLoading: institutionsLoading } = useQuery({
-    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.institutions, search.filterLogic?.institutions, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.institutions, search.filterLogic?.institutions, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.areas, search.filters?.textures],
     queryFn: async () => {
       // Only fetch institution counts for cruises
       if (!search.types.includes('cruise')) {
@@ -2268,7 +2268,7 @@ const FilterPanel: React.FC<{
 
   // Fetch available areas for dives/dredges only
   const { data: areaCounts, isLoading: areasLoading } = useQuery({
-    queryKey: ['areaCounts', search.types, search.searchString, search.filters?.areas, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes],
+    queryKey: ['areaCounts', search.types, search.searchString, search.filters?.areas, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
     queryFn: async () => {
       // Only fetch area counts for dives and dredges
       if (!search.types.includes('dive')) {
@@ -2357,7 +2357,7 @@ const FilterPanel: React.FC<{
 
   // Fetch available textures for dives/rocks only
   const { data: textureCounts, isLoading: texturesLoading } = useQuery({
-    queryKey: ['textureCounts', search.types, search.searchString, JSON.stringify(search.filters?.textures), JSON.stringify(search.filters?.fileTypes), search.filterLogic?.fileTypes, JSON.stringify(search.filters?.methods), JSON.stringify(search.filters?.materialTypes), JSON.stringify(search.filters?.areas)],
+    queryKey: ['textureCounts', search.types, search.searchString, search.filters?.textures, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.areas, search.filters?.rvNames, search.filters?.institutions],
     queryFn: async () => {
       // Only fetch texture counts for dives and rocks
       if (!search.types.some((type: string) => ['dive', 'diveSample'].includes(type))) {
@@ -3156,6 +3156,8 @@ export const Search: React.FC<{ data: any }> = ({
   const pageSize = 10;
   const router = useRouter();
   const viewRawData = !process.env.VERCEL;
+  	
+  console.log("viewRawData", viewRawData);
   const [search, setSearch] = useLocalStorage('search-2025-08-06-v3', {
     sortOrder: 'alpha asc',
     searchString: '',
@@ -3532,14 +3534,14 @@ export const Search: React.FC<{ data: any }> = ({
   const getSortIcon = (sortType: string) => {
     const currentOrder = search.sortOrder;
     if (currentOrder === `${sortType} asc`) {
-      return <Icon name="LuChevronUp" size="xxs" className="inline ml-1" />;
+      return <Icon name="LuChevronUp" size="xxs" className="inline ml-1 align-text-bottom" />;
     } else if (currentOrder === `${sortType} desc`) {
-      return <Icon name="LuChevronDown" size="xxs" className="inline ml-1" />;
+      return <Icon name="LuChevronDown" size="xxs" className="inline ml-1 align-text-bottom" />;
     }
     // Show disabled up/down chevrons for sortable columns
     return (
-      <span className="inline ml-1 opacity-30">
-        <Icon name="LuChevronsUpDown" size="xxs" className="inline -mt-0.5" />
+      <span className="inline opacity-30">
+        <Icon name="LuChevronsUpDown" size="xxs" className="inline ml-1 align-text-bottom" />
       </span>
     );
   };
@@ -3574,18 +3576,19 @@ export const Search: React.FC<{ data: any }> = ({
           </div>
         </div>
         <div className="flex gap-4 mt-4">
-          {/* Filter Panel - conditionally shown */}
-          {showFilters && (
-            <FilterPanel 
-              search={search} 
-              setSearch={setSearch} 
-              onToggle={() => setShowFilters(false)}
-            />
-          )}
-          
-          {/* Show Filters Button - shown when filters are hidden */}
-          {!showFilters && (
-            <div className="flex-shrink-0">
+          {/* Left Sidebar - Filters and Active Filters */}
+          <div className="w-[320px] flex-shrink-0 flex flex-col gap-4">
+            {/* Filter Panel - conditionally shown */}
+            {showFilters && (
+              <FilterPanel 
+                search={search} 
+                setSearch={setSearch} 
+                onToggle={() => setShowFilters(false)}
+              />
+            )}
+            
+            {/* Show Filters Button - shown when filters are hidden */}
+            {!showFilters && (
               <button
                 className="btn btn-primary btn-sm flex flex-col gap-1 h-auto py-2 px-2"
                 onClick={() => setShowFilters(true)}
@@ -3601,8 +3604,8 @@ export const Search: React.FC<{ data: any }> = ({
                   ].filter(Boolean).length}
                 </span>
               </button>
-            </div>
-          )}
+            )}
+          </div>
           
           {/* Main Content Area */}
           <div className="flex-1 min-h-[500px]">
@@ -4749,6 +4752,237 @@ export const Search: React.FC<{ data: any }> = ({
             </table>
           }
 
+            {/* Active Filters Display - only show if there are active filters */}
+            {(search.searchString || 
+              search.filters?.fileTypes?.length > 0 || 
+              search.filters?.methods?.length > 0 || 
+              search.filters?.materialTypes?.length > 0 || 
+              search.filters?.rvNames?.length > 0 ||
+              search.filters?.institutions?.length > 0 ||
+              search.filters?.areas?.length > 0 ||
+              search.filters?.textures?.length > 0) && (
+              <div className="w-[320px] mx-auto">
+                <div className="sticky top-0 bg-white pb-2">
+                  <div className="flex items-center justify-between">
+                    <div className="tabs min-w-full px-0">
+                      <div className="tab tab-lg tab-bordered text-primary flex-grow justify-start px-0">
+                        <b>Active Filters</b>
+                      </div>
+                      <div className="tab tab-lg tab-bordered text-primary pr-0">
+                        <button
+                          className="btn btn-sm btn-ghost pr-0"
+                          onClick={() => {
+                            setSearchString("");
+                            setSearch({
+                              ...search,
+                              searchString: '',
+                              filters: {
+                                fileTypes: [],
+                                methods: [],
+                                materialTypes: [],
+                                rvNames: [],
+                                institutions: [],
+                                areas: [],
+                                textures: []
+                              }
+                            });
+                          }}
+                          title="Clear all active filters"
+                        >
+                          Clear All
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Active filters list */}
+                <div className="border rounded bg-base-100">
+                  {/* Scrollable filter list */}
+                  <div className="max-h-[400px] overflow-y-auto p-2">
+                    {/* Search Text Filter */}
+                    {search.searchString && (
+                      <div className="form-control">
+                        <label className="label cursor-pointer justify-start gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
+                            checked={true}
+                            onChange={() => {
+                              setSearchString("");
+                              setSearch({ ...search, searchString: '' });
+                            }}
+                          />
+                          <span className="label-text text-sm flex-1 break-words"><strong>Search:</strong> {search.searchString}</span>
+                        </label>
+                      </div>
+                    )}
+
+                    {/* File Types Filters */}
+                    {search.filters?.fileTypes?.map((fileType: string) => (
+                      <div key={`fileType-${fileType}`} className="form-control">
+                        <label className="label cursor-pointer justify-start gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
+                            checked={true}
+                            onChange={() => {
+                              setSearch({
+                                ...search,
+                                filters: {
+                                  ...search.filters,
+                                  fileTypes: search.filters.fileTypes.filter((f: string) => f !== fileType)
+                                }
+                              });
+                            }}
+                          />
+                          <span className="label-text text-sm flex-1 break-words"><strong>File:</strong> {getFileTypeLabel(fileType)}</span>
+                        </label>
+                      </div>
+                    ))}
+
+                    {/* Methods Filters */}
+                    {search.filters?.methods?.map((method: string) => (
+                      <div key={`method-${method}`} className="form-control">
+                        <label className="label cursor-pointer justify-start gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
+                            checked={true}
+                            onChange={() => {
+                              setSearch({
+                                ...search,
+                                filters: {
+                                  ...search.filters,
+                                  methods: search.filters.methods.filter((m: string) => m !== method)
+                                }
+                              });
+                            }}
+                          />
+                          <span className="label-text text-sm flex-1 break-words"><strong>Method:</strong> {method}</span>
+                        </label>
+                      </div>
+                    ))}
+
+                    {/* Material Types Filters */}
+                    {search.filters?.materialTypes?.map((materialType: string) => (
+                      <div key={`material-${materialType}`} className="form-control">
+                        <label className="label cursor-pointer justify-start gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
+                            checked={true}
+                            onChange={() => {
+                              setSearch({
+                                ...search,
+                                filters: {
+                                  ...search.filters,
+                                  materialTypes: search.filters.materialTypes.filter((m: string) => m !== materialType)
+                                }
+                              });
+                            }}
+                          />
+                          <span className="label-text text-sm flex-1 break-words"><strong>Material:</strong> {materialType}</span>
+                        </label>
+                      </div>
+                    ))}
+
+                    {/* RV Names Filters */}
+                    {search.filters?.rvNames?.map((rvName: string) => (
+                      <div key={`rvName-${rvName}`} className="form-control">
+                        <label className="label cursor-pointer justify-start gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
+                            checked={true}
+                            onChange={() => {
+                              setSearch({
+                                ...search,
+                                filters: {
+                                  ...search.filters,
+                                  rvNames: search.filters.rvNames.filter((r: string) => r !== rvName)
+                                }
+                              });
+                            }}
+                          />
+                          <span className="label-text text-sm flex-1 break-words"><strong>RV Name:</strong> {rvName}</span>
+                        </label>
+                      </div>
+                    ))}
+
+                    {/* Institutions Filters */}
+                    {search.filters?.institutions?.map((institution: string) => (
+                      <div key={`institution-${institution}`} className="form-control">
+                        <label className="label cursor-pointer justify-start gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
+                            checked={true}
+                            onChange={() => {
+                              setSearch({
+                                ...search,
+                                filters: {
+                                  ...search.filters,
+                                  institutions: search.filters.institutions.filter((i: string) => i !== institution)
+                                }
+                              });
+                            }}
+                          />
+                          <span className="label-text text-sm flex-1 break-words"><strong>Cruise PI:</strong> {institution}</span>
+                        </label>
+                      </div>
+                    ))}
+
+                    {/* Areas Filters */}
+                    {search.filters?.areas?.map((area: string) => (
+                      <div key={`area-${area}`} className="form-control">
+                        <label className="label cursor-pointer justify-start gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
+                            checked={true}
+                            onChange={() => {
+                              setSearch({
+                                ...search,
+                                filters: {
+                                  ...search.filters,
+                                  areas: search.filters.areas.filter((a: string) => a !== area)
+                                }
+                              });
+                            }}
+                          />
+                          <span className="label-text text-sm flex-1 break-words"><strong>Area:</strong> {area}</span>
+                        </label>
+                      </div>
+                    ))}
+
+                    {/* Textures Filters */}
+                    {search.filters?.textures?.map((texture: string) => (
+                      <div key={`texture-${texture}`} className="form-control">
+                        <label className="label cursor-pointer justify-start gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
+                            checked={true}
+                            onChange={() => {
+                              setSearch({
+                                ...search,
+                                filters: {
+                                  ...search.filters,
+                                  textures: search.filters.textures.filter((t: string) => t !== texture)
+                                }
+                              });
+                            }}
+                          />
+                          <span className="label-text text-sm flex-1 break-words"><strong>Texture:</strong> {texture}</span>
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
           {/* No results message */}
           {!isLoadingQuery && !isFetchingNextPage && matches.length === 0 && search.searchString.length > 0 && (
             <div className="flex justify-center items-center min-h-[400px] flex-col">
@@ -4776,7 +5010,7 @@ export const Search: React.FC<{ data: any }> = ({
               <span className="ml-2">Loading more...</span>
             </div>
           )}
-          </div>
+        </div>
         </div>
         {/* Infinite scroll trigger: only show if there are more pages to load */}
         {hasNextPage && <div ref={ref} className="h-1" /> }
@@ -4790,7 +5024,7 @@ export const Search: React.FC<{ data: any }> = ({
 
           {/* Modal Container */}
           <div className="flex items-center justify-center min-h-screen p-4">
-<div
+            <div
               className="relative bg-base-100 rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >

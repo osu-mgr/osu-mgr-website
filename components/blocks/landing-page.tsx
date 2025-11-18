@@ -15,8 +15,6 @@ const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
   loading: () => <div className="w-full h-[300px] flex items-center justify-center bg-base-200">Loading globe...</div>,
 });
 
-const viewRawData = !process.env.VERCEL;
-
 const r2rCruiseLinks: { [key: string]: string[] } = {
   'OSU-AT0003': ['https://www.rvdata.us/search/cruise/AT3-49'],
   'OSU-BENTHIC3': ['https://www.rvdata.us/search/cruise/BNTH03MV'],
@@ -859,6 +857,9 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
   // Use passed osuId prop or extract from URL
   const osuID = osuId || asPath.substring(1); // Remove leading slash from path if no osuId provided
 	
+  const viewRawData = !process.env.VERCEL;
+  console.log("viewRawData", viewRawData);
+
   const {
     data: results,
     isLoading: isLoadingQuery,

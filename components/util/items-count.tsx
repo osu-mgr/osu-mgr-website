@@ -19,7 +19,7 @@ export const ItemsCount: React.FC<{
   pluralLabel?: string;
 }> = ({ types, terms, searchString, filters, filterLogic, singularLabel, pluralLabel }) => {
   const { data: countData, isLoading } = useQuery({
-    queryKey: ['itemsCount', types, searchString, filters, filterLogic],
+    queryKey: ['itemsCount', types, searchString, filters?.fileTypes, filterLogic?.fileTypes, filters?.methods, filters?.materialTypes, filters?.rvNames, filters?.institutions, filters?.areas, filters?.textures],
     queryFn: async (): Promise<CountData> => {
       const res = await fetch('/api/opensearch?count', {
         method: 'POST',
