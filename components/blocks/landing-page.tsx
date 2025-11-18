@@ -15,7 +15,7 @@ const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
   loading: () => <div className="w-full h-[300px] flex items-center justify-center bg-base-200">Loading globe...</div>,
 });
 
-const viewRawData = process.env.NODE_ENV === 'development';
+const viewRawData = !process.env.VERCEL;
 
 const r2rCruiseLinks: { [key: string]: string[] } = {
   'OSU-AT0003': ['https://www.rvdata.us/search/cruise/AT3-49'],
@@ -1315,29 +1315,6 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
     </Container>
   </Section>
   )
-
-  const searchDocs = null; // = useTerms(['cruise', 'core', 'dive'], { '_osuid.keyword': [osuID] });
-	
-	if (!searchDocs) 
-		return             <div className="flex justify-center items-center min-h-[200px]">
-                  <Icon name="TbLoader2" className="w-8 h-8 text-primary animate-spin" />
-                  <span className="ml-2">Loading...</span>
-                </div>;
-	
-	if (searchDocs.length === 0)
-		return (
-			<div><b>{osuID}</b> is not not found in the OSU-MGR collections.</div>
-		);
-	const searchDoc = searchDocs[0];
-
-	// if (searchDoc._docType === 'cruise')
-	// 	return <CruiseLandingPage cruiseDoc={searchDoc} />;
-
-	// if (searchDoc._docType === 'core')
-	// 	return <CoreLandingPage coreDoc={searchDoc} />;
-
-	// if (searchDoc._docType === 'dive')
-	// 	return <DiveLandingPage diveDoc={searchDoc} />;
 	
 };
 

@@ -3155,7 +3155,7 @@ export const Search: React.FC<{ data: any }> = ({
 }) => {
   const pageSize = 10;
   const router = useRouter();
-  const viewRawData = process.env.NODE_ENV === 'development';
+  const viewRawData = !process.env.VERCEL;
   const [search, setSearch] = useLocalStorage('search-2025-08-06-v3', {
     sortOrder: 'alpha asc',
     searchString: '',
