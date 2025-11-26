@@ -857,7 +857,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
   // Use passed osuId prop or extract from URL
   const osuID = osuId || asPath.substring(1); // Remove leading slash from path if no osuId provided
 	
-  const viewRawData = !process.env.VERCEL;
+  const viewRawData = false;  //!process.env.VERCEL;
   console.log("viewRawData", viewRawData);
 
   const {

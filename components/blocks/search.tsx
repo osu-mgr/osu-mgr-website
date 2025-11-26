@@ -65,6 +65,10 @@ const moratoriumCruises = [
   'OSU-TN314',
   'OSU-PE2111',
   'OSU-SAFFONZ Torres',
+  'OSU-CE24009',
+  'OSU-NBP2403',
+  'OSU-TN426',
+  'OSU-TN435'
 ];
 
 const r2rCruiseLinks = {
@@ -3155,7 +3159,7 @@ export const Search: React.FC<{ data: any }> = ({
 }) => {
   const pageSize = 10;
   const router = useRouter();
-  const viewRawData = !process.env.VERCEL;
+  const viewRawData = false;  // = !process.env.VERCEL;
   	
   console.log("viewRawData", viewRawData);
   const [search, setSearch] = useLocalStorage('search-2025-08-06-v3', {
