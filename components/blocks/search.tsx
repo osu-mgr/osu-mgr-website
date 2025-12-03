@@ -3647,17 +3647,21 @@ export const Search: React.FC<{ data: any }> = ({
               filters={search.filters}
               filterLogic={search.filterLogic}
             />
-            <div className="tab tab-lg tab-bordered px-2"></div> 
-            <SearchTab
-              label="Section Halves"
-              isActive={search.types.includes('sectionHalf')}
-              onClick={() => setSearch({ ...search, types: ['sectionHalf'] })}
-              type="sectionHalf"
-              searchString={search.searchString}
-              filters={search.filters}
-              filterLogic={search.filterLogic}
-            />
-            <div className="tab tab-lg tab-bordered px-2"></div> 
+            {process.env.DEPLOYMENT !== 'production' && (
+              <>
+                <div className="tab tab-lg tab-bordered px-2"></div> 
+                <SearchTab
+                  label="Section Halves"
+                  isActive={search.types.includes('sectionHalf')}
+                  onClick={() => setSearch({ ...search, types: ['sectionHalf'] })}
+                  type="sectionHalf"
+                  searchString={search.searchString}
+                  filters={search.filters}
+                  filterLogic={search.filterLogic}
+                />
+                <div className="tab tab-lg tab-bordered px-2"></div>
+              </>
+            )} 
             <SearchTab
               label="Dredges/Dives"
               isActive={search.types.includes('dive')}
@@ -3692,7 +3696,7 @@ export const Search: React.FC<{ data: any }> = ({
                     if (search.types.includes('cruise')) return 'Cruises';
                     if (search.types.includes('core')) return 'Cores';
                     if (search.types.includes('section')) return 'Sections';
-                    if (search.types.includes('sectionHalf')) return 'Section Halves';
+                    if (process.env.DEPLOYMENT !== 'production' && search.types.includes('sectionHalf')) return 'Section Halves';
                     if (search.types.includes('dive')) return 'Dredges/Dives';
                     if (search.types.includes('diveSample')) return 'Rocks';
                     return 'Select Type';
@@ -3778,27 +3782,29 @@ export const Search: React.FC<{ data: any }> = ({
                     </span>
                   </div>
                 </li>
-                <li>
-                  <div
-                    onClick={() => {
-                      setSearch({ ...search, types: ['sectionHalf'] });
-                      setIsMenuOpen(false);
-                    }}
-                    className={`flex items-center justify-between ${search.types.includes('sectionHalf') ? 'active' : ''}`}
-                  >
-                    <span>Section Halves</span>
-                    <span className="badge badge-sm badge-outline">
-                      <ItemsCount
-                        searchString={search.searchString}
-                        types={['sectionHalf']}
-                        filters={search.filters}
-                        filterLogic={search.filterLogic}
-                        singularLabel=""
-                        pluralLabel=""
-                      />
-                    </span>
-                  </div>
-                </li>
+                {process.env.DEPLOYMENT !== 'production' && (
+                  <li>
+                    <div
+                      onClick={() => {
+                        setSearch({ ...search, types: ['sectionHalf'] });
+                        setIsMenuOpen(false);
+                      }}
+                      className={`flex items-center justify-between ${search.types.includes('sectionHalf') ? 'active' : ''}`}
+                    >
+                      <span>Section Halves</span>
+                      <span className="badge badge-sm badge-outline">
+                        <ItemsCount
+                          searchString={search.searchString}
+                          types={['sectionHalf']}
+                          filters={search.filters}
+                          filterLogic={search.filterLogic}
+                          singularLabel=""
+                          pluralLabel=""
+                        />
+                      </span>
+                    </div>
+                  </li>
+                )}
                 <li>
                   <div
                     onClick={() => {
