@@ -4054,6 +4054,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
+                        {moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.length != null && <><b>Length:</b><br/>{numeral(match._source.length).format(0.00)} cm<br /></>}
@@ -4260,6 +4261,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
+                        {moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.depthTop != null && match._source.depthBottom != null &&
@@ -4385,6 +4387,7 @@ export const Search: React.FC<{ data: any }> = ({
                           <td className="align-top overflow-hidden text-ellipsis max-w-0">
                             <b>{match._source._osuid}</b>
                             {match._source.nSections != null && <><br /><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
+                            {moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
                           </td>
                           <td className="align-top overflow-hidden text-ellipsis max-w-0">
                             {(() => {
@@ -4489,7 +4492,10 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0"><b>{match._source._osuid}</b></td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        <b>{match._source._osuid}</b>  
+                        {moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                      </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.method != null && <><b>Method:</b><br/>{match._source.method}<br/></>}
                         {match._source.material != null && <><b>Material:</b><br/>{match._source.material}<br /></>}
@@ -4606,7 +4612,10 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0"><b>{match._source._osuid}</b></td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        <b>{match._source._osuid}</b>
+                        {moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                      </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {(() => {
                           const sd = match._source.startDate ? new Date(match._source.startDate) : null;
