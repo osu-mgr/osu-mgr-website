@@ -3647,7 +3647,7 @@ export const Search: React.FC<{ data: any }> = ({
               filters={search.filters}
               filterLogic={search.filterLogic}
             />
-            {process.env.DEPLOYMENT !== 'production' && (
+            {process.env.NEXT_PUBLIC_DEPLOYMENT !== 'production' && (
               <>
                 <div className="tab tab-lg tab-bordered px-2"></div> 
                 <SearchTab
@@ -3696,7 +3696,7 @@ export const Search: React.FC<{ data: any }> = ({
                     if (search.types.includes('cruise')) return 'Cruises';
                     if (search.types.includes('core')) return 'Cores';
                     if (search.types.includes('section')) return 'Sections';
-                    if (process.env.DEPLOYMENT !== 'production' && search.types.includes('sectionHalf')) return 'Section Halves';
+                    if (process.env.NEXT_PUBLIC_DEPLOYMENT !== 'production' && search.types.includes('sectionHalf')) return 'Section Halves';
                     if (search.types.includes('dive')) return 'Dredges/Dives';
                     if (search.types.includes('diveSample')) return 'Rocks';
                     return 'Select Type';
@@ -3782,7 +3782,7 @@ export const Search: React.FC<{ data: any }> = ({
                     </span>
                   </div>
                 </li>
-                {process.env.DEPLOYMENT !== 'production' && (
+                {process.env.NEXT_PUBLIC_DEPLOYMENT !== 'production' && (
                   <li>
                     <div
                       onClick={() => {
