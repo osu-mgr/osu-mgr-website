@@ -3901,7 +3901,7 @@ export const Search: React.FC<{ data: any }> = ({
                     }}>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
-                        {moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {moratoriumCruises.some(cruise => match._source._osuid.startsWith(cruise)) && <div><span className="badge btn-primary">Moratorium</span></div>}
                         {r2rCruiseLinks[match._source._osuid] && (
                           <div className="mt-1 flex flex-row flex-wrap gap-1">
                             {r2rCruiseLinks[match._source._osuid].map((link: string, idx: number) => (
@@ -4054,7 +4054,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                        {moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {moratoriumCruises.some(cruise => match._source._osuid.startsWith(cruise)) && <div><span className="badge btn-primary">Moratorium</span></div>}
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.length != null && <><b>Length:</b><br/>{numeral(match._source.length).format(0.00)} cm<br /></>}
@@ -4261,7 +4261,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                        {moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {moratoriumCruises.some(cruise => match._source._osuid.startsWith(cruise)) && <div><span className="badge btn-primary">Moratorium</span></div>}
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.depthTop != null && match._source.depthBottom != null &&
@@ -4387,7 +4387,7 @@ export const Search: React.FC<{ data: any }> = ({
                           <td className="align-top overflow-hidden text-ellipsis max-w-0">
                             <b>{match._source._osuid}</b>
                             {match._source.nSections != null && <><br /><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                            {moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                            {moratoriumCruises.some(cruise => match._source._osuid.startsWith(cruise)) && <div><span className="badge btn-primary">Moratorium</span></div>}
                           </td>
                           <td className="align-top overflow-hidden text-ellipsis max-w-0">
                             {(() => {
@@ -4494,7 +4494,7 @@ export const Search: React.FC<{ data: any }> = ({
                     }}>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>  
-                        {moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {moratoriumCruises.some(cruise => match._source._osuid.startsWith(cruise)) && <div><span className="badge btn-primary">Moratorium</span></div>}
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.method != null && <><b>Method:</b><br/>{match._source.method}<br/></>}
@@ -4614,7 +4614,7 @@ export const Search: React.FC<{ data: any }> = ({
                     }}>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
-                        {moratoriumCruises.includes(match._source._osuid) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {moratoriumCruises.some(cruise => match._source._osuid.startsWith(cruise)) && <div><span className="badge btn-primary">Moratorium</span></div>}
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {(() => {
