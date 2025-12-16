@@ -1612,6 +1612,9 @@ const DownloadFilesButton: React.FC<{
 
         const files = match._source._files || [];
         for (const file of files) {
+          // Skip itrax file types
+          if (file.type && file.type.startsWith('itrax-')) continue;
+          
           if (!uniqueFilesByType[file.type]) {
             uniqueFilesByType[file.type] = new Set();
           }
@@ -1631,12 +1634,17 @@ const DownloadFilesButton: React.FC<{
     cacheTime: 30 * 60 * 1000, // 30 minutes
   });
 
-  const availableFileTypes = Object.keys(fileTypeCounts || {}).sort();
+  const availableFileTypes = Object.keys(fileTypeCounts || {})
+    .filter(fileType => !fileType.startsWith('itrax-'))
+    .sort();
 
   // Initialize selected file types when available types change
   useEffect(() => {
     if (availableFileTypes.length > 0) {
       setSelectedFileTypes(new Set(availableFileTypes));
+    } else {
+      // Close menu when no file types available
+      setIsOpen(false);
     }
   }, [availableFileTypes.join(',')]);
 
@@ -1697,6 +1705,9 @@ const DownloadFilesButton: React.FC<{
 
         const files = match._source._files || [];
         for (const file of files) {
+          // Skip itrax file types
+          if (file.type && file.type.startsWith('itrax-')) continue;
+          
           if (selectedFileTypes.has(file.type)) {
             filesToDownload.push(file);
           }
@@ -1768,6 +1779,7 @@ const DownloadFilesButton: React.FC<{
         <button
           className="btn btn-primary"
           onClick={() => setIsOpen(!isOpen)}
+          disabled={!countsLoading && availableFileTypes.length === 0}
         >
           Download Files
           <Icon name={isOpen ? "LuChevronUp" : "LuChevronDown"} size="xxs" className="ml-1" />
