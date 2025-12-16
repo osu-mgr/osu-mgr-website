@@ -267,7 +267,9 @@ const FileTypesFilterDropdown: React.FC<{
         return await res.json();
       }
       return {};
-    }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
   });
   
   const handleFileTypeChange = (fileType: string, checked: boolean) => {
@@ -492,6 +494,8 @@ const RvNameFilterDropdown: React.FC<{
       }
       return {};
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('cruise')
   });
 
@@ -700,6 +704,8 @@ const InstitutionFilterDropdown: React.FC<{
       }
       return { counts: {}, piInstitutions: {} };
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('cruise')
   });
 
@@ -902,6 +908,8 @@ const AreaFilterDropdown: React.FC<{
       }
       return {};
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('dive')
   });
 
@@ -1096,6 +1104,8 @@ const TextureFilterDropdown: React.FC<{
       }
       return {};
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.some((type: string) => ['dive', 'diveSample'].includes(type))
   });
 
@@ -1304,6 +1314,8 @@ const CollectionFilterDropdown: React.FC<{
       }
       return {};
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('core') || search.types.includes('dive')
   });
 
@@ -1327,6 +1339,8 @@ const CollectionFilterDropdown: React.FC<{
       }
       return {};
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('core') || search.types.includes('dive')
   });
 
@@ -1549,27 +1563,72 @@ const DownloadFilesButton: React.FC<{
   const [downloadProgress, setDownloadProgress] = useState(0);
 
   // Fetch file counts from ALL result types (not just current)
-  const { data: fileTypeCounts } = useQuery({
+  // Count unique file names/paths instead of counting duplicates
+  const { data: fileTypeCounts, isLoading: countsLoading } = useQuery({
     queryKey: ['fileTypeCountsAll', search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
     queryFn: async () => {
-      // Fetch counts from all document types
+      // Fetch all documents from all document types
       const allTypes = ['cruise', 'core', 'section', 'section-half', 'dive', 'rock'];
-      const res = await fetch('/api/opensearch?fileTypeCounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          types: allTypes,
-          searchString: search.searchString || '',
-          filters: search.filters,
-          filterLogic: search.filterLogic
-        }),
-      });
+      let allMatches: any[] = [];
 
-      if (res.ok) {
-        return await res.json();
+      for (const docType of allTypes) {
+        let pageNum = 0;
+        const pageSize = 100;
+
+        while (true) {
+          const payload = {
+            ...search,
+            types: [docType],
+            from: pageSize * pageNum,
+            size: pageSize,
+          };
+          const res = await fetch('/api/opensearch?search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) break;
+
+          const data = await res.json();
+          const hits = data.hits?.hits || [];
+          if (hits.length === 0) break;
+
+          allMatches = allMatches.concat(hits);
+          pageNum++;
+
+          // Stop if we've fetched all available results
+          const totalAvailable = data.hits.total?.value || 0;
+          const fetchedForType = pageNum * pageSize;
+          if (fetchedForType >= totalAvailable) break;
+        }
       }
-      return {};
+
+      // Count unique file paths by file type
+      const uniqueFilesByType: { [key: string]: Set<string> } = {};
+      
+      for (const match of allMatches) {
+        // Skip moratorium cruises
+        if (moratoriumCruises.includes(match._source._osuid)) continue;
+
+        const files = match._source._files || [];
+        for (const file of files) {
+          if (!uniqueFilesByType[file.type]) {
+            uniqueFilesByType[file.type] = new Set();
+          }
+          uniqueFilesByType[file.type].add(file.path);
+        }
+      }
+
+      // Convert Sets to counts
+      const counts: { [key: string]: number } = {};
+      for (const [fileType, pathSet] of Object.entries(uniqueFilesByType)) {
+        counts[fileType] = pathSet.size;
+      }
+
+      return counts;
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
   });
 
   const availableFileTypes = Object.keys(fileTypeCounts || {}).sort();
@@ -1732,27 +1791,37 @@ const DownloadFilesButton: React.FC<{
 
           {/* Scrollable file types list */}
           <div className="max-h-64 overflow-y-auto p-2">
-            {Object.entries(fileTypeCounts || {})
-              .filter(([, count]) => (count as number) > 0)
-              .map(([fileType, count]) => {
-                const isSelected = selectedFileTypes.has(fileType);
-                return (
-                  <div key={fileType} className="form-control">
-                    <label className="label cursor-pointer justify-start gap-2 py-1">
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-sm"
-                        checked={isSelected}
-                        onChange={() => toggleFileType(fileType)}
-                      />
-                      <span className="label-text text-sm bg-transparent flex-1">{getFileTypeLabel(fileType)}</span>
-                      <span className="badge badge-sm badge-outline">
-                        {numeral(count).format('0,0')}
-                      </span>
-                    </label>
-                  </div>
-                );
-              })}
+            {countsLoading ? (
+              <div className="flex justify-center items-center py-4">
+                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+              </div>
+            ) : Object.keys(fileTypeCounts || {}).length === 0 ? (
+              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                No files available
+              </div>
+            ) : (
+              Object.entries(fileTypeCounts || {})
+                .filter(([, count]) => (count as number) > 0)
+                .map(([fileType, count]) => {
+                  const isSelected = selectedFileTypes.has(fileType);
+                  return (
+                    <div key={fileType} className="form-control">
+                      <label className="label cursor-pointer justify-start gap-2 py-1">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm"
+                          checked={isSelected}
+                          onChange={() => toggleFileType(fileType)}
+                        />
+                        <span className="label-text text-sm bg-transparent flex-1">{getFileTypeLabel(fileType)}</span>
+                        <span className="badge badge-sm badge-outline">
+                          {numeral(count).format('0,0')}
+                        </span>
+                      </label>
+                    </div>
+                  );
+                })
+            )}
           </div>
 
           {/* Download button */}
@@ -1867,6 +1936,8 @@ const FilterPanel: React.FC<{
       }
       return {};
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.some((type: string) => ['core', 'dive'].includes(type))
   });
 
@@ -1895,6 +1966,8 @@ const FilterPanel: React.FC<{
       }
       return {};
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('core')
   });
 
@@ -1923,6 +1996,8 @@ const FilterPanel: React.FC<{
       }
       return {};
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('cruise')
   });
 
@@ -1945,7 +2020,9 @@ const FilterPanel: React.FC<{
         return await res.json();
       }
       return {};
-    }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
   });
   
   const handleMethodChange = (method: string, checked: boolean) => {
@@ -2203,6 +2280,8 @@ const FilterPanel: React.FC<{
       }
       return { counts: {}, piInstitutions: {} };
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('cruise')
   });
 
@@ -2295,6 +2374,8 @@ const FilterPanel: React.FC<{
       }
       return {};
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('dive')
   });
 
@@ -2384,6 +2465,8 @@ const FilterPanel: React.FC<{
       }
       return {};
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.some((type: string) => ['dive', 'diveSample'].includes(type))
   });
 
