@@ -1,5 +1,4 @@
 import React from "react";
-import Image from "next/image";
 import { Container } from "../util/container";
 import { Section } from "../util/section";
 import { tinaField } from 'tinacms/dist/react'
@@ -31,27 +30,18 @@ export const ImageBlock = ({ data }) => {
             marginBottom: '1em',
           }}>
             {data.width && data.height ? (
-              <div style={{
-                height: data.height,
-                width: data.width,
-                position: 'relative',
-                margin: 0,
-              }}>
-                <Image
-                  className={`w-full m-0 object-cover ${data.showCaption ? 'rounded-tl-lg rounded-tr-lg' : 'rounded-lg'}`}
-                  src={data.image}
-                  fill
-                  sizes={data.width + 'px'}
-                  alt={data.caption ? String(data.caption) : ''}
-                  data-tina-field={tinaField(data, 'image')}
-                />
-              </div>
+              <img
+                className={`w-full m-0 object-cover ${data.showCaption ? 'rounded-tl-lg rounded-tr-lg' : 'rounded-lg'}`}
+                src={data.image}
+                width={data.width}
+                height={data.height}
+                alt={data.caption ? String(data.caption) : ''}
+                data-tina-field={tinaField(data, 'image')}
+              />
             ) : (
-              <Image
+              <img
                 className={`w-full m-0 h-auto ${data.showCaption ? 'rounded-tl-lg rounded-tr-lg' : 'rounded-lg'}`}
                 src={data.image}
-                width={1200}
-                height={800}
                 alt={data.caption ? String(data.caption) : ''}
                 data-tina-field={tinaField(data, 'image')}
               />
