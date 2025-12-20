@@ -8,7 +8,6 @@ import { tinaField } from 'tinacms/dist/react'
 import { components } from "../util/md-components";
 import { mdToString } from "../util/md-to-string";
 import logo from "../../public/logo.png";
-import Image from "next/image";
 import { Icon } from "../util/icon";
 import { Container } from "../util/container";
 import layoutData from "../../content/global/index.json";
@@ -63,7 +62,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
     <div className={`z-50 p-0 bg-neutral-900 hidden lg:block ${ fixed && "fixed"}`} style={fixed && { width: `calc(100% - ${scrollbarWidth}px)` } || { visibility: 'hidden' }}>
       <div className="navbar flex">
         <div className="relative p-4 h-28 flex-shrink-0">
-          <Link href="/#page-top" className="h-20"><Image alt="Logo" src={logo} style={{ position: 'relative', height: '100%', width: '100%', inset: 0, objectFit: 'contain' }} /></Link>
+          <Link href="/#page-top" className="h-20"><img alt="Logo" src={logo.src} style={{ position: 'relative', height: '100%', width: '100%', inset: 0, objectFit: 'contain' }} /></Link>
         </div>
         <div className="tabs h-28 items-center flex-nowrap overflow-clip">
           {items.map((item, i) => 
@@ -103,7 +102,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
   const SmallHorizontalHeader = ({ fixed = false }) => 
     <div className={`navbar z-50 p-0 bg-neutral-900 lg:hidden ${ fixed && "fixed"}`} style={fixed && {width: `calc(100% - ${scrollbarWidth}px)`} || {visibility: 'hidden'}}>
       <div className="navbar-start relative p-4 h-20">
-        <Link href="/#page-top" className="h-16"><Image alt="Logo" src={logo} style={{ position: 'relative', height: '100%', width: '100%', inset: 0, objectFit: 'contain' }} /></Link>
+        <Link href="/#page-top" className="h-16"><img alt="Logo" src={logo.src} style={{ position: 'relative', height: '100%', width: '100%', inset: 0, objectFit: 'contain' }} /></Link>
       </div>
       <div className="navbar-end">
         <label tabIndex={0} htmlFor="side-menu" className="drawer-button btn btn-primary btn-link text-4xl">
@@ -163,7 +162,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
             {section.links?.map((link, j) =>
               <div data-tina-field={tinaField(link, 'link')} key={j}>
                 <a href={link.link} target="_blank">
-                  {link.image?.src && <Image src={link.image.src} alt={link.image.src} height={link.size == 'large' ? 100 : 50} width={link.size == 'large' ? 100 : 50} className={`w-auto ${link.size == 'large' ? 'max-h-24' : 'max-h-10'}`} />}
+                  {link.image?.src && <img src={link.image.src} alt={link.image.src} style={{ height: link.size == 'large' ? '100px' : '50px', width: link.size == 'large' ? '100px' : '50px' }} className={`w-auto ${link.size == 'large' ? 'max-h-24' : 'max-h-10'}`} />}
                 </a>
               </div>
             )}

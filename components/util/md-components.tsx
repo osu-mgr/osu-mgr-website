@@ -1,5 +1,4 @@
 import React from "react";
-import Image from "next/image";
 import { renderToString } from 'react-dom/server';
 import { TinaMarkdown, TinaMarkdownContent } from "tinacms/dist/rich-text";
 import type { Components } from "tinacms/dist/rich-text";
@@ -50,24 +49,17 @@ export const components: Components<{
         marginBottom: '1em',
       }}>
         {props?.width && props?.height ? (
-          <div style={{
-            height: props?.height,
-            width: props?.width,
-            position: 'relative',
-            margin: 0,
-          }}>
-            <Image className={`w-full m-0 object-cover ${props?.showCaption ? 'rounded-tl-lg rounded-tr-lg' : 'rounded-lg'}`}
-              src={props?.image}
-              fill
-              sizes={props?.width + 'px'}
-              alt={renderToString(<TinaMarkdown components={components} content={props?.caption} />)}
-            />
-          </div>
-        ) : (
-          <Image className={`w-full m-0 h-auto ${props?.showCaption ? 'rounded-tl-lg rounded-tr-lg' : 'rounded-lg'}`}
+          <img
+            className={`w-full m-0 object-cover ${props?.showCaption ? 'rounded-tl-lg rounded-tr-lg' : 'rounded-lg'}`}
             src={props?.image}
-            width={1200}
-            height={800}
+            width={props?.width}
+            height={props?.height}
+            alt={renderToString(<TinaMarkdown components={components} content={props?.caption} />)}
+          />
+        ) : (
+          <img
+            className={`w-full m-0 h-auto ${props?.showCaption ? 'rounded-tl-lg rounded-tr-lg' : 'rounded-lg'}`}
+            src={props?.image}
             alt={renderToString(<TinaMarkdown components={components} content={props?.caption} />)}
           />
         )}
