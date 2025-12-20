@@ -495,7 +495,7 @@ const RvNameFilterDropdown: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('cruise')
   });
 
@@ -705,7 +705,7 @@ const InstitutionFilterDropdown: React.FC<{
       return { counts: {}, piInstitutions: {} };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('cruise')
   });
 
@@ -909,7 +909,7 @@ const AreaFilterDropdown: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('dive')
   });
 
@@ -1105,7 +1105,7 @@ const TextureFilterDropdown: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.some((type: string) => ['dive', 'diveSample'].includes(type))
   });
 
@@ -1315,7 +1315,7 @@ const CollectionFilterDropdown: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('core') || search.types.includes('dive')
   });
 
@@ -1340,7 +1340,7 @@ const CollectionFilterDropdown: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('core') || search.types.includes('dive')
   });
 
@@ -1631,7 +1631,7 @@ const DownloadFilesButton: React.FC<{
       return counts;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
   });
 
   const availableFileTypes = Object.keys(fileTypeCounts || {})
@@ -1949,7 +1949,7 @@ const FilterPanel: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.some((type: string) => ['core', 'dive'].includes(type))
   });
 
@@ -1979,7 +1979,7 @@ const FilterPanel: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('core')
   });
 
@@ -2009,7 +2009,7 @@ const FilterPanel: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('cruise')
   });
 
@@ -2034,7 +2034,7 @@ const FilterPanel: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
   });
   
   const handleMethodChange = (method: string, checked: boolean) => {
@@ -2293,7 +2293,7 @@ const FilterPanel: React.FC<{
       return { counts: {}, piInstitutions: {} };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('cruise')
   });
 
@@ -2387,7 +2387,7 @@ const FilterPanel: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('dive')
   });
 
@@ -2478,7 +2478,7 @@ const FilterPanel: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.some((type: string) => ['dive', 'diveSample'].includes(type))
   });
 
