@@ -28,3 +28,6 @@ yarn-error.log*
 
 # tina
 /tina/__generated__
+# Build artifacts
+package-lock.json
+tsconfig.tsbuildinfo
