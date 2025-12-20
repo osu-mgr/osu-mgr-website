@@ -48,12 +48,11 @@ export const components: Components<{
         marginTop: 0,
         marginBottom: '1em',
       }}>
-        {props?.width && props?.height ? (
+        {props?.height ? (
           <img
             className={`w-full m-0 object-cover ${props?.showCaption ? 'rounded-tl-lg rounded-tr-lg' : 'rounded-lg'}`}
             src={props?.image}
-            width={props?.width}
-            height={props?.height}
+            style={{height: props?.height + 'px'}}
             alt={renderToString(<TinaMarkdown components={components} content={props?.caption} />)}
           />
         ) : (

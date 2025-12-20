@@ -29,12 +29,11 @@ export const ImageBlock = ({ data }) => {
             marginTop: 0,
             marginBottom: '1em',
           }}>
-            {data.width && data.height ? (
+            {data.height ? (
               <img
                 className={`w-full m-0 object-cover ${data.showCaption ? 'rounded-tl-lg rounded-tr-lg' : 'rounded-lg'}`}
                 src={data.image}
-                width={data.width}
-                height={data.height}
+                style={{height: data.height + 'px'}}
                 alt={data.caption ? String(data.caption) : ''}
                 data-tina-field={tinaField(data, 'image')}
               />
