@@ -1,6 +1,6 @@
 {
   "name": "@osu-mgr/website",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": false,
   "scripts": {
     "dev": "TINA_PUBLIC_IS_LOCAL=true tinacms dev -c \"next dev -p 4100\" --datalayer-port 4101",
