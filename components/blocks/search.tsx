@@ -269,7 +269,7 @@ const FileTypesFilterDropdown: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 30 * 60 * 1000, // 30 minutes
   });
   
   const handleFileTypeChange = (fileType: string, checked: boolean) => {
