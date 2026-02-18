@@ -52,9 +52,29 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       res.setHeader('Content-Length', response.ContentLength.toString());
     }
 
-    // Stream the file data
-    const bodyContents = await response.Body.transformToByteArray();
-    res.status(200).send(Buffer.from(bodyContents));
+    // Stream the file data directly without loading into memory
+    res.status(200);
+    
+    // Stream from S3 directly to response
+    const stream = response.Body as any;
+    if (stream.pipe) {
+      // Node.js ReadableStream
+      stream.pipe(res);
+    } else {
+      // Web ReadableStream - convert to chunks
+      const reader = stream.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(Buffer.from(value));
+        }
+        res.end();
+      } catch (err) {
+        reader.releaseLock();
+        throw err;
+      }
+    }
 
   } catch (error: any) {
     console.error('Error fetching file from S3:', error);
@@ -83,6 +103,8 @@ function getContentType(filePath: string): string {
     'jpeg': 'image/jpeg',
     'png': 'image/png',
     'gif': 'image/gif',
+    'tif': 'image/tiff',
+    'tiff': 'image/tiff',
     'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'xls': 'application/vnd.ms-excel',
     'csv': 'text/csv',

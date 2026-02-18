@@ -162,7 +162,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
             {section.links?.map((link, j) =>
               <div data-tina-field={tinaField(link, 'link')} key={j}>
                 <a href={link.link} target="_blank">
-                  {link.image?.src && <img src={link.image.src} alt={link.image.src} style={{ height: link.size == 'large' ? '100px' : '50px', width: link.size == 'large' ? '100px' : '50px' }} className={`w-auto ${link.size == 'large' ? 'max-h-24' : 'max-h-10'}`} />}
+                  {link.image?.src && <img src={link.image.src} alt={link.image.src} style={{ height: link.size == 'large' ? '100px' : '50px', objectFit: 'contain' }} className={`w-auto ${link.size == 'large' ? 'max-h-24' : 'max-h-10'}`} />}
                 </a>
               </div>
             )}

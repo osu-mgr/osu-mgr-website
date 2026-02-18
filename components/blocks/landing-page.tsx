@@ -226,7 +226,6 @@ const CoreSectionsPanel: React.FC<{ coreDoc: any; onNavigateToChild?: (osuid: st
               >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-primary m-0">{sectionData._osuid}</h4>
-                  <Icon name="TbExternalLink" className="w-4 h-4 text-gray-400" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -328,7 +327,6 @@ const RockSamplesPanel: React.FC<{ rockDoc: any; onNavigateToChild?: (osuid: str
               >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-primary m-0">{sampleData._osuid}</h4>
-                  <Icon name="TbExternalLink" className="w-4 h-4 text-gray-400" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -403,10 +401,72 @@ export const CruiseGlobe: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
     enabled: !!cruiseDoc._cruiseUUID,
   });
 
+  const {
+    data: divesResults,
+    isLoading: isDivesLoading,
+  } = useQuery({
+    queryKey: ['cruiseGlobeDives', cruiseDoc._cruiseUUID],
+    queryFn: async () => { 
+      if (!cruiseDoc._cruiseUUID) return null;
+      
+      const payload = {
+        types: ['dive'],
+        terms: {
+          "_cruiseUUID.keyword": [cruiseDoc._cruiseUUID],
+        },
+        sortOrder: 'ids asc',
+        size: 500, // Get more dives for the globe
+      };
+      const res = await fetch('/api/opensearch?search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorresults = await res.json();
+        throw new Error(errorresults.message || 'Failed to fetch dives');
+      }
+      return res.json();
+    },
+    enabled: !!cruiseDoc._cruiseUUID,
+  });
+
+  const {
+    data: rocksResults,
+    isLoading: isRocksLoading,
+  } = useQuery({
+    queryKey: ['cruiseGlobeRocks', cruiseDoc._cruiseUUID],
+    queryFn: async () => { 
+      if (!cruiseDoc._cruiseUUID) return null;
+      
+      const payload = {
+        types: ['diveSample'],
+        terms: {
+          "_cruiseUUID.keyword": [cruiseDoc._cruiseUUID],
+        },
+        sortOrder: 'ids asc',
+        size: 500, // Get more rocks for the globe
+      };
+      const res = await fetch('/api/opensearch?search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorresults = await res.json();
+        throw new Error(errorresults.message || 'Failed to fetch rocks');
+      }
+      return res.json();
+    },
+    enabled: !!cruiseDoc._cruiseUUID,
+  });
+
   const cores = coresResults?.hits?.hits || [];
+  const dives = divesResults?.hits?.hits || [];
+  const rocks = rocksResults?.hits?.hits || [];
   
   // Extract coordinates from cores
-  const coordinates = cores
+  const coreCoordinates = cores
     .map((core: any) => {
       const coreData = core._source;
       const lat = coreData.latitudeStart ?? coreData.latitude;
@@ -423,14 +483,54 @@ export const CruiseGlobe: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
     })
     .filter((coord: any) => coord !== null);
 
+  // Extract coordinates from dives
+  const diveCoordinates = dives
+    .map((dive: any) => {
+      const diveData = dive._source;
+      const lat = diveData.latitudeStart ?? diveData.latitude;
+      const lon = diveData.longitudeStart ?? diveData.longitude;
+      
+      if (lat != null && lon != null) {
+        return {
+          lat: Number(lat),
+          lon: Number(lon),
+          name: diveData._osuid || diveData.id
+        };
+      }
+      return null;
+    })
+    .filter((coord: any) => coord !== null);
+
+  // Extract coordinates from rocks
+  const rockCoordinates = rocks
+    .map((rock: any) => {
+      const rockData = rock._source;
+      const lat = rockData.latitudeStart ?? rockData.latitude;
+      const lon = rockData.longitudeStart ?? rockData.longitude;
+      
+      if (lat != null && lon != null) {
+        return {
+          lat: Number(lat),
+          lon: Number(lon),
+          name: rockData._osuid || rockData.id
+        };
+      }
+      return null;
+    })
+    .filter((coord: any) => coord !== null);
+
+  // Combine all coordinates
+  const coordinates = [...coreCoordinates, ...diveCoordinates, ...rockCoordinates];
+  const isLoading = isCoresLoading || isDivesLoading || isRocksLoading;
+
   if (!cruiseDoc._cruiseUUID || coordinates.length === 0) return null;
 
   return (
     <div className="relative bg-gradient-to-br from-primary/10 via-base-100 to-base-100 border-b border-base-300">
-      {isCoresLoading ? (
+      {isLoading ? (
         <div className="flex justify-center items-center py-8 min-h-[300px]">
           <Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" />
-          <span className="ml-2">Loading core locations...</span>
+          <span className="ml-2">Loading locations...</span>
         </div>
       ) : (
         <>
@@ -440,7 +540,7 @@ export const CruiseGlobe: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pointer-events-none">
             <div className="text-white">
               <div className="text-xs opacity-80 font-medium mb-1 uppercase tracking-wide">
-                Showing {coordinates.length} core location{coordinates.length !== 1 ? 's' : ''}
+                Showing {coreCoordinates.length} core{coreCoordinates.length !== 1 ? 's' : ''}, {diveCoordinates.length} dive{diveCoordinates.length !== 1 ? 's' : ''}, and {rockCoordinates.length} rock{rockCoordinates.length !== 1 ? 's' : ''}
               </div>
             </div>
           </div>
@@ -586,7 +686,6 @@ const CruiseCoresPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: s
               >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-primary m-0">{coreData._osuid}</h4>
-                  <Icon name="TbExternalLink" className="w-4 h-4 text-gray-400" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -696,7 +795,6 @@ const CruiseRocksPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: s
               >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-primary m-0">{rockData._osuid}</h4>
-                  <Icon name="TbExternalLink" className="w-4 h-4 text-gray-400" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -800,7 +898,6 @@ const SectionhalvesPanel: React.FC<{ sectionDoc: any; onNavigateToChild?: (osuid
               >
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="font-semibold text-primary m-0">{halfData._osuid}</h4>
-                  <Icon name="TbExternalLink" className="w-4 h-4 text-gray-400" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -889,6 +986,99 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
     ? results.hits.hits[0]._source 
     : {};
 
+  // Query for cruise data when viewing a core
+  const {
+    data: cruiseResults,
+    isLoading: isCruiseLoading,
+  } = useQuery({
+    queryKey: ['cruiseForCore', doc._cruiseUUID],
+    queryFn: async () => { 
+      if (!doc._cruiseUUID) return null;
+      
+      const payload = {
+        types: ['cruise'],
+        terms: {
+          "_cruiseUUID.keyword": [doc._cruiseUUID],
+        },
+      };
+      const res = await fetch('/api/opensearch?search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorresults = await res.json();
+        throw new Error(errorresults.message || 'Failed to fetch cruise');
+      }
+      return res.json();
+    },
+    enabled: !!doc._cruiseUUID && doc._docType === 'core',
+  });
+
+  const cruiseDoc = cruiseResults?.hits?.hits?.[0]?._source || null;
+
+  // Query for core data when viewing a section
+  const {
+    data: coreResults,
+    isLoading: isCoreLoading,
+  } = useQuery({
+    queryKey: ['coreForSection', doc._coreUUID],
+    queryFn: async () => { 
+      if (!doc._coreUUID) return null;
+      
+      const payload = {
+        types: ['core'],
+        terms: {
+          "_coreUUID.keyword": [doc._coreUUID],
+        },
+      };
+      const res = await fetch('/api/opensearch?search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorresults = await res.json();
+        throw new Error(errorresults.message || 'Failed to fetch core');
+      }
+      return res.json();
+    },
+    enabled: !!doc._coreUUID && doc._docType === 'section',
+  });
+
+  const coreDoc = coreResults?.hits?.hits?.[0]?._source || null;
+
+  // Query for cruise data when viewing a section
+  const {
+    data: cruiseResultsForSection,
+    isLoading: isCruiseLoadingForSection,
+  } = useQuery({
+    queryKey: ['cruiseForSection', doc._cruiseUUID],
+    queryFn: async () => { 
+      if (!doc._cruiseUUID) return null;
+      
+      const payload = {
+        types: ['cruise'],
+        terms: {
+          "_cruiseUUID.keyword": [doc._cruiseUUID],
+        },
+      };
+      const res = await fetch('/api/opensearch?search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorresults = await res.json();
+        throw new Error(errorresults.message || 'Failed to fetch cruise');
+      }
+      return res.json();
+    },
+    enabled: !!doc._cruiseUUID && doc._docType === 'section',
+  });
+
+  const cruiseDocForSection = cruiseResultsForSection?.hits?.hits?.[0]?._source || null;
+
   // Notify parent component when document is loaded
   useEffect(() => {
     if (onDocumentLoaded && doc._osuid) {
@@ -910,15 +1100,15 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
       }
       {doc._docType == 'cruise' &&
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-primary">Cruise {osuId || doc._osuid}</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Basic Information */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Basic Information</h3>
+          {/* Cruise Information */}
+          <div className="mb-6">
+            <h3 className="text-xl font-bold mb-4 text-primary">Cruise</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 {doc.id && <p className="m-0"><strong>Cruise ID:</strong> {doc.id}</p>}
                 {doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+                {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
+                {doc.piInstitution && <p className="m-0"><strong>PI Institution:</strong> {doc.piInstitution}</p>}
                 {r2rCruiseLinks[doc._osuid] && (
                   <div className="mt-2">
                     <strong>R2R Links:</strong>
@@ -939,32 +1129,27 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
                   </div>
                 )}
               </div>
-            </div>
 
-            {/* Description */}
-            {doc.description && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mt-0 mb-3">Description</h3>
-                <p className="text-sm">{doc.description}</p>
-              </div>
-            )}
-
-            {/* Files & Resources */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Available Files</h3>
-              <div>
-                {doc._files && doc._files.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {doc._files.map((file, index) => (
-                      <FileCard key={index} file={file} variant="button" />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 m-0">No files available</p>
-                )}
-              </div>
+              {/* Description */}
+              {doc.description && (
+                <div>
+                  <p className="text-sm">{doc.description}</p>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Files & Resources */}
+          {doc._files && doc._files.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
+              <div className="flex flex-wrap gap-2">
+                {doc._files.map((file, index) => (
+                  <FileCard key={index} file={file} variant="button" />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Cruise Cores Panel */}
           <CruiseCoresPanel cruiseDoc={doc} onNavigateToChild={onNavigateToChild} />
@@ -975,68 +1160,95 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
       }
       {doc._docType == 'core' && 
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-primary">Core {osuId || doc._osuid}</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Basic Information */}
+          <div className="mb-6">
+            <h3 className="text-xl font-bold mb-4 text-primary">Core Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+              {doc.id && <p className="m-0"><strong>Core ID:</strong> {doc.id}</p>}
+              {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
+              {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
+              {doc.diameter && <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>}
+              {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
+              {doc.nSections && <p className="m-0"><strong>Number of Sections:</strong> {doc.nSections}</p>}
+              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
+              {doc.endDate && <p className="m-0"><strong>End Date:</strong> {new Date(doc.endDate).toLocaleDateString()}</p>}
+              {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
+              {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
+              {doc.waterDepthStart && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
+            </div>
+          </div>
+
+          {/* Cruise Information */}
+          {cruiseDoc && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Basic Information</h3>
-              <div>
-                {doc.id && <p className="m-0"><strong>Core ID:</strong> {doc.id}</p>}
-                {doc._cruiseID && (
+              <h3 className="text-xl font-bold mb-4 text-primary">Cruise Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {cruiseDoc._osuid && (
                   <p className="m-0">
-                    <strong>Cruise ID:</strong>
+                    <strong>Cruise:</strong>
                     <button
-                      onClick={() => onNavigateToChild?.(`OSU-${doc._cruiseID}`)}
+                      onClick={() => onNavigateToChild?.(cruiseDoc._osuid)}
                       className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
                     >
-                      {doc._cruiseID}
+                      {cruiseDoc._osuid}
                     </button>
                   </p>
                 )}
-                {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-                {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
-              </div>
-            </div>
-
-            {/* Core Size */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Core Size</h3>
-              <div>
-                {doc.diameter && <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>}
-                {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
-                {doc.nSections && <p className="m-0"><strong>Number of Sections:</strong> {doc.nSections}</p>}
-              </div>
-            </div>
-
-            {/* Location & Date */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Location & Date</h3>
-              <div>
-                {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-                {doc.endDate && <p className="m-0"><strong>End Date:</strong> {new Date(doc.endDate).toLocaleDateString()}</p>}
-                {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
-                {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
-                {doc.waterDepthStart && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
-              </div>
-            </div>
-
-            {/* Files & Resources */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Available Files</h3>
-              <div>
-                {doc._files && doc._files.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {doc._files.map((file, index) => (
-                      <FileCard key={index} file={file} variant="button" />
-                    ))}
+                {cruiseDoc.date && (
+                  <p className="m-0"><strong>Cruise Date:</strong> {new Date(cruiseDoc.date).toLocaleDateString()}</p>
+                )}
+                {cruiseDoc.pi && (
+                  <p className="m-0"><strong>PI:</strong> {cruiseDoc.pi}</p>
+                )}
+                {cruiseDoc.piInstitution && (
+                  <p className="m-0"><strong>PI Institution:</strong> {cruiseDoc.piInstitution}</p>
+                )}
+                {cruiseDoc.description && (
+                  <p className="m-0 md:col-span-2"><strong>Description:</strong> {cruiseDoc.description}</p>
+                )}
+                {cruiseDoc.latitudeStart != null && cruiseDoc.latitudeEnd != null && (
+                  <p className="m-0">
+                    <strong>Cruise Latitude Range:</strong> {cruiseDoc.latitudeStart}° to {cruiseDoc.latitudeEnd}°
+                  </p>
+                )}
+                {cruiseDoc.longitudeStart != null && cruiseDoc.longitudeEnd != null && (
+                  <p className="m-0">
+                    <strong>Cruise Longitude Range:</strong> {cruiseDoc.longitudeStart}° to {cruiseDoc.longitudeEnd}°
+                  </p>
+                )}
+                {r2rCruiseLinks[cruiseDoc._osuid] && (
+                  <div className="md:col-span-2">
+                    <strong>R2R Links:</strong>
+                    <div className="flex flex-row flex-wrap gap-1 mt-1">
+                      {r2rCruiseLinks[cruiseDoc._osuid].map((link: string, idx: number) => (
+                        <a 
+                          key={idx}
+                          href={link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1"
+                        >
+                          <Icon name="BiLinkExternal" size="xxs" />
+                          R2R: {link.split('/').pop()}
+                        </a>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <p className="text-gray-500 m-0">No files available</p>
                 )}
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Files & Resources */}
+          {doc._files && doc._files.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-xl font-bold mb-4 text-primary">Available Files</h3>
+              <div className="flex flex-wrap gap-2">
+                {doc._files.map((file, index) => (
+                  <FileCard key={index} file={file} variant="button" />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Core Sections Panel */}
           <CoreSectionsPanel coreDoc={doc} onNavigateToChild={onNavigateToChild} />
@@ -1044,89 +1256,166 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
       }
       {doc._docType == 'section' && 
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-primary">Section {osuId || doc._osuid}</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Basic Information */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Basic Information</h3>
-              <div>
-                {doc.id && <p className="m-0"><strong>Section ID:</strong> {doc.id}</p>}
-                {doc._coreID && (
-                  <p className="m-0">
-                    <strong>Core ID:</strong>
-                    <button
-                      onClick={() => onNavigateToChild?.(doc._coreID)}
-                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
-                    >
-                      {doc._coreID}
-                    </button>
-                  </p>
-                )}
-                {doc._cruiseID && (
-                  <p className="m-0">
-                    <strong>Cruise ID:</strong>
-                    <button
-                      onClick={() => onNavigateToChild?.(`OSU-${doc._cruiseID}`)}
-                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
-                    >
-                      {doc._cruiseID}
-                    </button>
-                  </p>
-                )}
-                {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-              </div>
-            </div>
-
-            {/* Section Length */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Section Length</h3>
-              <div>
-                {doc.depthTop != null && doc.depthBottom != null && (
-                  <p className="m-0">
-                    <strong>Depth Range:</strong> {doc.depthTop} - {doc.depthBottom} cm
-                  </p>
-                )}
-                {doc.length && (
-                  <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>
-                )}
-                {doc.diameter && (
-                  <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>
-                )}
-                {doc.texture && (
-                  <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Location & Date */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Location & Date</h3>
-              <div>
-                {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-                {doc.startTime && <p className="m-0"><strong>Start Time:</strong> {new Date(doc.startTime).toLocaleTimeString()}</p>}
-                {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
-                {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
-                {doc.waterDepthStart && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
-              </div>
-            </div>
-
-            {/* Files & Resources */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Available Files</h3>
-              <div>
-                {doc._files && doc._files.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {doc._files.map((file, index) => (
-                      <FileCard key={index} file={file} variant="button" />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 m-0">No files available</p>
-                )}
-              </div>
+          <div className="mb-6">
+            <h3 className="text-xl font-bold mb-4 text-primary">Section Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+              {doc.id && <p className="m-0"><strong>Section ID:</strong> {doc.id}</p>}
+              {doc._coreID && (
+                <p className="m-0">
+                  <strong>Core ID:</strong>
+                  <button
+                    onClick={() => onNavigateToChild?.(doc._coreID)}
+                    className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
+                  >
+                    {doc._coreID}
+                  </button>
+                </p>
+              )}
+              {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
+              {doc.depthTop != null && doc.depthBottom != null && (
+                <p className="m-0">
+                  <strong>Depth Range:</strong> {doc.depthTop} - {doc.depthBottom} cm
+                </p>
+              )}
+              {doc.length && (
+                <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>
+              )}
+              {doc.diameter && (
+                <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>
+              )}
+              {doc.texture && (
+                <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>
+              )}
+              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
+              {doc.startTime && <p className="m-0"><strong>Start Time:</strong> {new Date(doc.startTime).toLocaleTimeString()}</p>}
+              {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
+              {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
+              {doc.waterDepthStart && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
             </div>
           </div>
+
+          {/* Core Information */}
+          {coreDoc && (
+            <div className="mb-6">
+              <h3 className="text-xl font-bold mb-4 text-primary">Core Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {coreDoc._osuid && (
+                  <p className="m-0">
+                    <strong>Core:</strong>
+                    <button
+                      onClick={() => onNavigateToChild?.(coreDoc._osuid)}
+                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
+                    >
+                      {coreDoc._osuid}
+                    </button>
+                  </p>
+                )}
+                {coreDoc.material && (
+                  <p className="m-0"><strong>Material:</strong> {coreDoc.material}</p>
+                )}
+                {coreDoc.method && (
+                  <p className="m-0"><strong>Coring Method:</strong> {coreDoc.method}</p>
+                )}
+                {coreDoc.diameter && (
+                  <p className="m-0"><strong>Core Diameter:</strong> {coreDoc.diameter} cm</p>
+                )}
+                {coreDoc.length && (
+                  <p className="m-0"><strong>Core Length:</strong> {coreDoc.length} cm</p>
+                )}
+                {coreDoc.nSections && (
+                  <p className="m-0"><strong>Number of Sections:</strong> {coreDoc.nSections}</p>
+                )}
+                {coreDoc.startDate && (
+                  <p className="m-0"><strong>Start Date:</strong> {new Date(coreDoc.startDate).toLocaleDateString()}</p>
+                )}
+                {coreDoc.endDate && (
+                  <p className="m-0"><strong>End Date:</strong> {new Date(coreDoc.endDate).toLocaleDateString()}</p>
+                )}
+                {coreDoc.latitudeStart != null && (
+                  <p className="m-0"><strong>Core Latitude:</strong> {coreDoc.latitudeStart}°</p>
+                )}
+                {coreDoc.longitudeStart != null && (
+                  <p className="m-0"><strong>Core Longitude:</strong> {coreDoc.longitudeStart}°</p>
+                )}
+                {coreDoc.waterDepthStart && (
+                  <p className="m-0"><strong>Water Depth:</strong> {coreDoc.waterDepthStart} m</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Cruise Information */}
+          {cruiseDocForSection && (
+            <div className="mb-6">
+              <h3 className="text-xl font-bold mb-4 text-primary">Cruise Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {cruiseDocForSection._osuid && (
+                  <p className="m-0">
+                    <strong>Cruise:</strong>
+                    <button
+                      onClick={() => onNavigateToChild?.(cruiseDocForSection._osuid)}
+                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
+                    >
+                      {cruiseDocForSection._osuid}
+                    </button>
+                  </p>
+                )}
+                {cruiseDocForSection.date && (
+                  <p className="m-0"><strong>Cruise Date:</strong> {new Date(cruiseDocForSection.date).toLocaleDateString()}</p>
+                )}
+                {cruiseDocForSection.pi && (
+                  <p className="m-0"><strong>PI:</strong> {cruiseDocForSection.pi}</p>
+                )}
+                {cruiseDocForSection.piInstitution && (
+                  <p className="m-0"><strong>PI Institution:</strong> {cruiseDocForSection.piInstitution}</p>
+                )}
+                {cruiseDocForSection.description && (
+                  <p className="m-0 md:col-span-2"><strong>Description:</strong> {cruiseDocForSection.description}</p>
+                )}
+                {cruiseDocForSection.latitudeStart != null && cruiseDocForSection.latitudeEnd != null && (
+                  <p className="m-0">
+                    <strong>Cruise Latitude Range:</strong> {cruiseDocForSection.latitudeStart}° to {cruiseDocForSection.latitudeEnd}°
+                  </p>
+                )}
+                {cruiseDocForSection.longitudeStart != null && cruiseDocForSection.longitudeEnd != null && (
+                  <p className="m-0">
+                    <strong>Cruise Longitude Range:</strong> {cruiseDocForSection.longitudeStart}° to {cruiseDocForSection.longitudeEnd}°
+                  </p>
+                )}
+                {r2rCruiseLinks[cruiseDocForSection._osuid] && (
+                  <div className="md:col-span-2">
+                    <strong>R2R Links:</strong>
+                    <div className="flex flex-row flex-wrap gap-1 mt-1">
+                      {r2rCruiseLinks[cruiseDocForSection._osuid].map((link: string, idx: number) => (
+                        <a 
+                          key={idx}
+                          href={link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1"
+                        >
+                          <Icon name="BiLinkExternal" size="xxs" />
+                          R2R: {link.split('/').pop()}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Files & Resources */}
+          {doc._files && doc._files.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-xl font-bold mb-4 text-primary">Available Files</h3>
+              <div className="flex flex-wrap gap-2">
+                {doc._files.map((file, index) => (
+                  <FileCard key={index} file={file} variant="button" />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Section halves Panel */}
           <SectionhalvesPanel sectionDoc={doc} onNavigateToChild={onNavigateToChild} />
@@ -1134,132 +1423,104 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
       }
       {doc._docType == 'sectionHalf' && 
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-primary">Section Half {osuId || doc._osuid}</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Basic Information */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Basic Information</h3>
-              <div>
-                {doc.id && <p className="m-0"><strong>Section Half ID:</strong> {doc.id}</p>}
-                {doc._sectionID && (
-                  <p className="m-0">
-                    <strong>Section ID:</strong>
-                    <button
-                      onClick={() => onNavigateToChild?.(doc._sectionID)}
-                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
-                    >
-                      {doc._sectionID}
-                    </button>
-                  </p>
-                )}
-                {doc._coreID && (
-                  <p className="m-0">
-                    <strong>Core ID:</strong>
-                    <button
-                      onClick={() => onNavigateToChild?.(doc._coreID)}
-                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
-                    >
-                      {doc._coreID}
-                    </button>
-                  </p>
-                )}
-                {doc._cruiseID && (
-                  <p className="m-0">
-                    <strong>Cruise ID:</strong>
-                    <button
-                      onClick={() => onNavigateToChild?.(`OSU-${doc._cruiseID}`)}
-                      className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
-                    >
-                      {doc._cruiseID}
-                    </button>
-                  </p>
-                )}
-                {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-                {doc.halfType && <p className="m-0"><strong>Half Type:</strong> {doc.halfType}</p>}
-              </div>
-            </div>
-
-            {/* Physical Properties */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Physical Properties</h3>
-              <div>
-                {doc.depthTop != null && doc.depthBottom != null && (
-                  <p className="m-0">
-                    <strong>Depth Range:</strong> {doc.depthTop} - {doc.depthBottom} cm
-                  </p>
-                )}
-                {doc.length && (
-                  <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>
-                )}
-                {doc.diameter && (
-                  <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>
-                )}
-                {doc.thickness && (
-                  <p className="m-0"><strong>Thickness:</strong> {doc.thickness} cm</p>
-                )}
-                {doc.texture && (
-                  <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>
-                )}
-                {doc.color && (
-                  <p className="m-0"><strong>Color:</strong> {doc.color}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Location & Date */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Location & Date</h3>
-              <div>
-                {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-                {doc.startTime && <p className="m-0"><strong>Start Time:</strong> {new Date(doc.startTime).toLocaleTimeString()}</p>}
-                {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
-                {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
-                {doc.waterDepthStart && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
-              </div>
-            </div>
-
-            {/* Files & Resources */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mt-0 mb-3">Available Files</h3>
-              <div>
-                {doc._files && doc._files.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {doc._files.map((file, index) => (
-                      <FileCard key={index} file={file} variant="button" />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500 m-0">No files available</p>
-                )}
-              </div>
+          <div className="mb-6">
+            <h3 className="text-xl font-bold mb-4 text-primary">Section Half Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+              {doc.id && <p className="m-0"><strong>Section Half ID:</strong> {doc.id}</p>}
+              {doc._sectionID && (
+                <p className="m-0">
+                  <strong>Section ID:</strong>
+                  <button
+                    onClick={() => onNavigateToChild?.(doc._sectionID)}
+                    className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
+                  >
+                    {doc._sectionID}
+                  </button>
+                </p>
+              )}
+              {doc._coreID && (
+                <p className="m-0">
+                  <strong>Core ID:</strong>
+                  <button
+                    onClick={() => onNavigateToChild?.(doc._coreID)}
+                    className="text-primary hover:text-primary-focus no-underline ml-1 bg-transparent border-none p-0 cursor-pointer"
+                  >
+                    {doc._coreID}
+                  </button>
+                </p>
+              )}
+              {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
+              {doc.halfType && <p className="m-0"><strong>Half Type:</strong> {doc.halfType}</p>}
+              {doc.depthTop != null && doc.depthBottom != null && (
+                <p className="m-0">
+                  <strong>Depth Range:</strong> {doc.depthTop} - {doc.depthBottom} cm
+                </p>
+              )}
+              {doc.length && (
+                <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>
+              )}
+              {doc.diameter && (
+                <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>
+              )}
+              {doc.thickness && (
+                <p className="m-0"><strong>Thickness:</strong> {doc.thickness} cm</p>
+              )}
+              {doc.texture && (
+                <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>
+              )}
+              {doc.color && (
+                <p className="m-0"><strong>Color:</strong> {doc.color}</p>
+              )}
+              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
+              {doc.startTime && <p className="m-0"><strong>Start Time:</strong> {new Date(doc.startTime).toLocaleTimeString()}</p>}
+              {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
+              {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
+              {doc.waterDepthStart && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
             </div>
           </div>
+
+          {/* Files & Resources */}
+          {doc._files && doc._files.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-xl font-bold mb-4 text-primary">Available Files</h3>
+              <div className="flex flex-wrap gap-2">
+                {doc._files.map((file, index) => (
+                  <FileCard key={index} file={file} variant="button" />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       }
       {doc._docType == 'dive' && 
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-primary">Rock {osuId || doc._osuid}</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Basic Information */}
+          <div className="mb-6">
+            <h3 className="text-xl font-bold mb-4 text-primary">Dive Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+              {doc.title && <p className="m-0"><strong>Title:</strong> {doc.title}</p>}
+              {doc.id && <p className="m-0"><strong>Dive ID:</strong> {doc.id}</p>}
+              {doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+            </div>
+          </div>
+
+          {doc.description && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-3 text-base-content">Basic Information</h3>
-              <div className="space-y-2">
-                {doc.title && <p className="m-0"><strong>Title:</strong> {doc.title}</p>}
-                {doc.id && <p className="m-0"><strong>Dive ID:</strong> {doc.id}</p>}
-                {doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+              <h3 className="text-xl font-bold mb-4 text-primary">Description</h3>
+              <p className="text-sm">{doc.description}</p>
+            </div>
+          )}
+
+          {/* Files & Resources */}
+          {doc._files && doc._files.length > 0 && (
+            <div className="mb-6">
+              <h3 className="text-xl font-bold mb-4 text-primary">Available Files</h3>
+              <div className="flex flex-wrap gap-2">
+                {doc._files.map((file, index) => (
+                  <FileCard key={index} file={file} variant="button" />
+                ))}
               </div>
             </div>
-
-            {/* Description */}
-            {doc.description && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3 text-base-content">Description</h3>
-                <p className="text-sm">{doc.description}</p>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Rock Samples Panel */}
           <RockSamplesPanel rockDoc={doc} onNavigateToChild={onNavigateToChild} />
@@ -1267,38 +1528,30 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
       }
       {(doc._docType == 'diveSample' || doc._docType == 'diveSubsample') && 
         <div>
-          <h2 className="text-2xl font-bold mb-6 text-primary">
-            {doc._docType === 'diveSample' ? 'Rock Sample' : 'Rock Subsample'} {osuId || doc._osuid}
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Basic Information */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-3 text-base-content">Basic Information</h3>
-              <div className="space-y-2">
-                {doc.title && <p><strong>Title:</strong> {doc.title}</p>}
-                <p><strong>Type:</strong> {doc._docType === 'diveSample' ? 'Sample' : 'Subsample'}</p>
-                {doc._osuid && <p><strong>OSU ID:</strong> {doc._osuid}</p>}
-                {doc.date && <p><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
-                {doc.method && <p><strong>Method:</strong> {doc.method}</p>}
-                {doc.weight && <p><strong>Weight:</strong> {doc.weight} kg</p>}
-                {doc.area && <p><strong>Area:</strong> {doc.area}</p>}
-              </div>
+          <div className="mb-6">
+            <h3 className="text-xl font-bold mb-4 text-primary">{doc._docType === 'diveSample' ? 'Sample' : 'Subsample'} Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+              {doc.title && <p className="m-0"><strong>Title:</strong> {doc.title}</p>}
+              <p className="m-0"><strong>Type:</strong> {doc._docType === 'diveSample' ? 'Sample' : 'Subsample'}</p>
+              {doc._osuid && <p className="m-0"><strong>OSU ID:</strong> {doc._osuid}</p>}
+              {doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+              {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
+              {doc.weight && <p className="m-0"><strong>Weight:</strong> {doc.weight} kg</p>}
+              {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
             </div>
-
-            {/* Description */}
-            {doc.description && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3 text-base-content">Description</h3>
-                <p className="text-sm">{doc.description}</p>
-              </div>
-            )}
           </div>
+
+          {doc.description && (
+            <div className="mb-6">
+              <h3 className="text-xl font-bold mb-4 text-primary">Description</h3>
+              <p className="text-sm">{doc.description}</p>
+            </div>
+          )}
 
           {/* Files */}
           {doc._files && doc._files.length > 0 && (
             <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-3 text-base-content">Files</h3>
+              <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                 {doc._files.map((file: any, index: any) => (
                   <FileCard key={index} file={file} variant="thumbnail" />

@@ -3288,6 +3288,37 @@ export const Search: React.FC<{ data: any }> = ({
       threshold: 0,
   });
 
+  // Query for core data when viewing a section in the modal
+  const {
+    data: coreForSectionResults,
+    isLoading: isCoreForSectionLoading,
+  } = useQuery({
+    queryKey: ['coreForSectionModal', currentDoc?._coreUUID],
+    queryFn: async () => {
+      if (!currentDoc?._coreUUID) return null;
+
+      const payload = {
+        types: ['core'],
+        terms: {
+          "_coreUUID.keyword": [currentDoc._coreUUID],
+        },
+      };
+      const res = await fetch('/api/opensearch?search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errorresults = await res.json();
+        throw new Error(errorresults.message || 'Failed to fetch core');
+      }
+      return res.json();
+    },
+    enabled: !!currentDoc?._coreUUID && currentDoc?._docType === 'section',
+  });
+
+  const coreForSection = coreForSectionResults?.hits?.hits?.[0]?._source || null;
+
   const debouncedSetSearch = useCallback(
     _.debounce((newSearchString: string) => {
       const cleanedSearchString = newSearchString.replace(/^http(s?):\/\/osu-mgr.org\//i, '');
@@ -3356,6 +3387,37 @@ export const Search: React.FC<{ data: any }> = ({
   const openLandingModal = (osuid: string) => {
     setOsuId(osuid);
     setShowLandingModal(true);
+    // Update URL with osu parameter
+    router.push(`/search?osu=${encodeURIComponent(osuid)}`, undefined, { shallow: true });
+  };
+
+  const closeLandingModal = () => {
+    setShowLandingModal(false);
+    setOsuId('');
+    // Remove osu parameter from URL
+    router.push('/search', undefined, { shallow: true });
+  };
+
+  const copyModalLink = () => {
+    if (osuId) {
+      const url = `https://osu-mgr.org/${encodeURIComponent(osuId)}`;
+      navigator.clipboard.writeText(url).then(() => {
+        // You could add a toast notification here if desired
+      });
+    }
+  };
+
+  const getDocTypeLabel = (docType: string | undefined) => {
+    if (!docType) return 'Item';
+    switch(docType.toLowerCase()) {
+      case 'cruise': return 'Cruise';
+      case 'core': return 'Core';
+      case 'section': return 'Section';
+      case 'sectionhalf': return 'Section Half';
+      case 'dive': return 'Dive';
+      case 'divesample': return 'Rock';
+      default: return docType.charAt(0).toUpperCase() + docType.slice(1);
+    }
   };
 
   // Hook to fetch core data by UUID for breadcrumbs
@@ -3676,7 +3738,7 @@ export const Search: React.FC<{ data: any }> = ({
         </div>
         <div className="flex gap-4 mt-4">
           {/* Left Sidebar - Filters and Active Filters */}
-          <div className="w-[320px] flex-shrink-0 flex flex-col gap-4">
+          <div className={`${showFilters ? 'w-[320px]' : 'w-auto'} flex-shrink-0 flex flex-col gap-4`}>
             {/* Filter Panel - conditionally shown */}
             {showFilters && (
               <FilterPanel 
@@ -4882,9 +4944,9 @@ export const Search: React.FC<{ data: any }> = ({
                       <div className="tab tab-lg tab-bordered text-primary flex-grow justify-start px-0">
                         <b>Active Filters</b>
                       </div>
-                      <div className="tab tab-lg tab-bordered text-primary pr-0">
+                      <div className="tab tab-lg tab-bordered text-primary px-0">
                         <button
-                          className="btn btn-sm btn-ghost pr-0"
+                          className="btn btn-xs btn-outline"
                           onClick={() => {
                             setSearchString("");
                             setSearch({
@@ -5132,36 +5194,96 @@ export const Search: React.FC<{ data: any }> = ({
 
       {/* Landing Page Modal - Redesigned */}
       {showLandingModal && (
-        <div className="fixed inset-0 z-50 overflow-hidden" onClick={() => setShowLandingModal(false)}>
+        <div className="fixed inset-0 z-50 overflow-hidden" onClick={closeLandingModal}>
           {/* Backdrop with blur */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"></div>
 
           {/* Modal Container */}
-          <div className="flex items-center justify-center min-h-screen p-4">
+          <div className="flex items-center justify-center min-h-screen px-8 py-24">
             <div
-              className="relative bg-base-100 rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+              className="relative bg-base-100 rounded-2xl shadow-2xl max-w-7xl w-full max-h-[calc(100vh-12rem)] flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header with Title and Close Button */}
               <div className="relative border-b border-base-300">
                 <div className="flex justify-between items-center p-6">
-                  <div className="flex-1">
-                    <Breadcrumbs doc={currentDoc} />
+                  <div className="flex items-center gap-3 flex-1">
+                    <h2 className="text-2xl font-bold text-primary m-0">
+                      {getDocTypeLabel(currentDoc?._docType)} {osuId || currentDoc?._osuid}
+                    </h2>
+                    <button
+                      className="btn btn-sm btn-ghost hover:bg-base-300 transition-colors text-gray-400"
+                      onClick={copyModalLink}
+                      title="Copy link to this item"
+                    >
+                      <Icon name="BiCopy" size="small" />
+                      <span>Copy Link</span>
+                    </button>
                   </div>
-                  <button
-                    className="btn btn-sm btn-circle btn-ghost hover:bg-base-300 transition-colors ml-4"
-                    onClick={() => setShowLandingModal(false)}
-                  >
-                    <Icon name="BiX" size="small" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="btn btn-sm btn-circle btn-ghost hover:bg-base-300 transition-colors"
+                      onClick={closeLandingModal}
+                    >
+                      <Icon name="BiX" size="small" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Scrollable Container */}
               <div className="flex-1 overflow-y-auto">
-                {/* Globe Hero Section */}
-                {currentDoc && (currentDoc.latitudeStart != null || currentDoc.latitudeEnd != null ||
-                               currentDoc.longitudeStart != null || currentDoc.longitudeEnd != null) && (
+                {/* Globe Hero Section - Use core coordinates for sections */}
+                {currentDoc && currentDoc._docType === 'section' && coreForSection && 
+                 (coreForSection.latitudeStart != null || coreForSection.latitudeEnd != null ||
+                  coreForSection.longitudeStart != null || coreForSection.longitudeEnd != null) && (
+                  <div className="relative bg-gradient-to-br from-primary/10 via-base-100 to-base-100 border-b border-base-300">
+                    <div className="min-h-[300px]">
+                      <Globe
+                        latitudeStart={coreForSection.latitudeStart}
+                        latitudeEnd={coreForSection.latitudeEnd}
+                        longitudeStart={coreForSection.longitudeStart}
+                        longitudeEnd={coreForSection.longitudeEnd}
+                      />
+                    </div>
+                    {/* Coordinate Overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pointer-events-none">
+                      <div className="flex gap-6 text-white">
+                        {coreForSection.latitudeStart != null && (
+                          <div>
+                            <div className="text-xs opacity-80 font-medium mb-1 uppercase tracking-wide">Latitude (Core)</div>
+                            <div className="font-bold">
+                              {numeral(coreForSection.latitudeStart).format('0.0000')}°
+                              {coreForSection.latitudeEnd != null && coreForSection.latitudeStart !== coreForSection.latitudeEnd && (
+                                <span className="text-sm opacity-90 font-normal ml-1">
+                                  to {numeral(coreForSection.latitudeEnd).format('0.0000')}°
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {coreForSection.longitudeStart != null && (
+                          <div>
+                            <div className="text-xs opacity-80 font-medium mb-1 uppercase tracking-wide">Longitude (Core)</div>
+                            <div className="font-bold">
+                              {numeral(coreForSection.longitudeStart).format('0.0000')}°
+                              {coreForSection.longitudeEnd != null && coreForSection.longitudeStart !== coreForSection.longitudeEnd && (
+                                <span className="text-sm opacity-90 font-normal ml-1">
+                                  to {numeral(coreForSection.longitudeEnd).format('0.0000')}°
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Globe Hero Section - For non-section documents */}
+                {currentDoc && currentDoc._docType !== 'section' && currentDoc._docType !== 'cruise' && currentDoc._docType !== 'dive' &&
+                 (currentDoc.latitudeStart != null || currentDoc.latitudeEnd != null ||
+                  currentDoc.longitudeStart != null || currentDoc.longitudeEnd != null) && (
                   <div className="relative bg-gradient-to-br from-primary/10 via-base-100 to-base-100 border-b border-base-300">
                     <div className="min-h-[300px]">
                       <Globe
