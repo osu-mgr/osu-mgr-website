@@ -25,10 +25,12 @@ export default function Page(
 export const getStaticProps = async ({ params }) => {
   const isLandingPage = (path) => path.match(/^OSU-[^/]+$/i);
   if (isLandingPage(params.filename)) {
+    // Strip section half suffix (e.g. OSU-7004Y-1PC-1A -> OSU-7004Y-1PC-1)
+    const osuId = params.filename.replace(/^(OSU-[^-]+-[^-]+-\d+)[A-Za-z]$/i, '$1');
     // Client-side navigation to search with OSU ID
     return {
       redirect: {
-        destination: `/search?osu=${params.filename}`,
+        destination: `/search?osu=${osuId}`,
         permanent: false,
       },
     };

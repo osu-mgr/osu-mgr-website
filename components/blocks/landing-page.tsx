@@ -840,108 +840,6 @@ const CruiseRocksPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: s
   );
 }
 
-const SectionhalvesPanel: React.FC<{ sectionDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ sectionDoc, onNavigateToChild }) => {
-  const {
-    data: halvesResults,
-    isLoading: ishalvesLoading,
-  } = useQuery({
-    queryKey: ['sectionhalves', sectionDoc._sectionUUID],
-    queryFn: async () => { 
-      if (!sectionDoc._sectionUUID) return null;
-      
-      const payload = {
-        types: ['sectionHalf'],
-        terms: {
-          "_sectionUUID.keyword": [sectionDoc._sectionUUID],
-        },
-        sortOrder: 'ids asc',
-        size: 100, // Get up to 100 section-halves
-      };
-      const res = await fetch('/api/opensearch?search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const errorresults = await res.json();
-        throw new Error(errorresults.message || 'Failed to fetch section-halves');
-      }
-      return res.json();
-    },
-    enabled: !!sectionDoc._sectionUUID,
-  });
-
-  const halves = halvesResults?.hits?.hits || [];
-
-  if (!sectionDoc._sectionUUID || halves.length === 0) return null;
-
-  return (
-    <div className="mt-6">
-      <h3 className="text-xl font-bold mb-4 text-primary">Section Halves</h3>
-      
-      {ishalvesLoading && (
-        <div className="flex justify-center items-center py-8">
-          <Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" />
-          <span className="ml-2">Loading section halves...</span>
-        </div>
-      )}
-
-      {!ishalvesLoading && halves.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {halves.map((half, index) => {
-            const halfData = half._source;
-            return (
-              <div
-                key={index}
-                onClick={() => onNavigateToChild?.(halfData._osuid)}
-                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-semibold text-primary m-0">{halfData._osuid}</h4>
-                </div>
-                
-                <div className="space-y-1 text-sm text-gray-600">
-                  {halfData.depthTop != null && halfData.depthBottom != null && (
-                    <p className="m-0">
-                      <strong>Depth:</strong> {halfData.depthTop} - {halfData.depthBottom} cm
-                    </p>
-                  )}
-                  
-                  {halfData.length && (
-                    <p className="m-0">
-                      <strong>Length:</strong> {halfData.length} cm
-                    </p>
-                  )}
-
-                  {halfData.material && (
-                    <p className="m-0">
-                      <strong>Material:</strong> {halfData.material}
-                    </p>
-                  )}
-
-                  {halfData.texture && (
-                    <p className="m-0">
-                      <strong>Texture:</strong> {halfData.texture}
-                    </p>
-                  )}
-
-                  {halfData._files && halfData._files.length > 0 && (
-                    <div className="flex items-center gap-1 mt-2">
-                      <Icon name="TbFiles" className="w-3 h-3 text-gray-500" />
-                      <span className="text-xs text-gray-500">
-                        {halfData._files.length} file{halfData._files.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded?: (doc: any) => void; onNavigateToChild?: (osuid: string) => void }> = ({
     data,
@@ -1417,8 +1315,6 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
           )}
 
-          {/* Section halves Panel */}
-          <SectionhalvesPanel sectionDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
       }
       {doc._docType == 'sectionHalf' && 

@@ -3648,13 +3648,15 @@ export const Search: React.FC<{ data: any }> = ({
       else if (router.query.osu) {
         const osuParam = Array.isArray(router.query.osu) ? router.query.osu[0] : router.query.osu;
         if (osuParam) {
-          console.log('Processing OSU URL parameter:', osuParam);
-          setOsuId(osuParam);
-          setSearchString(osuParam);
+          // Strip section half suffix (e.g. OSU-7004Y-1PC-1A -> OSU-7004Y-1PC-1)
+          const resolvedId = osuParam.replace(/^(OSU-[^-]+-[^-]+-\d+)[A-Za-z]$/i, '$1');
+          console.log('Processing OSU URL parameter:', resolvedId);
+          setOsuId(resolvedId);
+          setSearchString(resolvedId);
           setShowLandingModal(true);
-          setSearch(prevSearch => ({ 
-            ...prevSearch, 
-            searchString: osuParam,
+          setSearch(prevSearch => ({
+            ...prevSearch,
+            searchString: resolvedId,
             filters: {
               fileTypes: [],
               methods: [],
