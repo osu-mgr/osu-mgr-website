@@ -50,10 +50,6 @@
             "label": "Map\n"
           },
           {
-            "href": "noaa-ex",
-            "label": "NOAA Dives Map\n"
-          },
-          {
             "href": "repositories",
             "label": "Other Repositories\n"
           }
