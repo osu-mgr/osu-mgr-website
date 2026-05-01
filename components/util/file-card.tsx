@@ -7,9 +7,10 @@ interface FileCardProps {
     path: string;
   };
   variant?: 'thumbnail' | 'button';
+  moratorium?: boolean;
 }
 
-export const FileCard: React.FC<FileCardProps> = ({ file, variant = 'button' }) => {
+export const FileCard: React.FC<FileCardProps> = ({ file, variant = 'button', moratorium = false }) => {
   const getFileIcon = (type: string, path: string) => {
     const fileType = type?.toLowerCase() || '';
     const extension = path?.split('.').pop()?.toLowerCase() || '';
@@ -38,15 +39,17 @@ export const FileCard: React.FC<FileCardProps> = ({ file, variant = 'button' }) 
   const imageUrl = isImage(file.type, file.path) ? `/api/file/${file.path}` : null;
 
   if (variant === 'thumbnail') {
+    const Wrapper = moratorium ? 'div' as any : 'a' as any;
+    const wrapperProps = moratorium
+      ? {}
+      : { href: `/api/file/${file.path}`, target: '_blank', rel: 'noopener noreferrer' };
     return (
-      <a
-        href={`/api/file/${file.path}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block border border-base-300 rounded-lg overflow-hidden hover:shadow-lg hover:border-primary transition-all duration-200 bg-base-100 group no-underline m-0"
-        onClick={(e) => e.stopPropagation()}
+      <Wrapper
+        {...wrapperProps}
+        className={`block border border-base-300 rounded-lg overflow-hidden transition-all duration-200 bg-base-100 group no-underline m-0 ${moratorium ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-lg hover:border-primary'}`}
+        onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
-        {imageUrl ? (
+        {imageUrl && !moratorium ? (
           <div className="relative w-full aspect-square overflow-hidden bg-black">
             <div className="absolute inset-0 flex items-center justify-center spinner-container">
               <Icon name="BiLoaderAlt" className="w-8 h-8 text-white animate-spin" />
@@ -82,20 +85,37 @@ export const FileCard: React.FC<FileCardProps> = ({ file, variant = 'button' }) 
             />
           </div>
         ) : null}
-        <div className={`w-full aspect-square flex items-center justify-center bg-base-200 ${imageUrl ? 'hidden' : 'flex'}`}>
+        <div className={`w-full aspect-square flex items-center justify-center bg-base-200 ${imageUrl && !moratorium ? 'hidden' : 'flex'}`}>
           <Icon
-            name={getFileIcon(file.type, file.path)}
-            className="w-12 h-12 text-base-content/60"
+            name={moratorium ? 'TbLock' : getFileIcon(file.type, file.path)}
+            className={`w-12 h-12 ${moratorium ? 'text-warning' : 'text-base-content/60'}`}
           />
         </div>
-        <div className="p-2 bg-base-100 min-h-[3rem] flex items-center justify-center border-t border-base-200">
+        <div className="p-2 bg-base-100 min-h-[3rem] flex flex-col items-center justify-center border-t border-base-200">
           <span className="text-xs text-center leading-tight break-words">{getFileName(file.type, file.path)}</span>
+          {moratorium && <span className="badge badge-warning badge-xs mt-1">Moratorium</span>}
         </div>
-      </a>
+      </Wrapper>
     );
   }
 
   // Button variant (default)
+  if (moratorium) {
+    return (
+      <div
+        className="btn btn-outline flex flex-col items-center justify-center p-3 min-w-20 h-auto min-h-20 opacity-60 cursor-not-allowed"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Icon
+          name="TbLock"
+          className="w-6 h-6 mb-1 flex-shrink-0 text-warning"
+        />
+        <span className="text-xs text-center leading-tight break-words">{getFileName(file.type, file.path)}</span>
+        <span className="badge badge-warning badge-xs mt-1">Moratorium</span>
+      </div>
+    );
+  }
+
   return (
     <a
       href={`/api/file/${file.path}`}

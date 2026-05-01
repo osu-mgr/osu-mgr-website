@@ -9,8 +9,7 @@ import JSZip from 'jszip';
 export const DownloadFilesButton: React.FC<{
   search: any;
   searchString: string;
-  moratoriumCruises: string[];
-}> = ({ search, searchString, moratoriumCruises }) => {
+}> = ({ search, searchString }) => {
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFileTypes, setSelectedFileTypes] = useState<Set<string>>(new Set());
@@ -62,8 +61,8 @@ export const DownloadFilesButton: React.FC<{
       const uniqueFilesByType: { [key: string]: Set<string> } = {};
 
       for (const match of allMatches) {
-        // Skip moratorium cruises
-        if (moratoriumCruises.includes(match._source._osuid)) continue;
+        // Skip moratorium documents
+        if (match._source._moratorium) continue;
 
         const files = match._source._files || [];
         for (const file of files) {
@@ -155,8 +154,8 @@ export const DownloadFilesButton: React.FC<{
       // Collect all files to download
       const filesToDownload: any[] = [];
       for (const match of allMatches) {
-        // Skip moratorium cruises
-        if (moratoriumCruises.includes(match._source._osuid)) continue;
+        // Skip moratorium documents
+        if (match._source._moratorium) continue;
 
         const files = match._source._files || [];
         for (const file of files) {
