@@ -956,7 +956,9 @@ export const Search: React.FC<{ data: any }> = ({
                           });
 
                           moratoriumFiles.forEach((file: any) => {
-                            moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            if (hasFileTypeLabel(file.type)) {
+                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            }
                           });
 
                           const displayableFiles = Object.entries(fileTypeCounts);
@@ -1166,7 +1168,9 @@ export const Search: React.FC<{ data: any }> = ({
                           });
 
                           moratoriumFiles.forEach((file: any) => {
-                            moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            if (hasFileTypeLabel(file.type)) {
+                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            }
                           });
 
                           const displayableFiles = Object.entries(fileTypeCounts);
@@ -1324,7 +1328,9 @@ export const Search: React.FC<{ data: any }> = ({
                           });
 
                           moratoriumFiles.forEach((file: any) => {
-                            moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            if (hasFileTypeLabel(file.type)) {
+                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            }
                           });
 
                           const displayableFiles = Object.entries(fileTypeCounts);
@@ -1447,7 +1453,9 @@ export const Search: React.FC<{ data: any }> = ({
                               });
 
                               moratoriumFiles.forEach((file: any) => {
-                                moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                                if (hasFileTypeLabel(file.type)) {
+                                  moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                                }
                               });
 
                               const displayableFiles = Object.entries(fileTypeCounts);
@@ -1591,7 +1599,9 @@ export const Search: React.FC<{ data: any }> = ({
                           });
 
                           moratoriumFiles.forEach((file: any) => {
-                            moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            if (hasFileTypeLabel(file.type)) {
+                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            }
                           });
 
                           const displayableFiles = Object.entries(fileTypeCounts);
@@ -1783,7 +1793,9 @@ export const Search: React.FC<{ data: any }> = ({
                           });
 
                           moratoriumFiles.forEach((file: any) => {
-                            moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            if (hasFileTypeLabel(file.type)) {
+                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                            }
                           });
 
                           const displayableFiles = Object.entries(fileTypeCounts);

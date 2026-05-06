@@ -626,47 +626,6 @@ const CruiseRocksPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: s
 }
 
 
-const SectionHalvesPanel: React.FC<{ sectionDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ sectionDoc, onNavigateToChild }) => {
-  const { data, isLoading } = useQuery({
-    queryKey: ['sectionHalves', sectionDoc._uuid],
-    queryFn: async () => {
-      if (!sectionDoc._uuid) return null;
-      const payload = { types: ['sectionHalf'], terms: { "_sectionUUID.keyword": [sectionDoc._uuid] }, sortOrder: 'ids asc', size: 100 };
-      const res = await fetch('/api/opensearch?search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.message || 'Failed to fetch section halves'); }
-      return res.json();
-    },
-    enabled: !!sectionDoc._uuid,
-  });
-  const halves = data?.hits?.hits || [];
-  if (!sectionDoc._uuid || (halves.length === 0 && !isLoading)) return null;
-  return (
-    <div className="mt-6">
-      <h3 className="text-xl font-bold mb-4 text-primary">Section Halves</h3>
-      {isLoading && <div className="flex justify-center items-center py-8"><Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" /><span className="ml-2">Loading section halves...</span></div>}
-      {!isLoading && halves.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {halves.map((half, index) => {
-            const d = half._source;
-            return (
-              <div key={index} onClick={() => onNavigateToChild?.(d._osuid)}
-                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{d._osuid}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {d.halfType && <p className="m-0"><strong>Half Type:</strong> {d.halfType}</p>}
-                  {d.depthTop != null && d.depthBottom != null && <p className="m-0"><strong>Depth:</strong> {d.depthTop} - {d.depthBottom} cm</p>}
-                  {d.material && <p className="m-0"><strong>Material:</strong> {d.material}</p>}
-                  {d._files?.length > 0 && <div className="flex items-center gap-1 mt-2"><Icon name="TbFiles" className="w-3 h-3 text-gray-500" /><span className="text-xs text-gray-500">{d._files.length} file{d._files.length !== 1 ? 's' : ''}</span></div>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-};
-
 const CoreSamplesPanel: React.FC<{ sectionHalfDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ sectionHalfDoc, onNavigateToChild }) => {
   const { data, isLoading } = useQuery({
     queryKey: ['coreSamples', sectionHalfDoc._sectionHalfUUID],
@@ -852,8 +811,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="flex flex-wrap gap-2">
-                {(doc._files || []).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
+                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
+                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
               </div>
             </div>
           )}
@@ -884,7 +843,6 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.longitudeEnd != null && <p className="m-0"><strong>Longitude End:</strong> {doc.longitudeEnd}°</p>}
               {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth Start:</strong> {doc.waterDepthStart} m</p>}
               {doc.waterDepthEnd != null && <p className="m-0"><strong>Water Depth End:</strong> {doc.waterDepthEnd} m</p>}
-              {doc._igsns?.length > 0 && <p className="m-0 md:col-span-2"><strong>IGSNs:</strong> {doc._igsns.join(', ')}</p>}
             </div>
           </div>
 
@@ -892,8 +850,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="flex flex-wrap gap-2">
-                {(doc._files || []).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
+                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
+                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
               </div>
             </div>
           )}
@@ -951,8 +909,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="flex flex-wrap gap-2">
-                {(doc._files || []).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
+                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
+                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
               </div>
             </div>
           )}
@@ -1027,8 +985,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="flex flex-wrap gap-2">
-                {(doc._files || []).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
+                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
+                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
               </div>
             </div>
           )}
@@ -1119,8 +1077,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="flex flex-wrap gap-2">
-                {(doc._files || []).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
+                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
+                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
               </div>
             </div>
           )}
@@ -1132,6 +1090,9 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
                 <h4 className="font-semibold text-primary m-0 mb-2">{doc._cruiseOSUID}</h4>
                 <div className="space-y-1 text-sm text-gray-600">
                   {doc.cruise && <p className="m-0"><strong>Name:</strong> {doc.cruise}</p>}
+                  {doc.rvName && <p className="m-0"><strong>Vessel:</strong> {doc.rvName}</p>}
+                  {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
+                  {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
                   {r2rCruiseLinks[doc._cruiseOSUID] && (
                     <div className="flex flex-row flex-wrap gap-1 mt-2">
                       {r2rCruiseLinks[doc._cruiseOSUID].map((link: string, idx: number) => (
@@ -1169,7 +1130,6 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.longitudeEnd != null && <p className="m-0"><strong>Longitude End:</strong> {doc.longitudeEnd}°</p>}
               {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth Start:</strong> {doc.waterDepthStart} m</p>}
               {doc.waterDepthEnd != null && <p className="m-0"><strong>Water Depth End:</strong> {doc.waterDepthEnd} m</p>}
-              {doc._igsns?.length > 0 && <p className="m-0 md:col-span-2"><strong>IGSNs:</strong> {doc._igsns.join(', ')}</p>}
             </div>
             {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
           </div>
@@ -1178,8 +1138,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {(doc._files || []).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
-                {(doc._moratorium_files || []).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
+                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
+                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
               </div>
             </div>
           )}
@@ -1188,7 +1148,15 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Dive</h3>
               <div onClick={() => onNavigateToChild?.(doc._diveOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0">{doc._diveOSUID}</h4>
+                <h4 className="font-semibold text-primary m-0 mb-2">{doc._diveOSUID}</h4>
+                <div className="space-y-1 text-sm text-gray-600">
+                  {doc.rvName && <p className="m-0"><strong>Vessel:</strong> {doc.rvName}</p>}
+                  {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
+                  {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
+                  {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
+                  {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
+                  {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart}{doc.waterDepthEnd != null && doc.waterDepthEnd !== doc.waterDepthStart ? ` – ${doc.waterDepthEnd}` : ''} m</p>}
+                </div>
               </div>
             </div>
           )}
@@ -1202,6 +1170,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
                   {doc.cruise && <p className="m-0"><strong>Name:</strong> {doc.cruise}</p>}
                   {doc.rvName && <p className="m-0"><strong>Vessel:</strong> {doc.rvName}</p>}
                   {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
+                  {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
                   {r2rCruiseLinks[doc._cruiseOSUID] && (
                     <div className="flex flex-row flex-wrap gap-1 mt-2">
                       {r2rCruiseLinks[doc._cruiseOSUID].map((link: string, idx: number) => (
@@ -1236,7 +1205,6 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
               {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
-              {doc._igsns?.length > 0 && <p className="m-0 md:col-span-2"><strong>IGSNs:</strong> {doc._igsns.join(', ')}</p>}
             </div>
             {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
           </div>
@@ -1245,8 +1213,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {(doc._files || []).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
-                {(doc._moratorium_files || []).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
+                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
+                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
               </div>
             </div>
           )}
@@ -1291,7 +1259,6 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
               {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
-              {doc._igsns?.length > 0 && <p className="m-0 md:col-span-2"><strong>IGSNs:</strong> {doc._igsns.join(', ')}</p>}
             </div>
             {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
           </div>
@@ -1300,8 +1267,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {(doc._files || []).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
-                {(doc._moratorium_files || []).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
+                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
+                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
               </div>
             </div>
           )}
