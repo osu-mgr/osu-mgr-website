@@ -4,6 +4,17 @@ import { useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
 import { fileTypes, getFileTypeLabel } from './search-data';
 
+const RELATED_FILE_TYPES = [
+  'core-description', 'core-image', 'coring-data-sheet', 'cruise-report',
+  'ct-color-image', 'ct-density', 'ct-gray-image', 'ct-image',
+  'dredge-log', 'field-image',
+  'itrax-image', 'mst-data', 'ptmag-data',
+  'publications-data', 'samples-data', 'thin-section-cross-polarized-foi-image',
+  'thin-section-cross-polarized-image', 'thin-section-plane-polarized-foi-image',
+  'thin-section-plane-polarized-image', 'whole-rock-foi-image',
+  'whole-rock-image', 'xray-image', 'xrf-data'
+];
+
 export const FilterPanel: React.FC<{
   search: any;
   setSearch: (search: any) => void;
@@ -13,6 +24,7 @@ export const FilterPanel: React.FC<{
   const selectedMaterialTypes = search.filters?.materialTypes || [];
   const selectedRvNames = search.filters?.rvNames || [];
   const selectedFileTypes = search.filters?.fileTypes || [];
+  const selectedRelatedFileTypes = search.filters?.relatedFileTypes || [];
 
   // Collapse state for each filter section
   const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({
@@ -20,9 +32,9 @@ export const FilterPanel: React.FC<{
     materialTypes: false,
     rvNames: false,
     institutions: false,
-    areas: false,
     textures: false,
     fileTypes: false,
+    relatedFileTypes: false,
   });
 
   const toggleSection = (section: string) => {
@@ -35,6 +47,7 @@ export const FilterPanel: React.FC<{
   // Count active filter types
   const activeFilterCount = [
     selectedFileTypes.length > 0,
+    selectedRelatedFileTypes.length > 0,
     selectedMethods.length > 0,
     selectedMaterialTypes.length > 0,
     selectedRvNames.length > 0,
@@ -54,15 +67,9 @@ export const FilterPanel: React.FC<{
     });
   };
 
-  // Fetch available collection methods for cores and rocks
   const { data: methodCounts, isLoading: methodsLoading } = useQuery({
-    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.methods, search.filterLogic?.methods, search.filters?.fileTypes, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
+    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.methods, search.filterLogic?.methods, search.filters?.fileTypes, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
     queryFn: async () => {
-      // Fetch method counts for cores, dives, and cruises (cruise searches query cores via the cruise.keyword field)
-      if (!search.types.some((type: string) => ['core', 'dive', 'cruise'].includes(type))) {
-        return {};
-      }
-
       const res = await fetch('/api/opensearch?methodCounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,26 +80,15 @@ export const FilterPanel: React.FC<{
           filterLogic: search.filterLogic
         }),
       });
-
-      if (res.ok) {
-        return await res.json();
-      }
-      return {};
+      return res.ok ? res.json() : {};
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    enabled: search.types.some((type: string) => ['core', 'dive', 'cruise'].includes(type))
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
-  // Fetch available material types for cores and cruises
   const { data: materialCounts, isLoading: materialsLoading } = useQuery({
-    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.materialTypes, search.filterLogic?.materialTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
+    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.materialTypes, search.filterLogic?.materialTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
     queryFn: async () => {
-      // Fetch material counts for cores and cruises (cruise searches query cores via the cruise.keyword field)
-      if (!search.types.some((type: string) => ['core', 'cruise'].includes(type))) {
-        return {};
-      }
-
       const res = await fetch('/api/opensearch?materialCounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,26 +99,15 @@ export const FilterPanel: React.FC<{
           filterLogic: search.filterLogic
         }),
       });
-
-      if (res.ok) {
-        return await res.json();
-      }
-      return {};
+      return res.ok ? res.json() : {};
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    enabled: search.types.some((type: string) => ['core', 'cruise'].includes(type))
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
-  // Fetch available RV names for cruises only
   const { data: rvNameCounts, isLoading: rvNamesLoading } = useQuery({
-    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters?.rvNames, search.filterLogic?.rvNames, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
+    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters?.rvNames, search.filterLogic?.rvNames, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.institutions, search.filters?.textures],
     queryFn: async () => {
-      // Only fetch RV name counts for cruises
-      if (!search.types.includes('cruise')) {
-        return {};
-      }
-
       const res = await fetch('/api/opensearch?rvNameCounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,20 +118,15 @@ export const FilterPanel: React.FC<{
           filterLogic: search.filterLogic
         }),
       });
-
-      if (res.ok) {
-        return await res.json();
-      }
-      return {};
+      return res.ok ? res.json() : {};
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    enabled: search.types.includes('cruise')
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   // Fetch counts for each file type - reuse the same query as FileTypesFilterDropdown
   const { data: fileTypeCounts, isLoading: fileTypesLoading } = useQuery({
-    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
+    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?fileTypeCounts', {
         method: 'POST',
@@ -166,6 +146,25 @@ export const FilterPanel: React.FC<{
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
+  });
+
+  const { data: relatedFileTypeCounts, isLoading: relatedFileTypesLoading } = useQuery({
+    queryKey: ['relatedFileTypeCounts', search.types, search.searchString, search.filters?.relatedFileTypes, search.filterLogic?.relatedFileTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
+    queryFn: async () => {
+      const res = await fetch('/api/opensearch?relatedFileTypeCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic,
+        }),
+      });
+      return res.ok ? res.json() : {};
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   const handleMethodChange = (method: string, checked: boolean) => {
@@ -356,6 +355,38 @@ export const FilterPanel: React.FC<{
     }
   };
 
+  const handleRelatedFileTypeChange = (fileType: string, checked: boolean) => {
+    const current = search.filters?.relatedFileTypes || [];
+    setSearch({
+      ...search,
+      filters: {
+        ...search.filters,
+        relatedFileTypes: checked ? [...current, fileType] : current.filter((f: string) => f !== fileType),
+      }
+    });
+  };
+
+  const toggleAllRelatedFileTypes = () => {
+    const withResults = availableRelatedFileTypes.filter(ft => (relatedFileTypeCounts?.[ft] || 0) > 0);
+    const allSelected = withResults.every(ft => selectedRelatedFileTypes.includes(ft));
+    if (allSelected) {
+      setSearch({ ...search, filters: { ...search.filters, relatedFileTypes: selectedRelatedFileTypes.filter((ft: string) => !withResults.includes(ft)) } });
+    } else {
+      setSearch({ ...search, filters: { ...search.filters, relatedFileTypes: Array.from(new Set([...selectedRelatedFileTypes, ...withResults])) } });
+    }
+  };
+
+  const availableRelatedFileTypes = relatedFileTypeCounts
+    ? RELATED_FILE_TYPES.filter(ft => (relatedFileTypeCounts[ft] || 0) > 0 || selectedRelatedFileTypes.includes(ft))
+        .sort((a, b) => {
+          const aS = selectedRelatedFileTypes.includes(a);
+          const bS = selectedRelatedFileTypes.includes(b);
+          if (aS && !bS) return -1;
+          if (!aS && bS) return 1;
+          return 0;
+        })
+    : RELATED_FILE_TYPES;
+
   // Filter out methods with 0 counts, but keep selected ones visible
   // Sort selected items to the top
   const availableMethods = methodCounts
@@ -398,15 +429,9 @@ export const FilterPanel: React.FC<{
       })
     : [];
 
-  // Fetch available institutions for cruises only
   const { data: institutionData, isLoading: institutionsLoading } = useQuery({
-    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.institutions, search.filterLogic?.institutions, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.areas, search.filters?.textures],
+    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.institutions, search.filterLogic?.institutions, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.textures],
     queryFn: async () => {
-      // Only fetch institution counts for cruises
-      if (!search.types.includes('cruise')) {
-        return { counts: {}, piInstitutions: {} };
-      }
-
       const res = await fetch('/api/opensearch?institutionCounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -417,15 +442,10 @@ export const FilterPanel: React.FC<{
           filterLogic: search.filterLogic
         }),
       });
-
-      if (res.ok) {
-        return await res.json();
-      }
-      return { counts: {}, piInstitutions: {} };
+      return res.ok ? res.json() : { counts: {}, piInstitutions: {} };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    enabled: search.types.includes('cruise')
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   const institutionCounts = institutionData?.counts || {};
@@ -492,106 +512,9 @@ export const FilterPanel: React.FC<{
       })
     : [];
 
-  // Fetch available areas for dives/dredges only
-  const { data: areaCounts, isLoading: areasLoading } = useQuery({
-    queryKey: ['areaCounts', search.types, search.searchString, search.filters?.areas, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
-    queryFn: async () => {
-      // Only fetch area counts for dives and dredges
-      if (!search.types.includes('dive')) {
-        return {};
-      }
-
-      const res = await fetch('/api/opensearch?areaCounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          types: search.types,
-          searchString: search.searchString || '',
-          filters: search.filters,
-          filterLogic: search.filterLogic
-        }),
-      });
-
-      if (res.ok) {
-        return await res.json();
-      }
-      return {};
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    enabled: search.types.includes('dive')
-  });
-
-  const selectedAreas = search.filters?.areas || [];
-
-  const handleAreaChange = (area: string, checked: boolean) => {
-    const currentAreas = search.filters?.areas || [];
-    const newAreas = checked
-      ? [...currentAreas, area]
-      : currentAreas.filter((a: string) => a !== area);
-
-    setSearch((prevSearch: any) => ({
-      ...prevSearch,
-      filters: {
-        ...prevSearch.filters,
-        areas: newAreas
-      }
-    }));
-  };
-
-  const toggleAllAreas = () => {
-    const availableAreasWithResults = availableAreas.filter(area =>
-      (areaCounts?.[area] || 0) > 0
-    );
-    const allAvailableSelected = availableAreasWithResults.every(area =>
-      selectedAreas.includes(area)
-    );
-
-    if (allAvailableSelected) {
-      setSearch((prevSearch: any) => ({
-        ...prevSearch,
-        filters: {
-          ...prevSearch.filters,
-          areas: selectedAreas.filter((area: string) =>
-            !availableAreasWithResults.includes(area)
-          )
-        }
-      }));
-    } else {
-      const newAreas = Array.from(new Set([...selectedAreas, ...availableAreasWithResults]));
-      setSearch((prevSearch: any) => ({
-        ...prevSearch,
-        filters: {
-          ...prevSearch.filters,
-          areas: newAreas
-        }
-      }));
-    }
-  };
-
-  // Filter out areas with 0 counts, but keep selected ones visible
-  // Sort selected items to the top
-  const availableAreas = areaCounts
-    ? Object.keys(areaCounts).filter(area =>
-        (areaCounts[area] || 0) > 0 || selectedAreas.includes(area)
-      ).sort((a, b) => {
-        const aSelected = selectedAreas.includes(a);
-        const bSelected = selectedAreas.includes(b);
-        if (aSelected && !bSelected) return -1;
-        if (!aSelected && bSelected) return 1;
-        return a.localeCompare(b);
-      })
-    : [];
-
-  // Fetch available textures for dives/rocks only
   const { data: textureCounts, isLoading: texturesLoading } = useQuery({
-    queryKey: ['textureCounts', search.types, search.searchString, search.filters?.textures, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.areas, search.filters?.rvNames, search.filters?.institutions],
+    queryKey: ['textureCounts', search.types, search.searchString, search.filters?.textures, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions],
     queryFn: async () => {
-      // Only fetch texture counts for dives and rocks
-      if (!search.types.some((type: string) => ['dive', 'diveSample'].includes(type))) {
-        return {};
-      }
-
       const res = await fetch('/api/opensearch?textureCounts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -602,15 +525,10 @@ export const FilterPanel: React.FC<{
           filterLogic: search.filterLogic
         }),
       });
-
-      if (res.ok) {
-        return await res.json();
-      }
-      return {};
+      return res.ok ? res.json() : {};
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    enabled: search.types.some((type: string) => ['dive', 'diveSample'].includes(type))
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   });
 
   const selectedTextures = search.filters?.textures || [];
@@ -708,11 +626,11 @@ export const FilterPanel: React.FC<{
                       ...search,
                       filters: {
                         fileTypes: [],
+                        relatedFileTypes: [],
                         methods: [],
                         materialTypes: [],
                         rvNames: [],
                         institutions: [],
-                        areas: [],
                         textures: []
                       }
                     });
@@ -736,9 +654,7 @@ export const FilterPanel: React.FC<{
       </div>
 
 
-      {/* RV Name Filter - only show for cruises and if there are RV names with results */}
-      {search.types.includes('cruise') &&
-       availableRvNames.some(rvName => (rvNameCounts?.[rvName] || 0) > 0) && (
+      {availableRvNames.some(rvName => (rvNameCounts?.[rvName] || 0) > 0) && (
         <div className="form-control mb-4">
           <div className="label">
             <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('rvNames')}>
@@ -824,9 +740,7 @@ export const FilterPanel: React.FC<{
       </div>
       )}
 
-      {/* Institution Filter - only show for cruises and if there are institutions with results */}
-      {search.types.includes('cruise') &&
-       availableInstitutions.some(institution => (institutionCounts?.[institution] || 0) > 0) && (
+      {availableInstitutions.some(institution => (institutionCounts?.[institution] || 0) > 0) && (
         <div className="form-control mb-4">
           <div className="label">
             <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('institutions')}>
@@ -916,9 +830,7 @@ export const FilterPanel: React.FC<{
       </div>
       )}
 
-      {/* Material Type Filter - only show for cores/cruises and if there are materials with results */}
-      {search.types.some((type: string) => ['core', 'cruise'].includes(type)) &&
-       availableMaterialTypes.some(materialType => (materialCounts?.[materialType] || 0) > 0) && (
+      {availableMaterialTypes.some(materialType => (materialCounts?.[materialType] || 0) > 0) && (
         <div className="form-control mb-4">
           <div className="label">
             <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('materialTypes')}>
@@ -1004,97 +916,7 @@ export const FilterPanel: React.FC<{
       </div>
       )}
 
-      {/* Area Filter - only show for dives/dredges */}
-      {search.types.includes('dive') &&
-       availableAreas.some(area => (areaCounts?.[area] || 0) > 0) && (
-        <div className="form-control mb-4">
-          <div className="label">
-            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('areas')}>
-              <Icon name={collapsedSections.areas ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
-              Area
-            </span>
-            <div className="flex gap-1">
-              <button
-                className="btn btn-xs btn-ghost"
-                onClick={toggleAllAreas}
-                disabled={areasLoading}
-              >
-                {(() => {
-                  const availableAreasWithResults = availableAreas.filter(area =>
-                    (areaCounts?.[area] || 0) > 0
-                  );
-                  const allAvailableSelected = availableAreasWithResults.every(area =>
-                    selectedAreas.includes(area)
-                  );
-                  return allAvailableSelected ? 'Deselect All' : 'Select All';
-                })()}
-              </button>
-              <button
-                className="btn btn-xs btn-outline"
-                onClick={() => {
-                  setSearch({
-                    ...search,
-                    filters: {
-                      ...search.filters,
-                      areas: []
-                    }
-                  });
-                }}
-              >
-              Clear
-            </button>
-          </div>
-        </div>
-
-        {!collapsedSections.areas && (
-        <div className="border rounded bg-base-100">
-          {/* Scrollable filter list */}
-          <div className="max-h-[200px] overflow-y-auto p-2">
-            {areasLoading ? (
-              <div className="flex justify-center items-center py-4">
-                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
-                <span className="ml-2 text-sm">Loading areas...</span>
-              </div>
-            ) : availableAreas.length === 0 ? (
-              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
-                No areas available
-              </div>
-            ) : (
-              <>
-                {availableAreas.map((area) => {
-                  const count = areaCounts?.[area] || 0;
-                  const isSelected = selectedAreas.includes(area);
-                  const hasResults = count > 0;
-
-                  return (
-                    <div key={area} className="form-control">
-                      <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
-                        <input
-                          type="checkbox"
-                          className="checkbox checkbox-sm flex-shrink-0"
-                          checked={isSelected}
-                          onChange={(e) => handleAreaChange(area, e.target.checked)}
-                        />
-                        <span className="label-text text-sm flex-1 break-words">{area || 'Unknown'}</span>
-                        <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
-                          {numeral(count).format('0,0')}
-                        </span>
-                      </label>
-                    </div>
-                  );
-                })}
-
-              </>
-            )}
-          </div>
-        </div>
-        )}
-      </div>
-      )}
-
-      {/* Texture Filter - only show for dives/rocks */}
-      {search.types.some((type: string) => ['dive', 'diveSample'].includes(type)) &&
-       availableTextures.some(texture => (textureCounts?.[texture] || 0) > 0) && (
+      {availableTextures.some(texture => (textureCounts?.[texture] || 0) > 0) && (
         <div className="form-control mb-4">
           <div className="label">
             <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('textures')}>
@@ -1180,9 +1002,7 @@ export const FilterPanel: React.FC<{
       </div>
       )}
 
-      {/* Collection Method Filter - only show for cores, rocks, and cruises and if there are methods with results */}
-      {search.types.some((type: string) => ['core', 'dive', 'cruise'].includes(type)) &&
-       availableMethods.some(method => (methodCounts?.[method] || 0) > 0) && (
+      {availableMethods.some(method => (methodCounts?.[method] || 0) > 0) && (
         <div className="form-control mb-4">
           <div className="label">
             <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('methods')}>
@@ -1370,6 +1190,92 @@ export const FilterPanel: React.FC<{
                     );
                   })}
 
+                </>
+              )}
+            </div>
+          </div>
+          )}
+        </div>
+      )}
+
+      {/* Related File Types Filter - show if there are types with results or any selected */}
+      {(availableRelatedFileTypes.some(ft => (relatedFileTypeCounts?.[ft] || 0) > 0) || selectedRelatedFileTypes.length > 0) && (
+        <div className="form-control mb-4">
+          <div className="label">
+            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('relatedFileTypes')}>
+              <Icon name={collapsedSections.relatedFileTypes ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+              Related File Types
+            </span>
+            <div className="flex gap-1">
+              <button
+                className="btn btn-xs btn-ghost"
+                onClick={toggleAllRelatedFileTypes}
+                disabled={relatedFileTypesLoading}
+              >
+                {availableRelatedFileTypes.filter(ft => (relatedFileTypeCounts?.[ft] || 0) > 0).every(ft => selectedRelatedFileTypes.includes(ft))
+                  ? 'Deselect All' : 'Select All'}
+              </button>
+              <button
+                className="btn btn-xs btn-outline"
+                onClick={() => setSearch({ ...search, filters: { ...search.filters, relatedFileTypes: [] } })}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {!collapsedSections.relatedFileTypes && (
+          <div className="border rounded bg-base-100">
+            <div className="p-2 border-b border-gray-200 bg-gray-50">
+              <div className="flex items-center gap-2">
+                <div className="join leading-none">
+                  <button
+                    className={`btn btn-xs join-item ${(search.filterLogic?.relatedFileTypes || 'OR') === 'OR' ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => setSearch({ ...search, filterLogic: { ...search.filterLogic, relatedFileTypes: 'OR' } })}
+                  >OR</button>
+                  <button
+                    className={`btn btn-xs ml-2 join-item ${(search.filterLogic?.relatedFileTypes || 'OR') === 'AND' ? 'btn-primary' : 'btn-outline'}`}
+                    onClick={() => setSearch({ ...search, filterLogic: { ...search.filterLogic, relatedFileTypes: 'AND' } })}
+                  >AND</button>
+                </div>
+                <span className="text-xs text-gray-500">
+                  {(search.filterLogic?.relatedFileTypes || 'OR') === 'OR' ? 'Match ANY selected type' : 'Match ALL selected types'}
+                </span>
+              </div>
+            </div>
+            <div className="max-h-[200px] overflow-y-auto p-2">
+              {relatedFileTypesLoading ? (
+                <div className="flex justify-center items-center py-4">
+                  <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                  <span className="ml-2 text-sm">Loading related file types...</span>
+                </div>
+              ) : availableRelatedFileTypes.length === 0 ? (
+                <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
+                  No related file types available
+                </div>
+              ) : (
+                <>
+                  {availableRelatedFileTypes.map((ft) => {
+                    const count = relatedFileTypeCounts?.[ft] || 0;
+                    const isSelected = selectedRelatedFileTypes.includes(ft);
+                    const hasResults = count > 0;
+                    return (
+                      <div key={ft} className="form-control">
+                        <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
+                            checked={isSelected}
+                            onChange={(e) => handleRelatedFileTypeChange(ft, e.target.checked)}
+                          />
+                          <span className="label-text text-sm flex-1 break-words">{getFileTypeLabel(ft)}</span>
+                          <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                            {numeral(count).format('0,0')}
+                          </span>
+                        </label>
+                      </div>
+                    );
+                  })}
                 </>
               )}
             </div>

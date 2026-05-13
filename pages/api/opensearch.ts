@@ -4,7 +4,7 @@ import { Client } from '@opensearch-project/opensearch';
 const client: Client = new Client({
   node: process.env.OS_NODE,
 });
-const index = 'osu-mgr-dev';
+const index = 'osu-mgr-20260513-073543';
 
 const cruisesFirst = {
   "_script": {
@@ -39,8 +39,6 @@ const sortOrders = {
   'rvName desc': [cruisesFirst, { 'rvName.keyword': 'desc' }],
   'method asc': [cruisesFirst, { 'method.keyword': 'asc' }],
   'method desc': [cruisesFirst, { 'method.keyword': 'desc' }],
-  'area asc': [cruisesFirst, { 'area.keyword': 'asc' }],
-  'area desc': [cruisesFirst, { 'area.keyword': 'desc' }],
   'texture asc': [cruisesFirst, { 'texture.keyword': 'asc' }],
   'texture desc': [cruisesFirst, { 'texture.keyword': 'desc' }],
   'weight asc': [cruisesFirst, { 'weight': 'asc' }],
@@ -48,6 +46,34 @@ const sortOrders = {
   'depth asc': [cruisesFirst, { 'depthTop.keyword': 'asc' }],
   'depth desc': [cruisesFirst, { 'depthTop.keyword': 'desc' }],
 };
+
+const OSUID_LIST_FIELDS = [
+  '_coreOSUIDs', '_sectionOSUIDs', '_sectionHalfOSUIDs', '_coreSampleOSUIDs',
+  '_diveOSUIDs', '_diveSampleOSUIDs', '_diveSubsampleOSUIDs',
+  '_cruiseOSUID', '_coreOSUID', '_sectionOSUID', '_sectionHalfOSUID',
+  '_diveOSUID', '_diveSampleOSUID',
+];
+
+function buildShould(searchString: string) {
+  const upper = searchString.toUpperCase();
+  return [
+    {
+      multi_match: {
+        query: searchString.toLowerCase(),
+        type: 'bool_prefix',
+        fields: ['*.substring'],
+        operator: 'and',
+        analyzer: 'whitespace',
+      },
+    },
+    { prefix: { '_osuid.keyword': { value: upper } } },
+    // Query both bare field (current keyword mapping) and .keyword sub-field (post-reindex text mapping)
+    ...OSUID_LIST_FIELDS.flatMap(f => [
+      { prefix: { [f]: { value: upper } } },
+      { prefix: { [`${f}.keyword`]: { value: upper } } },
+    ]),
+  ];
+}
 
 export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> => {
   if (req.method !== 'POST') return res.status(405).send({ message: 'Only POST requests allowed' });
@@ -71,64 +97,13 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       bool: {
         must: [
           { terms: { '_docType.keyword': search.types } }],
-        should: [
-          {
-            multi_match: {
-              query: search.searchString.toLowerCase(), //.replace('-', ' '),
-              type: 'bool_prefix',
-              fields: ['*.substring'],
-              operator: 'and',
-              analyzer: 'whitespace',
-            },
-          },
-          {
-            prefix: {
-              '_osuid.keyword': {
-                value: search.searchString.toUpperCase(),
-              },
-            },
-          },
-        ],
+        should: buildShould(search.searchString),
         minimum_should_match: 1,
       }
     };
   }
 
-  // For cruise searches with a methods or materialTypes filter, pre-lookup cruise IDs from
-  // matching cores, since those fields live on cores, not on cruises.
-  let cruiseIdsFromMethodFilter: string[] | null = null;
-  let cruiseIdsFromMaterialFilter: string[] | null = null;
   const isCruiseSearch = search.types?.includes('cruise');
-  if (isCruiseSearch && (search.filters?.methods?.length > 0 || search.filters?.materialTypes?.length > 0)) {
-    const coreMust: any[] = [{ terms: { '_docType.keyword': ['core'] } }];
-    if (search.filters.methods?.length > 0) {
-      coreMust.push({ terms: { 'method.keyword': search.filters.methods } });
-    }
-    if (search.filters.materialTypes?.length > 0) {
-      coreMust.push({ terms: { 'material.keyword': search.filters.materialTypes } });
-    }
-    try {
-      const coresByFilterResp = await client.search({
-        index,
-        body: {
-          size: 10000,
-          _source: ['_cruiseID'],
-          query: { bool: { must: coreMust } },
-        },
-      } as any);
-      const coreHits = coresByFilterResp.body.hits?.hits || [];
-      const matchedCruiseIds = [
-        ...new Set(coreHits.map((h: any) => h._source?._cruiseID).filter(Boolean)),
-      ] as string[];
-      // Use the same set for both filters since we combined them
-      if (search.filters.methods?.length > 0) cruiseIdsFromMethodFilter = matchedCruiseIds;
-      if (search.filters.materialTypes?.length > 0) cruiseIdsFromMaterialFilter = matchedCruiseIds;
-    } catch (error) {
-      console.error('Error pre-fetching cruise IDs from method/material filter:', error);
-      if (search.filters.methods?.length > 0) cruiseIdsFromMethodFilter = [];
-      if (search.filters.materialTypes?.length > 0) cruiseIdsFromMaterialFilter = [];
-    }
-  }
 
   // Apply filters
   if (search.filters) {
@@ -174,42 +149,54 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       }
     }
     
-    // Handle collection methods filter
-    if (search.filters.methods && search.filters.methods.length > 0) {
-      if (search.types?.includes('cruise') && cruiseIdsFromMethodFilter !== null) {
-        // Cruises don't have a method field; filter by cruise IDs derived from matching cores.
-        if (cruiseIdsFromMethodFilter.length > 0) {
-          filters.push({ terms: { '_cruiseID.keyword': cruiseIdsFromMethodFilter } });
-        } else {
-          // No cores matched — force zero cruise results.
-          filters.push({ term: { '_osuid.keyword': '__no_match__' } });
+    // Handle related file types filter (_parentFiles or _childFiles)
+    if (search.filters.relatedFileTypes && search.filters.relatedFileTypes.length > 0) {
+      const relatedLogic = search.filterLogic?.relatedFileTypes || 'OR';
+      if (relatedLogic === 'AND') {
+        for (const ft of search.filters.relatedFileTypes) {
+          filters.push({
+            bool: {
+              should: [
+                { term: { '_parentFiles.type.keyword': ft } },
+                { term: { '_childFiles.type.keyword': ft } },
+              ],
+              minimum_should_match: 1,
+            }
+          });
         }
       } else {
         filters.push({
-          terms: {
-            'method.keyword': search.filters.methods
+          bool: {
+            should: [
+              { terms: { '_parentFiles.type.keyword': search.filters.relatedFileTypes } },
+              { terms: { '_childFiles.type.keyword': search.filters.relatedFileTypes } },
+            ],
+            minimum_should_match: 1,
           }
         });
       }
     }
-    
+
+    // Handle collection methods filter
+    if (search.filters.methods && search.filters.methods.length > 0) {
+      // Cruises have a plural 'methods' field; cores/dives use singular 'method'
+      const methodField = isCruiseSearch ? 'methods.keyword' : 'method.keyword';
+      filters.push({
+        terms: {
+          [methodField]: search.filters.methods
+        }
+      });
+    }
+
     // Handle material types filter
     if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
-      if (isCruiseSearch && cruiseIdsFromMaterialFilter !== null) {
-        // Cruises don't have a material field; filter by cruise IDs derived from matching cores.
-        if (cruiseIdsFromMaterialFilter.length > 0) {
-          filters.push({ terms: { '_cruiseID.keyword': cruiseIdsFromMaterialFilter } });
-        } else {
-          // No cores matched — force zero cruise results.
-          filters.push({ term: { '_osuid.keyword': '__no_match__' } });
+      // Cruises have a plural 'materials' field; cores/dives use singular 'material'
+      const materialField = isCruiseSearch ? 'materials.keyword' : 'material.keyword';
+      filters.push({
+        terms: {
+          [materialField]: search.filters.materialTypes
         }
-      } else {
-        filters.push({
-          terms: {
-            'material.keyword': search.filters.materialTypes
-          }
-        });
-      }
+      });
     }
     
     // Handle RV names filter
@@ -248,15 +235,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           }
         });
       }
-    }
-
-    // Handle areas filter
-    if (search.filters.areas && search.filters.areas.length > 0) {
-      filters.push({
-        terms: {
-          'area.keyword': search.filters.areas
-        }
-      });
     }
 
     // Handle textures filter
@@ -337,20 +315,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
     const counts: { [key: string]: number } = {};
     const isCruiseFileTypeSearch = search.types?.includes('cruise');
 
-    // Pre-lookup cruise IDs from cores if method or material filters are active for cruise searches
-    let cruiseIdFilterForFileTypes: string[] | null = null;
-    if (isCruiseFileTypeSearch && (search.filters?.methods?.length > 0 || search.filters?.materialTypes?.length > 0)) {
-      const coreMust: any[] = [{ terms: { '_docType.keyword': ['core'] } }];
-      if (search.filters.methods?.length > 0) coreMust.push({ terms: { 'method.keyword': search.filters.methods } });
-      if (search.filters.materialTypes?.length > 0) coreMust.push({ terms: { 'material.keyword': search.filters.materialTypes } });
-      try {
-        const coreResp = await client.search({ index, body: { size: 10000, _source: ['_cruiseID'], query: { bool: { must: coreMust } } } } as any);
-        cruiseIdFilterForFileTypes = [...new Set((coreResp.body.hits?.hits || []).map((h: any) => h._source?._cruiseID).filter(Boolean))] as string[];
-      } catch (e) {
-        cruiseIdFilterForFileTypes = [];
-      }
-    }
-
     // Build base query and apply non-fileType filters
     let baseQuery: any = {};
     if (search.searchString === '') {
@@ -360,24 +324,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         bool: {
           must: [
             { terms: { '_docType.keyword': search.types } }],
-          should: [
-            {
-              multi_match: {
-                query: search.searchString.toLowerCase(),
-                type: 'bool_prefix',
-                fields: ['*.substring'],
-                operator: 'and',
-                analyzer: 'whitespace',
-              },
-            },
-            {
-              prefix: {
-                '_osuid.keyword': {
-                  value: search.searchString.toUpperCase(),
-                },
-              },
-            },
-          ],
+          should: buildShould(search.searchString),
           minimum_should_match: 1,
         }
       };
@@ -387,24 +334,16 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
     if (search.filters) {
       const nonFileTypeFilters = [];
       
-      // Apply method filters — for cruise searches use pre-looked-up cruise IDs
+      // Apply method filters
       if (search.filters.methods && search.filters.methods.length > 0) {
-        if (isCruiseFileTypeSearch && cruiseIdFilterForFileTypes !== null) {
-          if (cruiseIdFilterForFileTypes.length > 0) nonFileTypeFilters.push({ terms: { '_cruiseID.keyword': cruiseIdFilterForFileTypes } });
-          else nonFileTypeFilters.push({ term: { '_cruiseID.keyword': '__no_match__' } });
-        } else {
-          nonFileTypeFilters.push({ terms: { 'method.keyword': search.filters.methods } });
-        }
+        const methodField = isCruiseFileTypeSearch ? 'methods.keyword' : 'method.keyword';
+        nonFileTypeFilters.push({ terms: { [methodField]: search.filters.methods } });
       }
-      
-      // Apply material type filters — for cruise searches use pre-looked-up cruise IDs
+
+      // Apply material type filters
       if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
-        if (isCruiseFileTypeSearch && cruiseIdFilterForFileTypes !== null) {
-          if (cruiseIdFilterForFileTypes.length > 0) nonFileTypeFilters.push({ terms: { '_cruiseID.keyword': cruiseIdFilterForFileTypes } });
-          else nonFileTypeFilters.push({ term: { '_cruiseID.keyword': '__no_match__' } });
-        } else {
-          nonFileTypeFilters.push({ terms: { 'material.keyword': search.filters.materialTypes } });
-        }
+        const materialField = isCruiseFileTypeSearch ? 'materials.keyword' : 'material.keyword';
+        nonFileTypeFilters.push({ terms: { [materialField]: search.filters.materialTypes } });
       }
       
       // Apply RV name filters
@@ -498,38 +437,20 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
   }
   else if (req.query.methodCounts !== undefined && search.types !== undefined) {
     // Return counts for each collection method.
-    // For cruise searches, method is a sample-level attribute, so we query all sample doc types
-    // and use cardinality aggregation on cruise.keyword to count distinct cruise IDs per method.
+    // Cruises now have a plural 'methods' field directly; other types use singular 'method'.
     const counts: { [key: string]: number } = {};
     const isCruiseSearch = search.types.includes('cruise');
-    const effectiveTypes = isCruiseSearch ? ['core'] : search.types;
+    const methodField = isCruiseSearch ? 'methods.keyword' : 'method.keyword';
+    const materialField = isCruiseSearch ? 'materials.keyword' : 'material.keyword';
     let baseQuery: any = {};
     if (search.searchString === '') {
-      baseQuery = { terms: { '_docType.keyword': effectiveTypes } };
+      baseQuery = { terms: { '_docType.keyword': search.types } };
     } else {
       baseQuery = {
         bool: {
           must: [
-            { terms: { '_docType.keyword': effectiveTypes } }],
-          should: [
-            {
-              multi_match: {
-                query: search.searchString.toLowerCase(),
-                type: 'bool_prefix',
-                fields: ['*.substring'],
-                operator: 'and',
-                analyzer: 'whitespace',
-              },
-            },
-            {
-              prefix: {
-                // For cruise searches match the core's cruise reference field; otherwise match own ID.
-                [isCruiseSearch ? '_cruiseID.keyword' : '_osuid.keyword']: {
-                  value: search.searchString.toUpperCase(),
-                },
-              },
-            },
-          ],
+            { terms: { '_docType.keyword': search.types } }],
+          should: buildShould(search.searchString),
           minimum_should_match: 1,
         }
       };
@@ -538,7 +459,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
     // Apply non-method filters if they exist
     if (search.filters) {
       const nonMethodFilters = [];
-      
+
       // Apply file type filters with their current logic
       if (search.filters.fileTypes && search.filters.fileTypes.length > 0) {
         const fileTypeLogic = search.filterLogic?.fileTypes || 'OR';
@@ -575,47 +496,23 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           });
         }
       }
-      
-      // Apply material type filters with their current logic
-      if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
-        const materialLogic = search.filterLogic?.materialTypes || 'OR';
-        if (materialLogic === 'AND') {
-          // For materials AND logic, each material must be present (treat as OR since it's a single field)
-          nonMethodFilters.push({
-            terms: { 'material.keyword': search.filters.materialTypes }
-          });
-        } else {
-          nonMethodFilters.push({
-            terms: { 'material.keyword': search.filters.materialTypes }
-          });
-        }
-      }
-      
-      // Apply RV name filters with their current logic
-      // Skip for cruise searches — rvName is a cruise-level field, not available on cores.
-      if (!isCruiseSearch && search.filters.rvNames && search.filters.rvNames.length > 0) {
-        const rvLogic = search.filterLogic?.rvNames || 'OR';
-        if (rvLogic === 'AND') {
-          // For RV names AND logic, each RV name must be present (treat as OR since it's a single field)
-          nonMethodFilters.push({
-            terms: { 'rvName.keyword': search.filters.rvNames }
-          });
-        } else {
-          nonMethodFilters.push({
-            terms: { 'rvName.keyword': search.filters.rvNames }
-          });
-        }
-      }
 
-      // Apply area filters (skip for cruise searches — area is core/dive-level)
-      if (!isCruiseSearch && search.filters.areas && search.filters.areas.length > 0) {
+      // Apply material type filters
+      if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
         nonMethodFilters.push({
-          terms: { 'area.keyword': search.filters.areas }
+          terms: { [materialField]: search.filters.materialTypes }
         });
       }
 
-      // Apply texture filters (skip for cruise searches — texture is core-level)
-      if (!isCruiseSearch && search.filters.textures && search.filters.textures.length > 0) {
+      // Apply RV name filters
+      if (search.filters.rvNames && search.filters.rvNames.length > 0) {
+        nonMethodFilters.push({
+          terms: { 'rvName.keyword': search.filters.rvNames }
+        });
+      }
+
+      // Apply texture filters
+      if (search.filters.textures && search.filters.textures.length > 0) {
         nonMethodFilters.push({
           terms: { 'texture.keyword': search.filters.textures }
         });
@@ -635,91 +532,47 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         }
       }
     }
-    
-    // Get aggregation of method field values.
-    // For cruise searches, use a cardinality sub-aggregation on cruise.keyword to count
-    // distinct cruise IDs per method across all sample document types.
+
+    // Get aggregation of method field values
     try {
-      if (isCruiseSearch) {
-        const aggResp = await client.search({
-          index,
-          body: {
-            size: 0,
-            query: baseQuery,
-            aggs: {
-              methods: {
-                terms: { field: 'method.keyword', size: 200 },
-                aggs: {
-                  cruise_count: { cardinality: { field: '_cruiseID.keyword' } }
-                }
-              }
+      const aggResp = await client.search({
+        index,
+        body: {
+          size: 0,
+          query: baseQuery,
+          aggs: {
+            methods: {
+              terms: { field: methodField, size: 200 }
             }
           }
-        } as any);
-        const buckets = (aggResp.body.aggregations?.methods as any)?.buckets || [];
-        buckets.forEach((bucket: any) => {
-          counts[bucket.key] = bucket.cruise_count?.value || 0;
-        });
-      } else {
-        const aggResp = await client.search({
-          index,
-          body: {
-            size: 0,
-            query: baseQuery,
-            aggs: {
-              methods: {
-                terms: {
-                  field: 'method.keyword',
-                  size: 100
-                }
-              }
-            }
-          }
-        } as any);
-        const buckets = (aggResp.body.aggregations?.methods as any)?.buckets || [];
-        buckets.forEach((bucket: any) => {
-          counts[bucket.key] = bucket.doc_count;
-        });
-      }
+        }
+      } as any);
+      const buckets = (aggResp.body.aggregations?.methods as any)?.buckets || [];
+      buckets.forEach((bucket: any) => {
+        counts[bucket.key] = bucket.doc_count;
+      });
     } catch (error) {
       console.error('Error fetching method counts:', error);
     }
-    
+
     return res.status(200).send(counts);
   }
   else if (req.query.materialCounts !== undefined && search.types !== undefined) {
     // Return counts for each material type.
-    // For cruise searches, material is a sample-level attribute, so we query all sample doc types
-    // and use cardinality aggregation on cruise.keyword to count distinct cruise IDs per material.
+    // Cruises now have a plural 'materials' field directly; other types use singular 'material'.
     const counts: { [key: string]: number } = {};
     const isCruiseSearch = search.types.includes('cruise');
-    const effectiveTypes = isCruiseSearch ? ['core'] : search.types;
+    const methodField = isCruiseSearch ? 'methods.keyword' : 'method.keyword';
+    const materialField = isCruiseSearch ? 'materials.keyword' : 'material.keyword';
     let baseQuery: any = {};
     if (search.searchString === '') {
-      baseQuery = { terms: { '_docType.keyword': effectiveTypes } };
+      baseQuery = { terms: { '_docType.keyword': search.types } };
     } else {
       baseQuery = {
         bool: {
           must: [
-            { terms: { '_docType.keyword': effectiveTypes } }],
-          should: [
-            {
-              multi_match: {
-                query: search.searchString.toLowerCase(),
-                type: 'bool_prefix',
-                fields: ['*.substring'],
-                operator: 'and',
-                analyzer: 'whitespace',
-              },
-            },
-            {
-              prefix: {
-                [isCruiseSearch ? '_cruiseID.keyword' : '_osuid.keyword']: {
-                  value: search.searchString.toUpperCase(),
-                },
-              },
-            },
-          ],
+            { terms: { '_docType.keyword': search.types } }],
+          should: buildShould(search.searchString),
           minimum_should_match: 1,
         }
       };
@@ -769,26 +622,19 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       // Apply method filters
       if (search.filters.methods && search.filters.methods.length > 0) {
         nonMaterialFilters.push({
-          terms: { 'method.keyword': search.filters.methods }
+          terms: { [methodField]: search.filters.methods }
         });
       }
 
-      // Apply RV name filters (skip for cruise searches — rvName is cruise-level, not on cores)
-      if (!isCruiseSearch && search.filters.rvNames && search.filters.rvNames.length > 0) {
+      // Apply RV name filters
+      if (search.filters.rvNames && search.filters.rvNames.length > 0) {
         nonMaterialFilters.push({
           terms: { 'rvName.keyword': search.filters.rvNames }
         });
       }
 
-      // Apply area filters (skip for cruise searches)
-      if (!isCruiseSearch && search.filters.areas && search.filters.areas.length > 0) {
-        nonMaterialFilters.push({
-          terms: { 'area.keyword': search.filters.areas }
-        });
-      }
-
-      // Apply texture filters (skip for cruise searches)
-      if (!isCruiseSearch && search.filters.textures && search.filters.textures.length > 0) {
+      // Apply texture filters
+      if (search.filters.textures && search.filters.textures.length > 0) {
         nonMaterialFilters.push({
           terms: { 'texture.keyword': search.filters.textures }
         });
@@ -806,74 +652,33 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       }
     }
 
-    // Get aggregation of material field values.
-    // For cruise searches, use a cardinality sub-aggregation on cruise.keyword to count
-    // distinct cruise IDs per material across all sample document types.
+    // Get aggregation of material field values
     try {
-      if (isCruiseSearch) {
-        const aggResp = await client.search({
-          index,
-          body: {
-            size: 0,
-            query: baseQuery,
-            aggs: {
-              materials: {
-                terms: { field: 'material.keyword', size: 200 },
-                aggs: {
-                  cruise_count: { cardinality: { field: '_cruiseID.keyword' } }
-                }
-              }
+      const aggResp = await client.search({
+        index,
+        body: {
+          size: 0,
+          query: baseQuery,
+          aggs: {
+            materials: {
+              terms: { field: materialField, size: 200 }
             }
           }
-        } as any);
-        const buckets = (aggResp.body.aggregations?.materials as any)?.buckets || [];
-        buckets.forEach((bucket: any) => {
-          counts[bucket.key] = bucket.cruise_count?.value || 0;
-        });
-      } else {
-        const aggResp = await client.search({
-          index,
-          body: {
-            size: 0,
-            query: baseQuery,
-            aggs: {
-              materials: {
-                terms: {
-                  field: 'material.keyword',
-                  size: 100
-                }
-              }
-            }
-          }
-        } as any);
-        const buckets = (aggResp.body.aggregations?.materials as any)?.buckets || [];
-        buckets.forEach((bucket: any) => {
-          counts[bucket.key] = bucket.doc_count;
-        });
-      }
+        }
+      } as any);
+      const buckets = (aggResp.body.aggregations?.materials as any)?.buckets || [];
+      buckets.forEach((bucket: any) => {
+        counts[bucket.key] = bucket.doc_count;
+      });
     } catch (error) {
       console.error('Error fetching material counts:', error);
     }
-    
+
     return res.status(200).send(counts);
   }
   else if (req.query.rvNameCounts !== undefined && search.types !== undefined) {
     // Return counts for each RV name (only for cruises)
     const counts: { [key: string]: number } = {};
-
-    // Pre-lookup cruise IDs from cores if method or material filters are active
-    let cruiseIdFilter: string[] | null = null;
-    if (search.filters?.methods?.length > 0 || search.filters?.materialTypes?.length > 0) {
-      const coreMust: any[] = [{ terms: { '_docType.keyword': ['core'] } }];
-      if (search.filters.methods?.length > 0) coreMust.push({ terms: { 'method.keyword': search.filters.methods } });
-      if (search.filters.materialTypes?.length > 0) coreMust.push({ terms: { 'material.keyword': search.filters.materialTypes } });
-      try {
-        const coreResp = await client.search({ index, body: { size: 10000, _source: ['_cruiseID'], query: { bool: { must: coreMust } } } } as any);
-        cruiseIdFilter = [...new Set((coreResp.body.hits?.hits || []).map((h: any) => h._source?._cruiseID).filter(Boolean))] as string[];
-      } catch (e) {
-        cruiseIdFilter = [];
-      }
-    }
 
     // Base query without RV name filter
     let baseQuery: any = {};
@@ -884,29 +689,12 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         bool: {
           must: [
             { terms: { '_docType.keyword': search.types } }],
-          should: [
-            {
-              multi_match: {
-                query: search.searchString.toLowerCase(),
-                type: 'bool_prefix',
-                fields: ['*.substring'],
-                operator: 'and',
-                analyzer: 'whitespace',
-              },
-            },
-            {
-              prefix: {
-                '_osuid.keyword': {
-                  value: search.searchString.toUpperCase(),
-                },
-              },
-            },
-          ],
+          should: buildShould(search.searchString),
           minimum_should_match: 1,
         }
       };
     }
-    
+
     // Apply non-RV name filters if they exist
     if (search.filters) {
       const nonRvFilters = [];
@@ -948,37 +736,20 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         }
       }
 
-      // Apply method filters — for cruises use pre-looked-up cruise IDs
+      // Apply method filters — cruises use plural 'methods' field
       if (search.filters.methods && search.filters.methods.length > 0) {
-        if (cruiseIdFilter !== null) {
-          if (cruiseIdFilter.length > 0) nonRvFilters.push({ terms: { '_cruiseID.keyword': cruiseIdFilter } });
-          else nonRvFilters.push({ term: { '_cruiseID.keyword': '__no_match__' } });
-        } else {
-          nonRvFilters.push({ terms: { 'method.keyword': search.filters.methods } });
-        }
+        nonRvFilters.push({ terms: { 'methods.keyword': search.filters.methods } });
       }
 
-      // Apply material type filters — for cruises use pre-looked-up cruise IDs
+      // Apply material type filters — cruises use plural 'materials' field
       if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
-        if (cruiseIdFilter !== null) {
-          if (cruiseIdFilter.length > 0) nonRvFilters.push({ terms: { '_cruiseID.keyword': cruiseIdFilter } });
-          else nonRvFilters.push({ term: { '_cruiseID.keyword': '__no_match__' } });
-        } else {
-          nonRvFilters.push({ terms: { 'material.keyword': search.filters.materialTypes } });
-        }
+        nonRvFilters.push({ terms: { 'materials.keyword': search.filters.materialTypes } });
       }
 
       // Apply institution filters
       if (search.filters.institutions && search.filters.institutions.length > 0) {
         nonRvFilters.push({
           terms: { 'pi.keyword': search.filters.institutions }
-        });
-      }
-
-      // Apply area filters
-      if (search.filters.areas && search.filters.areas.length > 0) {
-        nonRvFilters.push({
-          terms: { 'area.keyword': search.filters.areas }
         });
       }
 
@@ -1000,7 +771,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         baseQuery.bool.filter = nonRvFilters;
       }
     }
-    
+
     // Get aggregation of rvName field values
     try {
       const aggResp = await client.search({
@@ -1018,7 +789,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           }
         }
       } as any);
-      
+
       const buckets = (aggResp.body.aggregations?.rvNames as any)?.buckets || [];
       buckets.forEach((bucket: any) => {
         counts[bucket.key] = bucket.doc_count;
@@ -1026,27 +797,13 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
     } catch (error) {
       console.error('Error fetching RV name counts:', error);
     }
-    
+
     return res.status(200).send(counts);
   }
   else if (req.query.institutionCounts !== undefined && search.types !== undefined) {
     // Return counts for each institution (only for cruises)
     const counts: { [key: string]: number } = {};
     const piInstitutions: { [key: string]: string } = {};
-
-    // Pre-lookup cruise IDs from cores if method or material filters are active
-    let cruiseIdFilter: string[] | null = null;
-    if (search.filters?.methods?.length > 0 || search.filters?.materialTypes?.length > 0) {
-      const coreMust: any[] = [{ terms: { '_docType.keyword': ['core'] } }];
-      if (search.filters.methods?.length > 0) coreMust.push({ terms: { 'method.keyword': search.filters.methods } });
-      if (search.filters.materialTypes?.length > 0) coreMust.push({ terms: { 'material.keyword': search.filters.materialTypes } });
-      try {
-        const coreResp = await client.search({ index, body: { size: 10000, _source: ['_cruiseID'], query: { bool: { must: coreMust } } } } as any);
-        cruiseIdFilter = [...new Set((coreResp.body.hits?.hits || []).map((h: any) => h._source?._cruiseID).filter(Boolean))] as string[];
-      } catch (e) {
-        cruiseIdFilter = [];
-      }
-    }
 
     // Base query without institution filter
     let baseQuery: any = {};
@@ -1057,24 +814,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         bool: {
           must: [
             { terms: { '_docType.keyword': search.types } }],
-          should: [
-            {
-              multi_match: {
-                query: search.searchString.toLowerCase(),
-                type: 'bool_prefix',
-                fields: ['*.substring'],
-                operator: 'and',
-                analyzer: 'whitespace',
-              },
-            },
-            {
-              prefix: {
-                '_osuid.keyword': {
-                  value: search.searchString.toUpperCase(),
-                },
-              },
-            },
-          ],
+          should: buildShould(search.searchString),
           minimum_should_match: 1,
         }
       };
@@ -1121,37 +861,20 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         }
       }
 
-      // Apply method filters — for cruises use pre-looked-up cruise IDs
+      // Apply method filters — cruises use plural 'methods' field
       if (search.filters.methods && search.filters.methods.length > 0) {
-        if (cruiseIdFilter !== null) {
-          if (cruiseIdFilter.length > 0) nonInstitutionFilters.push({ terms: { '_cruiseID.keyword': cruiseIdFilter } });
-          else nonInstitutionFilters.push({ term: { '_cruiseID.keyword': '__no_match__' } });
-        } else {
-          nonInstitutionFilters.push({ terms: { 'method.keyword': search.filters.methods } });
-        }
+        nonInstitutionFilters.push({ terms: { 'methods.keyword': search.filters.methods } });
       }
 
-      // Apply material type filters — for cruises use pre-looked-up cruise IDs
+      // Apply material type filters — cruises use plural 'materials' field
       if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
-        if (cruiseIdFilter !== null) {
-          if (cruiseIdFilter.length > 0) nonInstitutionFilters.push({ terms: { '_cruiseID.keyword': cruiseIdFilter } });
-          else nonInstitutionFilters.push({ term: { '_cruiseID.keyword': '__no_match__' } });
-        } else {
-          nonInstitutionFilters.push({ terms: { 'material.keyword': search.filters.materialTypes } });
-        }
+        nonInstitutionFilters.push({ terms: { 'materials.keyword': search.filters.materialTypes } });
       }
 
       // Apply RV name filters
       if (search.filters.rvNames && search.filters.rvNames.length > 0) {
         nonInstitutionFilters.push({
           terms: { 'rvName.keyword': search.filters.rvNames }
-        });
-      }
-
-      // Apply area filters
-      if (search.filters.areas && search.filters.areas.length > 0) {
-        nonInstitutionFilters.push({
-          terms: { 'area.keyword': search.filters.areas }
         });
       }
 
@@ -1163,7 +886,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       }
 
       // Do NOT apply PI/institution filters here - we're getting counts for ALL institutions
-      // The institution filter should only be applied to the main search results, not to count aggregations
 
       if (nonInstitutionFilters.length > 0) {
         if (!baseQuery.bool) {
@@ -1233,144 +955,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
 
     return res.status(200).send({ counts, piInstitutions });
   }
-  else if (req.query.areaCounts !== undefined && search.types !== undefined) {
-    // Return counts for each area (only for dives and dredges)
-    const counts: { [key: string]: number } = {};
-
-    // Base query without area filter
-    let baseQuery: any = {};
-    if (search.searchString === '') {
-      baseQuery = { terms: { '_docType.keyword': search.types } };
-    } else {
-      baseQuery = {
-        bool: {
-          must: [
-            { terms: { '_docType.keyword': search.types } }],
-          should: [
-            {
-              multi_match: {
-                query: search.searchString.toLowerCase(),
-                type: 'bool_prefix',
-                fields: ['*.substring'],
-                operator: 'and',
-                analyzer: 'whitespace',
-              },
-            },
-            {
-              prefix: {
-                '_osuid.keyword': {
-                  value: search.searchString.toUpperCase(),
-                },
-              },
-            },
-          ],
-          minimum_should_match: 1,
-        }
-      };
-    }
-
-    // Apply non-area filters if they exist
-    if (search.filters) {
-      const nonAreaFilters = [];
-
-      // Apply file type filters
-      if (search.filters.fileTypes && search.filters.fileTypes.length > 0) {
-        const fileTypeLogic = search.filterLogic?.fileTypes || 'OR';
-        if (fileTypeLogic === 'AND') {
-          nonAreaFilters.push({
-            script: {
-              script: {
-                source: `
-                  def selectedTypes = params.fileTypes;
-                  def docFileTypes = new HashSet();
-                  if (doc['_files.type.keyword'].size() > 0) {
-                    for (def fileType : doc['_files.type.keyword']) {
-                      docFileTypes.add(fileType);
-                    }
-                  }
-                  for (def selectedType : selectedTypes) {
-                    if (!docFileTypes.contains(selectedType)) {
-                      return false;
-                    }
-                  }
-                  return true;
-                `,
-                params: {
-                  fileTypes: search.filters.fileTypes
-                }
-              }
-            }
-          });
-        } else {
-          nonAreaFilters.push({
-            terms: {
-              '_files.type.keyword': search.filters.fileTypes
-            }
-          });
-        }
-      }
-
-      // Apply method filters
-      if (search.filters.methods && search.filters.methods.length > 0) {
-        nonAreaFilters.push({
-          terms: { 'method.keyword': search.filters.methods }
-        });
-      }
-
-      // Apply material type filters
-      if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
-        nonAreaFilters.push({
-          terms: { 'material.keyword': search.filters.materialTypes }
-        });
-      }
-
-      // Apply texture filters
-      if (search.filters.textures && search.filters.textures.length > 0) {
-        nonAreaFilters.push({
-          terms: { 'texture.keyword': search.filters.textures }
-        });
-      }
-
-      if (nonAreaFilters.length > 0) {
-        if (!baseQuery.bool) {
-          baseQuery = {
-            bool: {
-              must: [baseQuery]
-            }
-          };
-        }
-        baseQuery.bool.filter = nonAreaFilters;
-      }
-    }
-
-    // Get aggregation of area field values
-    try {
-      const aggResp = await client.search({
-        index,
-        body: {
-          size: 0,
-          query: baseQuery,
-          aggs: {
-            areas: {
-              terms: {
-                field: 'area.keyword',
-                size: 100
-              }
-            }
-          }
-        }
-      } as any);
-
-      const buckets = (aggResp.body.aggregations?.areas as any)?.buckets || [];
-      buckets.forEach((bucket: any) => {
-        counts[bucket.key] = bucket.doc_count;
-      });
-    } catch (error) {
-      console.error('Error fetching area counts:', error);
-    }
-
-    return res.status(200).send(counts);
-  }
   else if (req.query.textureCounts !== undefined && search.types !== undefined) {
     // Return counts for each texture (only for rocks/dives)
     const counts: { [key: string]: number } = {};
@@ -1384,24 +968,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         bool: {
           must: [
             { terms: { '_docType.keyword': search.types } }],
-          should: [
-            {
-              multi_match: {
-                query: search.searchString.toLowerCase(),
-                type: 'bool_prefix',
-                fields: ['*.substring'],
-                operator: 'and',
-                analyzer: 'whitespace',
-              },
-            },
-            {
-              prefix: {
-                '_osuid.keyword': {
-                  value: search.searchString.toUpperCase(),
-                },
-              },
-            },
-          ],
+          should: buildShould(search.searchString),
           minimum_should_match: 1,
         }
       };
@@ -1459,13 +1026,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
         nonTextureFilters.push({
           terms: { 'material.keyword': search.filters.materialTypes }
-        });
-      }
-
-      // Apply area filters
-      if (search.filters.areas && search.filters.areas.length > 0) {
-        nonTextureFilters.push({
-          terms: { 'area.keyword': search.filters.areas }
         });
       }
 
@@ -1549,6 +1109,114 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       console.error('Error fetching per-cruise collection data:', error);
     }
     return res.status(200).send(result);
+  }
+  else if (req.query.relatedFileTypeCounts !== undefined && search.types !== undefined) {
+    // Count documents per related file type (parent or child files), excluding the relatedFileTypes
+    // filter itself so the sidebar counts represent "how many would match if you added this filter".
+    const relatedFileTypeList = [
+      'core-description', 'core-image', 'coring-data-sheet', 'cruise-report',
+      'ct-color-image', 'ct-density', 'ct-gray-image', 'ct-image',
+      'dredge-log', 'field-image',
+      'itrax-image', 'mst-data', 'ptmag-data',
+      'publications-data', 'samples-data', 'thin-section-cross-polarized-foi-image',
+      'thin-section-cross-polarized-image', 'thin-section-plane-polarized-foi-image',
+      'thin-section-plane-polarized-image', 'whole-rock-foi-image',
+      'whole-rock-image', 'xray-image', 'xrf-data'
+    ];
+
+    // Build base query applying all filters EXCEPT relatedFileTypes
+    let baseQuery: any = {};
+    if (search.searchString === '') {
+      baseQuery = { terms: { '_docType.keyword': search.types } };
+    } else {
+      baseQuery = {
+        bool: {
+          must: [{ terms: { '_docType.keyword': search.types } }],
+          should: buildShould(search.searchString),
+          minimum_should_match: 1,
+        }
+      };
+    }
+
+    if (search.filters) {
+      const otherFilters: any[] = [];
+
+      if (search.filters.fileTypes && search.filters.fileTypes.length > 0) {
+        const logic = search.filterLogic?.fileTypes || 'OR';
+        if (logic === 'AND') {
+          otherFilters.push({
+            script: {
+              script: {
+                source: `
+                  def sel = params.fileTypes; def s = new HashSet();
+                  if (doc['_files.type.keyword'].size() > 0) { for (def t : doc['_files.type.keyword']) { s.add(t); } }
+                  for (def t : sel) { if (!s.contains(t)) { return false; } } return true;
+                `,
+                params: { fileTypes: search.filters.fileTypes }
+              }
+            }
+          });
+        } else {
+          otherFilters.push({ terms: { '_files.type.keyword': search.filters.fileTypes } });
+        }
+      }
+      const isCruise = search.types?.includes('cruise');
+      if (search.filters.methods?.length > 0) {
+        otherFilters.push({ terms: { [isCruise ? 'methods.keyword' : 'method.keyword']: search.filters.methods } });
+      }
+      if (search.filters.materialTypes?.length > 0) {
+        otherFilters.push({ terms: { [isCruise ? 'materials.keyword' : 'material.keyword']: search.filters.materialTypes } });
+      }
+      if (search.filters.rvNames?.length > 0) {
+        otherFilters.push({ terms: { 'rvName.keyword': search.filters.rvNames } });
+      }
+      if (search.filters.institutions?.length > 0) {
+        otherFilters.push({ terms: { 'pi.keyword': search.filters.institutions } });
+      }
+      if (search.filters.textures?.length > 0) {
+        otherFilters.push({ terms: { 'texture.keyword': search.filters.textures } });
+      }
+
+      if (otherFilters.length > 0) {
+        if (!baseQuery.bool) { baseQuery = { bool: { must: [baseQuery] } }; }
+        baseQuery.bool.must = baseQuery.bool.must || [];
+        baseQuery.bool.must.push(...otherFilters);
+      }
+    }
+
+    // Use a single filters-aggregation query to get per-type document counts in one round-trip
+    const aggFilters: any = {};
+    for (const ft of relatedFileTypeList) {
+      aggFilters[ft] = {
+        bool: {
+          should: [
+            { term: { '_parentFiles.type.keyword': ft } },
+            { term: { '_childFiles.type.keyword': ft } },
+          ],
+          minimum_should_match: 1,
+        }
+      };
+    }
+
+    const counts: { [key: string]: number } = {};
+    try {
+      const aggResp = await client.search({
+        index,
+        body: {
+          size: 0,
+          query: baseQuery,
+          aggs: { relatedFileTypes: { filters: { filters: aggFilters } } }
+        }
+      } as any);
+      const buckets = (aggResp.body.aggregations?.relatedFileTypes as any)?.buckets || {};
+      for (const [ft, bucket] of Object.entries(buckets)) {
+        counts[ft] = (bucket as any).doc_count || 0;
+      }
+    } catch (error) {
+      console.error('Error fetching related file type counts:', error);
+    }
+
+    return res.status(200).send(counts);
   }
   else {
     return res.status(204).send([]);

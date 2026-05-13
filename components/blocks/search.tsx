@@ -13,11 +13,11 @@ import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
 import { LandingPage, CruiseGlobe, DiveGlobe } from "./landing-page";
 import dynamic from 'next/dynamic';
-import { moratoriumCruises, r2rCruiseLinks, hasFileTypeLabel, getFileTypeLabel } from '../search/search-data';
+import { r2rCruiseLinks, hasFileTypeLabel, getFileTypeLabel } from '../search/search-data';
 import { FileTypesFilterDropdown } from '../search/file-types-filter';
+import { RelatedFileTypesFilterDropdown } from '../search/related-file-types-filter';
 import { RvNameFilterDropdown } from '../search/rv-name-filter';
 import { InstitutionFilterDropdown } from '../search/institution-filter';
-import { AreaFilterDropdown } from '../search/area-filter';
 import { TextureFilterDropdown } from '../search/texture-filter';
 import { CollectionFilterDropdown } from '../search/collection-filter';
 import { DownloadFilesButton } from '../search/download-files-button';
@@ -64,7 +64,7 @@ export const Search: React.FC<{ data: any }> = ({
 }) => {
   const pageSize = 10;
   const router = useRouter();
-  const viewRawData = false;  // = !process.env.VERCEL;
+  const viewRawData = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
 
   console.log("viewRawData", viewRawData);
   const [search, setSearch] = useLocalStorage('search-2025-08-06-v3', {
@@ -73,6 +73,7 @@ export const Search: React.FC<{ data: any }> = ({
     types: ['cruise'],
     filters: {
       fileTypes: [], // Array of selected file types
+      relatedFileTypes: [], // Array of selected related file types
       methods: [], // Array of selected collection methods
       materialTypes: [], // Array of selected material types
       rvNames: [], // Array of selected RV names
@@ -80,6 +81,7 @@ export const Search: React.FC<{ data: any }> = ({
     },
     filterLogic: {
       fileTypes: 'OR', // 'OR' or 'AND'
+      relatedFileTypes: 'OR',
       methods: 'OR',
       materialTypes: 'OR',
       rvNames: 'OR',
@@ -519,6 +521,32 @@ export const Search: React.FC<{ data: any }> = ({
     );
   };
 
+  const renderRelatedFileCounts = (source: any) => {
+    const allRelated = [
+      ...(source._parentFiles || []),
+      ...(source._childFiles || []),
+    ].filter((f: any) => hasFileTypeLabel(f.type));
+
+    if (allRelated.length === 0) {
+      return <span className="text-gray-500 text-sm">No files</span>;
+    }
+
+    const counts: { [key: string]: number } = {};
+    allRelated.forEach((f: any) => {
+      counts[f.type] = (counts[f.type] || 0) + 1;
+    });
+
+    return (
+      <div className="flex flex-col gap-1">
+        {Object.entries(counts).map(([fileType, count]) => (
+          <div key={fileType} className="text-sm">
+            <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <Section>
       <Container className="my-4 prose max-w-none" width="custom">
@@ -544,13 +572,12 @@ export const Search: React.FC<{ data: any }> = ({
             <DownloadFilesButton
               search={search}
               searchString={searchString}
-              moratoriumCruises={moratoriumCruises}
             />
           </div>
         </div>
         <div className="flex gap-4 mt-4">
           {/* Left Sidebar - Filters and Active Filters */}
-          <div className={`${showFilters ? 'w-[320px]' : 'w-auto'} flex-shrink-0 flex flex-col gap-4`}>
+          <div className={`${showFilters ? 'w-[320px]' : 'w-auto'} flex-shrink-0 flex flex-col gap-4 overflow-y-auto h-[calc(100vh-25rem)]`}>
             {/* Filter Panel - conditionally shown */}
             {showFilters && (
               <FilterPanel
@@ -581,7 +608,7 @@ export const Search: React.FC<{ data: any }> = ({
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 min-h-[500px]">
+          <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-25rem)]">
 
         {/* Responsive tabs - full tabs on large screens, dropdown on small */}
         <div className="mb-2">
@@ -616,7 +643,7 @@ export const Search: React.FC<{ data: any }> = ({
               filters={search.filters}
               filterLogic={search.filterLogic}
             />
-            {process.env.NEXT_PUBLIC_DEPLOYMENT !== 'production' && (
+            {false && (
               <>
                 <div className="tab tab-lg tab-bordered px-2"></div>
                 <SearchTab
@@ -665,7 +692,7 @@ export const Search: React.FC<{ data: any }> = ({
                     if (search.types.includes('cruise')) return 'Cruises';
                     if (search.types.includes('core')) return 'Cores';
                     if (search.types.includes('section')) return 'Sections';
-                    if (process.env.NEXT_PUBLIC_DEPLOYMENT !== 'production' && search.types.includes('sectionHalf')) return 'Section Halves';
+                    if (false && search.types.includes('sectionHalf')) return 'Section Halves';
                     if (search.types.includes('dive')) return 'Dredges/Dives';
                     if (search.types.includes('diveSample')) return 'Rocks';
                     return 'Select Type';
@@ -751,7 +778,7 @@ export const Search: React.FC<{ data: any }> = ({
                     </span>
                   </div>
                 </li>
-                {process.env.NEXT_PUBLIC_DEPLOYMENT !== 'production' && (
+                {false && (
                   <li>
                     <div
                       onClick={() => {
@@ -820,9 +847,10 @@ export const Search: React.FC<{ data: any }> = ({
             )}
           </div>
         </div>
+          <div className="flex-1 overflow-y-auto">
           {search.types.includes('cruise') &&
             <table className="table table-compact w-full mt-0">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-base-100">
                 <tr>
                   <th
                     className="rounded-none cursor-pointer hover:bg-base-200"
@@ -847,10 +875,17 @@ export const Search: React.FC<{ data: any }> = ({
                       <InstitutionFilterDropdown search={search} setSearch={setSearch} />
                     </div>
                   </th>
+                  <th className="rounded-none">Location</th>
                   <th className="rounded-none">
                     <div className="flex items-center gap-1">
                       <span>Files</span>
                       <FileTypesFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Related Files</span>
+                      <RelatedFileTypesFilterDropdown search={search} setSearch={setSearch} />
                     </div>
                   </th>
                 </tr>
@@ -858,7 +893,7 @@ export const Search: React.FC<{ data: any }> = ({
               <tbody>
                 {matches.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-gray-500">
+                    <td colSpan={6} className="text-center py-8 text-gray-500">
                       No matching cruises found
                     </td>
                   </tr>
@@ -870,7 +905,10 @@ export const Search: React.FC<{ data: any }> = ({
                     }}>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
-                        {moratoriumCruises.some(cruise => match._source._osuid.startsWith(cruise)) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                      </td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {match._source.rvName}
                         {r2rCruiseLinks[match._source._osuid] && (
                           <div className="mt-1 flex flex-row flex-wrap gap-1">
                             {r2rCruiseLinks[match._source._osuid].map((link: string, idx: number) => (
@@ -880,7 +918,7 @@ export const Search: React.FC<{ data: any }> = ({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1"
+                                className="badge badge-ghost hover:badge-ghost no-underline flex items-center gap-1"
                               >
                                 R2R
                                 <Icon name="BiLinkExternal" size="xxs" />
@@ -890,14 +928,19 @@ export const Search: React.FC<{ data: any }> = ({
                           </div>
                         )}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">{match._source.rvName}</td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.pi && <><b>{match._source.pi}</b><br/></>}
                         {match._source.piInstitution && <>{match._source.piInstitution}<br/></>}
                       </td>
+                      <td className="align-top">
+                        <CollectionMapThumbnail locations={match._source._locations} />
+                      </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {(() => {
-                          if (!match._source._files || match._source._files.length === 0) {
+                          const files = match._source._files || [];
+                          const moratoriumFiles = match._source._moratorium_files || [];
+
+                          if (files.length === 0 && moratoriumFiles.length === 0) {
                             return <span className="text-gray-500 text-sm">No files</span>;
                           }
 
@@ -905,11 +948,14 @@ export const Search: React.FC<{ data: any }> = ({
                           const fileTypeCounts: { [key: string]: number } = {};
                           const moratoriumFileCounts: { [key: string]: number } = {};
 
-                          match._source._files.forEach((file: any) => {
+                          files.forEach((file: any) => {
                             if (hasFileTypeLabel(file.type)) {
                               fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                            } else {
-                              // Unlabeled files are moratorium files
+                            }
+                          });
+
+                          moratoriumFiles.forEach((file: any) => {
+                            if (hasFileTypeLabel(file.type)) {
                               moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
                             }
                           });
@@ -940,10 +986,13 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {renderRelatedFileCounts(match._source)}
+                      </td>
                     </tr>
                     {viewRawData &&
                       <tr key={`${key}-rawresults`}>
-                        <td colSpan={4}>
+                        <td colSpan={6}>
                           <button
                             className="btn btn-xs btn-ghost mb-2"
                             onClick={(e) => {
@@ -971,7 +1020,7 @@ export const Search: React.FC<{ data: any }> = ({
           }
           {search.types.includes('core') &&
             <table className="table table-compact w-full mt-0">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-base-100">
                 <tr>
                   <th
                     className="rounded-none cursor-pointer hover:bg-base-200"
@@ -1005,12 +1054,18 @@ export const Search: React.FC<{ data: any }> = ({
                       <FileTypesFilterDropdown search={search} setSearch={setSearch} />
                     </div>
                   </th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Related Files</span>
+                      <RelatedFileTypesFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {matches.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-gray-500">
+                    <td colSpan={8} className="text-center py-8 text-gray-500">
                       No matching cores found
                     </td>
                   </tr>
@@ -1023,7 +1078,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                        {moratoriumCruises.some(cruise => match._source._osuid.startsWith(cruise)) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.length != null && <><b>Length:</b><br/>{numeral(match._source.length).format(0.00)} cm<br /></>}
@@ -1086,33 +1141,18 @@ export const Search: React.FC<{ data: any }> = ({
                           return <span className="text-gray-500">—</span>;
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
-                        <div className="flex flex-row gap-2">
-                          <CollectionMapThumbnail
-                            lat={match._source.latitudeStart || match._source.latitudeEnd}
-                            lon={match._source.longitudeStart || match._source.longitudeEnd}
-                          />
-                          <div className="overflow-hidden">
-                            {(match._source.latitudeStart != null || match._source.latitudeEnd != null) &&
-                            <div className="truncate">
-                              <b>Latitude:</b><br/>
-                              {match._source.latitudeStart != null && numeral(match._source.latitudeStart).format('0.0000')}
-                              {match._source.latitudeStart != null && match._source.latitudeEnd != null && match._source.latitudeStart !== match._source.latitudeEnd && ' to '}
-                              {match._source.latitudeEnd != null && match._source.latitudeStart !== match._source.latitudeEnd && numeral(match._source.latitudeEnd).format('0.0000')}
-                            </div>}
-                            {(match._source.longitudeStart != null || match._source.longitudeEnd != null) &&
-                            <div className="truncate">
-                              <b>Longitude:</b><br/>
-                              {match._source.longitudeStart != null && numeral(match._source.longitudeStart).format('0.0000')}
-                              {match._source.longitudeStart != null && match._source.longitudeEnd != null && match._source.longitudeStart !== match._source.longitudeEnd && ' to '}
-                              {match._source.longitudeEnd != null && match._source.longitudeStart !== match._source.longitudeEnd && numeral(match._source.longitudeEnd).format('0.0000')}
-                            </div>}
-                          </div>
-                        </div>
+                      <td className="align-top">
+                        <CollectionMapThumbnail
+                          lat={match._source.latitudeStart || match._source.latitudeEnd}
+                          lon={match._source.longitudeStart || match._source.longitudeEnd}
+                        />
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {(() => {
-                          if (!match._source._files || match._source._files.length === 0) {
+                          const files = match._source._files || [];
+                          const moratoriumFiles = match._source._moratorium_files || [];
+
+                          if (files.length === 0 && moratoriumFiles.length === 0) {
                             return <span className="text-gray-500 text-sm">No files</span>;
                           }
 
@@ -1120,11 +1160,14 @@ export const Search: React.FC<{ data: any }> = ({
                           const fileTypeCounts: { [key: string]: number } = {};
                           const moratoriumFileCounts: { [key: string]: number } = {};
 
-                          match._source._files.forEach((file: any) => {
+                          files.forEach((file: any) => {
                             if (hasFileTypeLabel(file.type)) {
                               fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                            } else {
-                              // Unlabeled files are moratorium files
+                            }
+                          });
+
+                          moratoriumFiles.forEach((file: any) => {
+                            if (hasFileTypeLabel(file.type)) {
                               moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
                             }
                           });
@@ -1155,10 +1198,13 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {renderRelatedFileCounts(match._source)}
+                      </td>
                     </tr>
                     { viewRawData &&
                       <tr key={`${key}-raw`}>
-                        <td colSpan={7}>
+                        <td colSpan={8}>
                           <button
                             className="btn btn-xs btn-ghost mb-2"
                             onClick={(e) => {
@@ -1186,7 +1232,7 @@ export const Search: React.FC<{ data: any }> = ({
           }
           {search.types.includes('section') &&
             <table className="table table-compact w-full mt-0">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-base-100">
                 <tr>
                   <th
                     className="rounded-none cursor-pointer hover:bg-base-200"
@@ -1206,10 +1252,17 @@ export const Search: React.FC<{ data: any }> = ({
                   >
                     Depth {getSortIcon('depth')}
                   </th>
+                  <th className="rounded-none">Location</th>
                   <th className="rounded-none">
                     <div className="flex items-center gap-1">
                       <span>Files</span>
                       <FileTypesFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Related Files</span>
+                      <RelatedFileTypesFilterDropdown search={search} setSearch={setSearch} />
                     </div>
                   </th>
                 </tr>
@@ -1217,7 +1270,7 @@ export const Search: React.FC<{ data: any }> = ({
               <tbody>
                 {matches.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-gray-500">
+                    <td colSpan={6} className="text-center py-8 text-gray-500">
                       No matching sections found
                     </td>
                   </tr>
@@ -1230,7 +1283,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                        {moratoriumCruises.some(cruise => match._source._osuid.startsWith(cruise)) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.depthTop != null && match._source.depthBottom != null &&
@@ -1248,9 +1301,18 @@ export const Search: React.FC<{ data: any }> = ({
                           </>
                         }
                       </td>
+                      <td className="align-top">
+                        <CollectionMapThumbnail
+                          lat={match._source.latitudeStart || match._source.latitudeEnd}
+                          lon={match._source.longitudeStart || match._source.longitudeEnd}
+                        />
+                      </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {(() => {
-                          if (!match._source._files || match._source._files.length === 0) {
+                          const files = match._source._files || [];
+                          const moratoriumFiles = match._source._moratorium_files || [];
+
+                          if (files.length === 0 && moratoriumFiles.length === 0) {
                             return <span className="text-gray-500 text-sm">No files</span>;
                           }
 
@@ -1258,11 +1320,14 @@ export const Search: React.FC<{ data: any }> = ({
                           const fileTypeCounts: { [key: string]: number } = {};
                           const moratoriumFileCounts: { [key: string]: number } = {};
 
-                          match._source._files.forEach((file: any) => {
+                          files.forEach((file: any) => {
                             if (hasFileTypeLabel(file.type)) {
                               fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                            } else {
-                              // Unlabeled files are moratorium files
+                            }
+                          });
+
+                          moratoriumFiles.forEach((file: any) => {
+                            if (hasFileTypeLabel(file.type)) {
                               moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
                             }
                           });
@@ -1293,10 +1358,13 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {renderRelatedFileCounts(match._source)}
+                      </td>
                     </tr>
                     { viewRawData &&
                       <tr key={`${key}-raw`}>
-                        <td colSpan={4}>
+                        <td colSpan={6}>
                           <button
                             className="btn btn-xs btn-ghost mb-2"
                             onClick={(e) => {
@@ -1324,7 +1392,7 @@ export const Search: React.FC<{ data: any }> = ({
           }
           {search.types.includes('sectionHalf') &&
             <table className="table table-compact w-full mt-0">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-base-100">
                 <tr>
                   <th
                     className="rounded-none cursor-pointer hover:bg-base-200"
@@ -1338,12 +1406,18 @@ export const Search: React.FC<{ data: any }> = ({
                       <FileTypesFilterDropdown search={search} setSearch={setSearch} />
                     </div>
                   </th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Related Files</span>
+                      <RelatedFileTypesFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                   {matches.length === 0 ? (
                     <tr>
-                      <td colSpan={2} className="text-center py-8 text-gray-500">
+                      <td colSpan={3} className="text-center py-8 text-gray-500">
                         No matching section halves found
                       </td>
                     </tr>
@@ -1356,42 +1430,66 @@ export const Search: React.FC<{ data: any }> = ({
                           <td className="align-top overflow-hidden text-ellipsis max-w-0">
                             <b>{match._source._osuid}</b>
                             {match._source.nSections != null && <><br /><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                            {moratoriumCruises.some(cruise => match._source._osuid.startsWith(cruise)) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                            {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
                           </td>
                           <td className="align-top overflow-hidden text-ellipsis max-w-0">
                             {(() => {
-                              if (!match._source._files || match._source._files.length === 0) {
+                              const files = match._source._files || [];
+                              const moratoriumFiles = match._source._moratorium_files || [];
+
+                              if (files.length === 0 && moratoriumFiles.length === 0) {
                                 return <span className="text-gray-500 text-sm">No files</span>;
                               }
 
                               // Group files by type and count them
                               const fileTypeCounts: { [key: string]: number } = {};
-                              match._source._files.forEach((file: any) => {
-                                fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                              const moratoriumFileCounts: { [key: string]: number } = {};
+
+                              files.forEach((file: any) => {
+                                if (hasFileTypeLabel(file.type)) {
+                                  fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
+                                }
                               });
 
-                              const displayableFiles = Object.entries(fileTypeCounts)
-                                .filter(([fileType]) => hasFileTypeLabel(fileType));
+                              moratoriumFiles.forEach((file: any) => {
+                                if (hasFileTypeLabel(file.type)) {
+                                  moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
+                                }
+                              });
 
-                              if (displayableFiles.length === 0) {
+                              const displayableFiles = Object.entries(fileTypeCounts);
+
+                              if (displayableFiles.length === 0 && Object.keys(moratoriumFileCounts).length === 0) {
                                 return <span className="text-gray-500 text-sm">No files</span>;
                               }
 
                               return (
                                 <div className="flex flex-col gap-1">
-                                  {displayableFiles.map(([fileType, count]) => (
+                                  {displayableFiles.map(([fileType, count]) => {
+                                    const moratoriumCount = moratoriumFileCounts[fileType] || 0;
+                                    return (
+                                      <div key={fileType} className="text-sm">
+                                        <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                        {moratoriumCount > 0 && <span className="text-gray-500"> ({moratoriumCount} under moratorium)</span>}
+                                      </div>
+                                    );
+                                  })}
+                                  {Object.entries(moratoriumFileCounts).filter(([type]) => !fileTypeCounts[type]).map(([fileType, count]) => (
                                     <div key={fileType} className="text-sm">
-                                      <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
+                                      <span className="font-bold">{getFileTypeLabel(fileType)}:</span> <span className="text-gray-500">({count} under moratorium)</span>
                                     </div>
                                   ))}
                                 </div>
                               );
                             })()}
                           </td>
+                          <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                            {renderRelatedFileCounts(match._source)}
+                          </td>
                         </tr>
                         {viewRawData &&
                           <tr key={`${key}-raw`}>
-                            <td colSpan={2}>
+                            <td colSpan={3}>
                               <button
                                 className="btn btn-xs btn-ghost mb-2"
                                 onClick={(e) => {
@@ -1417,7 +1515,7 @@ export const Search: React.FC<{ data: any }> = ({
           }
           {matches.length > 0 && search.types.includes('dive') &&
             <table className="table table-compact w-full mt-0">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-base-100">
                 <tr>
                   <th
                     className="rounded-none cursor-pointer hover:bg-base-200"
@@ -1436,21 +1534,17 @@ export const Search: React.FC<{ data: any }> = ({
                       <CollectionFilterDropdown search={search} setSearch={setSearch} />
                     </div>
                   </th>
-                  <th className="rounded-none">
-                    <div className="flex items-center gap-1">
-                      <span
-                        className="cursor-pointer hover:text-primary"
-                        onClick={() => toggleSort('area')}
-                      >
-                        Area {getSortIcon('area')}
-                      </span>
-                      <AreaFilterDropdown search={search} setSearch={setSearch} />
-                    </div>
-                  </th>
+                  <th className="rounded-none">Location</th>
                   <th className="rounded-none">
                     <div className="flex items-center gap-1">
                       <span>Files</span>
                       <FileTypesFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Related Files</span>
+                      <RelatedFileTypesFilterDropdown search={search} setSearch={setSearch} />
                     </div>
                   </th>
                 </tr>
@@ -1463,16 +1557,21 @@ export const Search: React.FC<{ data: any }> = ({
                     }}>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
-                        {moratoriumCruises.some(cruise => match._source._osuid.startsWith(cruise)) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {match._source.method != null && <><b>Method:</b><br/>{match._source.method}<br/></>}
                         {match._source.material != null && <><b>Material:</b><br/>{match._source.material}<br /></>}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">{match._source.area}</td>
+                      <td className="align-top">
+                        <CollectionMapThumbnail locations={match._source._locations} lat={match._source.latitudeStart || match._source.latitudeEnd} lon={match._source.longitudeStart || match._source.longitudeEnd} />
+                      </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {(() => {
-                          if (!match._source._files || match._source._files.length === 0) {
+                          const files = match._source._files || [];
+                          const moratoriumFiles = match._source._moratorium_files || [];
+
+                          if (files.length === 0 && moratoriumFiles.length === 0) {
                             return <span className="text-gray-500 text-sm">No files</span>;
                           }
 
@@ -1480,11 +1579,14 @@ export const Search: React.FC<{ data: any }> = ({
                           const fileTypeCounts: { [key: string]: number } = {};
                           const moratoriumFileCounts: { [key: string]: number } = {};
 
-                          match._source._files.forEach((file: any) => {
+                          files.forEach((file: any) => {
                             if (hasFileTypeLabel(file.type)) {
                               fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                            } else {
-                              // Unlabeled files are moratorium files
+                            }
+                          });
+
+                          moratoriumFiles.forEach((file: any) => {
+                            if (hasFileTypeLabel(file.type)) {
                               moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
                             }
                           });
@@ -1515,10 +1617,13 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {renderRelatedFileCounts(match._source)}
+                      </td>
                     </tr>
                     { viewRawData &&
                       <tr key={`${key}-rawresults`}>
-                        <td colSpan={4}>
+                        <td colSpan={6}>
                           <button
                             className="btn btn-xs btn-ghost mb-2"
                             onClick={(e) => {
@@ -1545,7 +1650,7 @@ export const Search: React.FC<{ data: any }> = ({
           }
           {matches.length > 0 && search.types.includes('diveSample') &&
             <table className="table table-compact w-full mt-0">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-base-100">
                 <tr>
                   <th
                     className="rounded-none cursor-pointer hover:bg-base-200"
@@ -1573,6 +1678,12 @@ export const Search: React.FC<{ data: any }> = ({
                       <FileTypesFilterDropdown search={search} setSearch={setSearch} />
                     </div>
                   </th>
+                  <th className="rounded-none">
+                    <div className="flex items-center gap-1">
+                      <span>Related Files</span>
+                      <RelatedFileTypesFilterDropdown search={search} setSearch={setSearch} />
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -1583,7 +1694,7 @@ export const Search: React.FC<{ data: any }> = ({
                     }}>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
-                        {moratoriumCruises.some(cruise => match._source._osuid.startsWith(cruise)) && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {(() => {
@@ -1643,33 +1754,18 @@ export const Search: React.FC<{ data: any }> = ({
                         })()}
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">{match._source.texture || <span className="text-gray-500">—</span>}</td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
-                        <div className="flex flex-row gap-2">
-                          <CollectionMapThumbnail
-                            lat={match._source.latitudeStart || match._source.latitudeEnd}
-                            lon={match._source.longitudeStart || match._source.longitudeEnd}
-                          />
-                          <div className="overflow-hidden">
-                            {(match._source.latitudeStart != null || match._source.latitudeEnd != null) &&
-                            <div className="truncate">
-                              <b>Latitude:</b><br/>
-                              {match._source.latitudeStart != null && numeral(match._source.latitudeStart).format('0.0000')}
-                              {match._source.latitudeStart != null && match._source.latitudeEnd != null && match._source.latitudeStart !== match._source.latitudeEnd && ' to '}
-                              {match._source.latitudeEnd != null && match._source.latitudeStart !== match._source.latitudeEnd && numeral(match._source.latitudeEnd).format('0.0000')}
-                            </div>}
-                            {(match._source.longitudeStart != null || match._source.longitudeEnd != null) &&
-                            <div className="truncate">
-                              <b>Longitude:</b><br/>
-                              {match._source.longitudeStart != null && numeral(match._source.longitudeStart).format('0.0000')}
-                              {match._source.longitudeStart != null && match._source.longitudeEnd != null && match._source.longitudeStart !== match._source.longitudeEnd && ' to '}
-                              {match._source.longitudeEnd != null && match._source.longitudeStart !== match._source.longitudeEnd && numeral(match._source.longitudeEnd).format('0.0000')}
-                            </div>}
-                          </div>
-                        </div>
+                      <td className="align-top">
+                        <CollectionMapThumbnail
+                          lat={match._source.latitudeStart || match._source.latitudeEnd}
+                          lon={match._source.longitudeStart || match._source.longitudeEnd}
+                        />
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {(() => {
-                          if (!match._source._files || match._source._files.length === 0) {
+                          const files = match._source._files || [];
+                          const moratoriumFiles = match._source._moratorium_files || [];
+
+                          if (files.length === 0 && moratoriumFiles.length === 0) {
                             return <span className="text-gray-500 text-sm">No files</span>;
                           }
 
@@ -1677,11 +1773,14 @@ export const Search: React.FC<{ data: any }> = ({
                           const fileTypeCounts: { [key: string]: number } = {};
                           const moratoriumFileCounts: { [key: string]: number } = {};
 
-                          match._source._files.forEach((file: any) => {
+                          files.forEach((file: any) => {
                             if (hasFileTypeLabel(file.type)) {
                               fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                            } else {
-                              // Unlabeled files are moratorium files
+                            }
+                          });
+
+                          moratoriumFiles.forEach((file: any) => {
+                            if (hasFileTypeLabel(file.type)) {
                               moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
                             }
                           });
@@ -1712,10 +1811,13 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        {renderRelatedFileCounts(match._source)}
+                      </td>
                     </tr>
                     { viewRawData &&
                       <tr key={`${key}-raw`}>
-                        <td colSpan={6}>
+                        <td colSpan={7}>
                           <button
                             className="btn btn-xs btn-ghost mb-2"
                             onClick={(e) => {
@@ -1743,11 +1845,11 @@ export const Search: React.FC<{ data: any }> = ({
             {/* Active Filters Display - only show if there are active filters */}
             {(search.searchString ||
               search.filters?.fileTypes?.length > 0 ||
+              search.filters?.relatedFileTypes?.length > 0 ||
               search.filters?.methods?.length > 0 ||
               search.filters?.materialTypes?.length > 0 ||
               search.filters?.rvNames?.length > 0 ||
               search.filters?.institutions?.length > 0 ||
-              search.filters?.areas?.length > 0 ||
               search.filters?.textures?.length > 0) && (
               <div className="w-[320px] mx-auto">
                 <div className="sticky top-0 bg-white pb-2">
@@ -1766,11 +1868,11 @@ export const Search: React.FC<{ data: any }> = ({
                               searchString: '',
                               filters: {
                                 fileTypes: [],
+                                relatedFileTypes: [],
                                 methods: [],
                                 materialTypes: [],
                                 rvNames: [],
                                 institutions: [],
-                                areas: [],
                                 textures: []
                               }
                             });
@@ -1825,6 +1927,29 @@ export const Search: React.FC<{ data: any }> = ({
                             }}
                           />
                           <span className="label-text text-sm flex-1 break-words"><strong>File:</strong> {getFileTypeLabel(fileType)}</span>
+                        </label>
+                      </div>
+                    ))}
+
+                    {/* Related File Types Filters */}
+                    {search.filters?.relatedFileTypes?.map((fileType: string) => (
+                      <div key={`relatedFileType-${fileType}`} className="form-control">
+                        <label className="label cursor-pointer justify-start gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
+                            checked={true}
+                            onChange={() => {
+                              setSearch({
+                                ...search,
+                                filters: {
+                                  ...search.filters,
+                                  relatedFileTypes: search.filters.relatedFileTypes.filter((f: string) => f !== fileType)
+                                }
+                              });
+                            }}
+                          />
+                          <span className="label-text text-sm flex-1 break-words"><strong>Related File:</strong> {getFileTypeLabel(fileType)}</span>
                         </label>
                       </div>
                     ))}
@@ -1921,29 +2046,6 @@ export const Search: React.FC<{ data: any }> = ({
                       </div>
                     ))}
 
-                    {/* Areas Filters */}
-                    {search.filters?.areas?.map((area: string) => (
-                      <div key={`area-${area}`} className="form-control">
-                        <label className="label cursor-pointer justify-start gap-2 py-1">
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-sm flex-shrink-0"
-                            checked={true}
-                            onChange={() => {
-                              setSearch({
-                                ...search,
-                                filters: {
-                                  ...search.filters,
-                                  areas: search.filters.areas.filter((a: string) => a !== area)
-                                }
-                              });
-                            }}
-                          />
-                          <span className="label-text text-sm flex-1 break-words"><strong>Area:</strong> {area}</span>
-                        </label>
-                      </div>
-                    ))}
-
                     {/* Textures Filters */}
                     {search.filters?.textures?.map((texture: string) => (
                       <div key={`texture-${texture}`} className="form-control">
@@ -1998,10 +2100,11 @@ export const Search: React.FC<{ data: any }> = ({
               <span className="ml-2">Loading more...</span>
             </div>
           )}
+          {/* Infinite scroll trigger: only show if there are more pages to load */}
+          {hasNextPage && <div ref={ref} className="h-1" /> }
+          </div>
         </div>
         </div>
-        {/* Infinite scroll trigger: only show if there are more pages to load */}
-        {hasNextPage && <div ref={ref} className="h-1" /> }
       </Container>
 
       {/* Landing Page Modal - Redesigned */}
@@ -2140,12 +2243,12 @@ export const Search: React.FC<{ data: any }> = ({
                 )}
 
                 {/* Cruise Globe Hero Section */}
-                {currentDoc && currentDoc._docType === 'cruise' && currentDoc._cruiseUUID && (
+                {currentDoc && currentDoc._docType === 'cruise' && currentDoc._locations?.length > 0 && (
                   <CruiseGlobe cruiseDoc={currentDoc} />
                 )}
 
                 {/* Dive/Rock Globe Hero Section */}
-                {currentDoc && currentDoc._docType === 'dive' && currentDoc._diveUUID && (
+                {currentDoc && currentDoc._docType === 'dive' && currentDoc.latitudeStart != null && (
                   <DiveGlobe diveDoc={currentDoc} />
                 )}
 

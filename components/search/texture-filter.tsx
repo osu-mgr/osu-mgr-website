@@ -13,7 +13,7 @@ export const TextureFilterDropdown: React.FC<{
 
   // Fetch counts for each texture
   const { data: textureCounts, isLoading: countsLoading } = useQuery({
-    queryKey: ['textureCountsDropdown', search.types, search.searchString, JSON.stringify(search.filters?.fileTypes), search.filterLogic?.fileTypes, JSON.stringify(search.filters?.methods), JSON.stringify(search.filters?.materialTypes), JSON.stringify(search.filters?.areas), JSON.stringify(search.filters?.textures)],
+    queryKey: ['textureCountsDropdown', search.types, search.searchString, JSON.stringify(search.filters?.fileTypes), search.filterLogic?.fileTypes, JSON.stringify(search.filters?.methods), JSON.stringify(search.filters?.materialTypes), JSON.stringify(search.filters?.textures)],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?textureCounts', {
         method: 'POST',
