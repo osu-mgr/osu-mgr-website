@@ -15,6 +15,14 @@ const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
   loading: () => <div className="w-full h-[300px] flex items-center justify-center bg-base-200">Loading globe...</div>,
 });
 
+const HIDDEN_FILE_TYPE_SUBSTRINGS = ['igsn', 'imlgs', 'itrax-xray-image'];
+const isVisibleFile = (file: any) => {
+  const t = file?.type?.toLowerCase() ?? '';
+  return !HIDDEN_FILE_TYPE_SUBSTRINGS.some(s => t.includes(s));
+};
+const hasVisibleFiles = (doc: any) =>
+  (doc?._files || []).some(isVisibleFile) || (doc?._moratorium_files || []).some(isVisibleFile);
+
 const r2rCruiseLinks: { [key: string]: string[] } = {
   'OSU-AT0003': ['https://www.rvdata.us/search/cruise/AT3-49'],
   'OSU-BENTHIC3': ['https://www.rvdata.us/search/cruise/BNTH03MV'],
@@ -807,12 +815,12 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
           </div>
 
-          {((doc._files && doc._files.length > 0) || (doc._moratorium_files && doc._moratorium_files.length > 0)) && (
+          {hasVisibleFiles(doc) && (
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="flex flex-wrap gap-2">
-                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
+                {(doc._files || []).filter(isVisibleFile).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
+                {(doc._moratorium_files || []).filter(isVisibleFile).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
               </div>
             </div>
           )}
@@ -846,12 +854,12 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
           </div>
 
-          {((doc._files && doc._files.length > 0) || (doc._moratorium_files && doc._moratorium_files.length > 0)) && (
+          {hasVisibleFiles(doc) && (
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="flex flex-wrap gap-2">
-                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
+                {(doc._files || []).filter(isVisibleFile).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
+                {(doc._moratorium_files || []).filter(isVisibleFile).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
               </div>
             </div>
           )}
@@ -905,12 +913,12 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
           </div>
 
-          {((doc._files && doc._files.length > 0) || (doc._moratorium_files && doc._moratorium_files.length > 0)) && (
+          {hasVisibleFiles(doc) && (
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="flex flex-wrap gap-2">
-                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
+                {(doc._files || []).filter(isVisibleFile).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
+                {(doc._moratorium_files || []).filter(isVisibleFile).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
               </div>
             </div>
           )}
@@ -981,12 +989,12 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
           </div>
 
-          {((doc._files && doc._files.length > 0) || (doc._moratorium_files && doc._moratorium_files.length > 0)) && (
+          {hasVisibleFiles(doc) && (
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="flex flex-wrap gap-2">
-                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
+                {(doc._files || []).filter(isVisibleFile).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
+                {(doc._moratorium_files || []).filter(isVisibleFile).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
               </div>
             </div>
           )}
@@ -1073,12 +1081,12 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
           </div>
 
-          {((doc._files && doc._files.length > 0) || (doc._moratorium_files && doc._moratorium_files.length > 0)) && (
+          {hasVisibleFiles(doc) && (
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="flex flex-wrap gap-2">
-                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
+                {(doc._files || []).filter(isVisibleFile).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
+                {(doc._moratorium_files || []).filter(isVisibleFile).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
               </div>
             </div>
           )}
@@ -1134,12 +1142,12 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
           </div>
 
-          {((doc._files && doc._files.length > 0) || (doc._moratorium_files && doc._moratorium_files.length > 0)) && (
+          {hasVisibleFiles(doc) && (
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
-                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
+                {(doc._files || []).filter(isVisibleFile).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
+                {(doc._moratorium_files || []).filter(isVisibleFile).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
               </div>
             </div>
           )}
@@ -1209,12 +1217,12 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
           </div>
 
-          {((doc._files && doc._files.length > 0) || (doc._moratorium_files && doc._moratorium_files.length > 0)) && (
+          {hasVisibleFiles(doc) && (
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
-                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
+                {(doc._files || []).filter(isVisibleFile).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
+                {(doc._moratorium_files || []).filter(isVisibleFile).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
               </div>
             </div>
           )}
@@ -1263,12 +1271,12 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
           </div>
 
-          {((doc._files && doc._files.length > 0) || (doc._moratorium_files && doc._moratorium_files.length > 0)) && (
+          {hasVisibleFiles(doc) && (
             <div className="mb-6">
               <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {(doc._files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
-                {(doc._moratorium_files || []).filter((file: any) => !file.type?.toLowerCase().includes('igsn')).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
+                {(doc._files || []).filter(isVisibleFile).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
+                {(doc._moratorium_files || []).filter(isVisibleFile).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
               </div>
             </div>
           )}
