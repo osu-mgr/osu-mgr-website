@@ -32,7 +32,6 @@ export const FilterPanel: React.FC<{
     materialTypes: false,
     rvNames: false,
     institutions: false,
-    areas: false,
     textures: false,
     fileTypes: false,
     relatedFileTypes: false,
@@ -69,7 +68,7 @@ export const FilterPanel: React.FC<{
   };
 
   const { data: methodCounts, isLoading: methodsLoading } = useQuery({
-    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.methods, search.filterLogic?.methods, search.filters?.fileTypes, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
+    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.methods, search.filterLogic?.methods, search.filters?.fileTypes, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?methodCounts', {
         method: 'POST',
@@ -88,7 +87,7 @@ export const FilterPanel: React.FC<{
   });
 
   const { data: materialCounts, isLoading: materialsLoading } = useQuery({
-    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.materialTypes, search.filterLogic?.materialTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
+    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.materialTypes, search.filterLogic?.materialTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?materialCounts', {
         method: 'POST',
@@ -107,7 +106,7 @@ export const FilterPanel: React.FC<{
   });
 
   const { data: rvNameCounts, isLoading: rvNamesLoading } = useQuery({
-    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters?.rvNames, search.filterLogic?.rvNames, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
+    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters?.rvNames, search.filterLogic?.rvNames, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.institutions, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?rvNameCounts', {
         method: 'POST',
@@ -127,7 +126,7 @@ export const FilterPanel: React.FC<{
 
   // Fetch counts for each file type - reuse the same query as FileTypesFilterDropdown
   const { data: fileTypeCounts, isLoading: fileTypesLoading } = useQuery({
-    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
+    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?fileTypeCounts', {
         method: 'POST',
@@ -150,7 +149,7 @@ export const FilterPanel: React.FC<{
   });
 
   const { data: relatedFileTypeCounts, isLoading: relatedFileTypesLoading } = useQuery({
-    queryKey: ['relatedFileTypeCounts', search.types, search.searchString, search.filters?.relatedFileTypes, search.filterLogic?.relatedFileTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
+    queryKey: ['relatedFileTypeCounts', search.types, search.searchString, search.filters?.relatedFileTypes, search.filterLogic?.relatedFileTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?relatedFileTypeCounts', {
         method: 'POST',
@@ -431,7 +430,7 @@ export const FilterPanel: React.FC<{
     : [];
 
   const { data: institutionData, isLoading: institutionsLoading } = useQuery({
-    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.institutions, search.filterLogic?.institutions, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.areas, search.filters?.textures],
+    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.institutions, search.filterLogic?.institutions, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?institutionCounts', {
         method: 'POST',
@@ -513,88 +512,8 @@ export const FilterPanel: React.FC<{
       })
     : [];
 
-  const { data: areaCounts, isLoading: areasLoading } = useQuery({
-    queryKey: ['areaCounts', search.types, search.searchString, search.filters?.areas, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
-    queryFn: async () => {
-      const res = await fetch('/api/opensearch?areaCounts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          types: search.types,
-          searchString: search.searchString || '',
-          filters: search.filters,
-          filterLogic: search.filterLogic
-        }),
-      });
-      return res.ok ? res.json() : {};
-    },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
-  });
-
-  const selectedAreas = search.filters?.areas || [];
-
-  const handleAreaChange = (area: string, checked: boolean) => {
-    const currentAreas = search.filters?.areas || [];
-    const newAreas = checked
-      ? [...currentAreas, area]
-      : currentAreas.filter((a: string) => a !== area);
-
-    setSearch((prevSearch: any) => ({
-      ...prevSearch,
-      filters: {
-        ...prevSearch.filters,
-        areas: newAreas
-      }
-    }));
-  };
-
-  const toggleAllAreas = () => {
-    const availableAreasWithResults = availableAreas.filter(area =>
-      (areaCounts?.[area] || 0) > 0
-    );
-    const allAvailableSelected = availableAreasWithResults.every(area =>
-      selectedAreas.includes(area)
-    );
-
-    if (allAvailableSelected) {
-      setSearch((prevSearch: any) => ({
-        ...prevSearch,
-        filters: {
-          ...prevSearch.filters,
-          areas: selectedAreas.filter((area: string) =>
-            !availableAreasWithResults.includes(area)
-          )
-        }
-      }));
-    } else {
-      const newAreas = Array.from(new Set([...selectedAreas, ...availableAreasWithResults]));
-      setSearch((prevSearch: any) => ({
-        ...prevSearch,
-        filters: {
-          ...prevSearch.filters,
-          areas: newAreas
-        }
-      }));
-    }
-  };
-
-  // Filter out areas with 0 counts, but keep selected ones visible
-  // Sort selected items to the top
-  const availableAreas = areaCounts
-    ? Object.keys(areaCounts).filter(area =>
-        (areaCounts[area] || 0) > 0 || selectedAreas.includes(area)
-      ).sort((a, b) => {
-        const aSelected = selectedAreas.includes(a);
-        const bSelected = selectedAreas.includes(b);
-        if (aSelected && !bSelected) return -1;
-        if (!aSelected && bSelected) return 1;
-        return a.localeCompare(b);
-      })
-    : [];
-
   const { data: textureCounts, isLoading: texturesLoading } = useQuery({
-    queryKey: ['textureCounts', search.types, search.searchString, search.filters?.textures, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.areas, search.filters?.rvNames, search.filters?.institutions],
+    queryKey: ['textureCounts', search.types, search.searchString, search.filters?.textures, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?textureCounts', {
         method: 'POST',
@@ -712,7 +631,6 @@ export const FilterPanel: React.FC<{
                         materialTypes: [],
                         rvNames: [],
                         institutions: [],
-                        areas: [],
                         textures: []
                       }
                     });
@@ -982,92 +900,6 @@ export const FilterPanel: React.FC<{
                           onChange={(e) => handleMaterialTypeChange(materialType, e.target.checked)}
                         />
                         <span className="label-text text-sm flex-1 break-words">{materialType || 'Unknown'}</span>
-                        <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
-                          {numeral(count).format('0,0')}
-                        </span>
-                      </label>
-                    </div>
-                  );
-                })}
-
-              </>
-            )}
-          </div>
-        </div>
-        )}
-      </div>
-      )}
-
-      {availableAreas.some(area => (areaCounts?.[area] || 0) > 0) && (
-        <div className="form-control mb-4">
-          <div className="label">
-            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('areas')}>
-              <Icon name={collapsedSections.areas ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
-              Area
-            </span>
-            <div className="flex gap-1">
-              <button
-                className="btn btn-xs btn-ghost"
-                onClick={toggleAllAreas}
-                disabled={areasLoading}
-              >
-                {(() => {
-                  const availableAreasWithResults = availableAreas.filter(area =>
-                    (areaCounts?.[area] || 0) > 0
-                  );
-                  const allAvailableSelected = availableAreasWithResults.every(area =>
-                    selectedAreas.includes(area)
-                  );
-                  return allAvailableSelected ? 'Deselect All' : 'Select All';
-                })()}
-              </button>
-              <button
-                className="btn btn-xs btn-outline"
-                onClick={() => {
-                  setSearch({
-                    ...search,
-                    filters: {
-                      ...search.filters,
-                      areas: []
-                    }
-                  });
-                }}
-              >
-              Clear
-            </button>
-          </div>
-        </div>
-
-        {!collapsedSections.areas && (
-        <div className="border rounded bg-base-100">
-          {/* Scrollable filter list */}
-          <div className="max-h-[200px] overflow-y-auto p-2">
-            {areasLoading ? (
-              <div className="flex justify-center items-center py-4">
-                <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
-                <span className="ml-2 text-sm">Loading areas...</span>
-              </div>
-            ) : availableAreas.length === 0 ? (
-              <div className="flex justify-center items-center py-4 text-gray-500 text-sm">
-                No areas available
-              </div>
-            ) : (
-              <>
-                {availableAreas.map((area) => {
-                  const count = areaCounts?.[area] || 0;
-                  const isSelected = selectedAreas.includes(area);
-                  const hasResults = count > 0;
-
-                  return (
-                    <div key={area} className="form-control">
-                      <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && isSelected ? 'opacity-60' : ''}`}>
-                        <input
-                          type="checkbox"
-                          className="checkbox checkbox-sm flex-shrink-0"
-                          checked={isSelected}
-                          onChange={(e) => handleAreaChange(area, e.target.checked)}
-                        />
-                        <span className="label-text text-sm flex-1 break-words">{area || 'Unknown'}</span>
                         <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
                           {numeral(count).format('0,0')}
                         </span>

@@ -4,7 +4,7 @@ import { Client } from '@opensearch-project/opensearch';
 const client: Client = new Client({
   node: process.env.OS_NODE,
 });
-const index = 'osu-mgr-20260429-061258';
+const index = 'osu-mgr-20260513-073543';
 
 const cruisesFirst = {
   "_script": {
@@ -39,8 +39,6 @@ const sortOrders = {
   'rvName desc': [cruisesFirst, { 'rvName.keyword': 'desc' }],
   'method asc': [cruisesFirst, { 'method.keyword': 'asc' }],
   'method desc': [cruisesFirst, { 'method.keyword': 'desc' }],
-  'area asc': [cruisesFirst, { 'area.keyword': 'asc' }],
-  'area desc': [cruisesFirst, { 'area.keyword': 'desc' }],
   'texture asc': [cruisesFirst, { 'texture.keyword': 'asc' }],
   'texture desc': [cruisesFirst, { 'texture.keyword': 'desc' }],
   'weight asc': [cruisesFirst, { 'weight': 'asc' }],
@@ -237,15 +235,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           }
         });
       }
-    }
-
-    // Handle areas filter
-    if (search.filters.areas && search.filters.areas.length > 0) {
-      filters.push({
-        terms: {
-          'area.keyword': search.filters.areas
-        }
-      });
     }
 
     // Handle textures filter
@@ -522,13 +511,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         });
       }
 
-      // Apply area filters
-      if (search.filters.areas && search.filters.areas.length > 0) {
-        nonMethodFilters.push({
-          terms: { 'area.keyword': search.filters.areas }
-        });
-      }
-
       // Apply texture filters
       if (search.filters.textures && search.filters.textures.length > 0) {
         nonMethodFilters.push({
@@ -651,13 +633,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         });
       }
 
-      // Apply area filters
-      if (search.filters.areas && search.filters.areas.length > 0) {
-        nonMaterialFilters.push({
-          terms: { 'area.keyword': search.filters.areas }
-        });
-      }
-
       // Apply texture filters
       if (search.filters.textures && search.filters.textures.length > 0) {
         nonMaterialFilters.push({
@@ -775,13 +750,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       if (search.filters.institutions && search.filters.institutions.length > 0) {
         nonRvFilters.push({
           terms: { 'pi.keyword': search.filters.institutions }
-        });
-      }
-
-      // Apply area filters
-      if (search.filters.areas && search.filters.areas.length > 0) {
-        nonRvFilters.push({
-          terms: { 'area.keyword': search.filters.areas }
         });
       }
 
@@ -910,13 +878,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         });
       }
 
-      // Apply area filters
-      if (search.filters.areas && search.filters.areas.length > 0) {
-        nonInstitutionFilters.push({
-          terms: { 'area.keyword': search.filters.areas }
-        });
-      }
-
       // Apply texture filters
       if (search.filters.textures && search.filters.textures.length > 0) {
         nonInstitutionFilters.push({
@@ -994,127 +955,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
 
     return res.status(200).send({ counts, piInstitutions });
   }
-  else if (req.query.areaCounts !== undefined && search.types !== undefined) {
-    // Return counts for each area (only for dives and dredges)
-    const counts: { [key: string]: number } = {};
-
-    // Base query without area filter
-    let baseQuery: any = {};
-    if (search.searchString === '') {
-      baseQuery = { terms: { '_docType.keyword': search.types } };
-    } else {
-      baseQuery = {
-        bool: {
-          must: [
-            { terms: { '_docType.keyword': search.types } }],
-          should: buildShould(search.searchString),
-          minimum_should_match: 1,
-        }
-      };
-    }
-
-    // Apply non-area filters if they exist
-    if (search.filters) {
-      const nonAreaFilters = [];
-
-      // Apply file type filters
-      if (search.filters.fileTypes && search.filters.fileTypes.length > 0) {
-        const fileTypeLogic = search.filterLogic?.fileTypes || 'OR';
-        if (fileTypeLogic === 'AND') {
-          nonAreaFilters.push({
-            script: {
-              script: {
-                source: `
-                  def selectedTypes = params.fileTypes;
-                  def docFileTypes = new HashSet();
-                  if (doc['_files.type.keyword'].size() > 0) {
-                    for (def fileType : doc['_files.type.keyword']) {
-                      docFileTypes.add(fileType);
-                    }
-                  }
-                  for (def selectedType : selectedTypes) {
-                    if (!docFileTypes.contains(selectedType)) {
-                      return false;
-                    }
-                  }
-                  return true;
-                `,
-                params: {
-                  fileTypes: search.filters.fileTypes
-                }
-              }
-            }
-          });
-        } else {
-          nonAreaFilters.push({
-            terms: {
-              '_files.type.keyword': search.filters.fileTypes
-            }
-          });
-        }
-      }
-
-      // Apply method filters
-      if (search.filters.methods && search.filters.methods.length > 0) {
-        nonAreaFilters.push({
-          terms: { 'method.keyword': search.filters.methods }
-        });
-      }
-
-      // Apply material type filters
-      if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
-        nonAreaFilters.push({
-          terms: { 'material.keyword': search.filters.materialTypes }
-        });
-      }
-
-      // Apply texture filters
-      if (search.filters.textures && search.filters.textures.length > 0) {
-        nonAreaFilters.push({
-          terms: { 'texture.keyword': search.filters.textures }
-        });
-      }
-
-      if (nonAreaFilters.length > 0) {
-        if (!baseQuery.bool) {
-          baseQuery = {
-            bool: {
-              must: [baseQuery]
-            }
-          };
-        }
-        baseQuery.bool.filter = nonAreaFilters;
-      }
-    }
-
-    // Get aggregation of area field values
-    try {
-      const aggResp = await client.search({
-        index,
-        body: {
-          size: 0,
-          query: baseQuery,
-          aggs: {
-            areas: {
-              terms: {
-                field: 'area.keyword',
-                size: 100
-              }
-            }
-          }
-        }
-      } as any);
-
-      const buckets = (aggResp.body.aggregations?.areas as any)?.buckets || [];
-      buckets.forEach((bucket: any) => {
-        counts[bucket.key] = bucket.doc_count;
-      });
-    } catch (error) {
-      console.error('Error fetching area counts:', error);
-    }
-
-    return res.status(200).send(counts);
-  }
   else if (req.query.textureCounts !== undefined && search.types !== undefined) {
     // Return counts for each texture (only for rocks/dives)
     const counts: { [key: string]: number } = {};
@@ -1186,13 +1026,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       if (search.filters.materialTypes && search.filters.materialTypes.length > 0) {
         nonTextureFilters.push({
           terms: { 'material.keyword': search.filters.materialTypes }
-        });
-      }
-
-      // Apply area filters
-      if (search.filters.areas && search.filters.areas.length > 0) {
-        nonTextureFilters.push({
-          terms: { 'area.keyword': search.filters.areas }
         });
       }
 
@@ -1339,9 +1172,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       }
       if (search.filters.institutions?.length > 0) {
         otherFilters.push({ terms: { 'pi.keyword': search.filters.institutions } });
-      }
-      if (search.filters.areas?.length > 0) {
-        otherFilters.push({ terms: { 'area.keyword': search.filters.areas } });
       }
       if (search.filters.textures?.length > 0) {
         otherFilters.push({ terms: { 'texture.keyword': search.filters.textures } });

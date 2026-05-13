@@ -18,7 +18,6 @@ import { FileTypesFilterDropdown } from '../search/file-types-filter';
 import { RelatedFileTypesFilterDropdown } from '../search/related-file-types-filter';
 import { RvNameFilterDropdown } from '../search/rv-name-filter';
 import { InstitutionFilterDropdown } from '../search/institution-filter';
-import { AreaFilterDropdown } from '../search/area-filter';
 import { TextureFilterDropdown } from '../search/texture-filter';
 import { CollectionFilterDropdown } from '../search/collection-filter';
 import { DownloadFilesButton } from '../search/download-files-button';
@@ -65,7 +64,7 @@ export const Search: React.FC<{ data: any }> = ({
 }) => {
   const pageSize = 10;
   const router = useRouter();
-  const viewRawData = true;  // = !process.env.VERCEL;
+  const viewRawData = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
 
   console.log("viewRawData", viewRawData);
   const [search, setSearch] = useLocalStorage('search-2025-08-06-v3', {
@@ -644,7 +643,7 @@ export const Search: React.FC<{ data: any }> = ({
               filters={search.filters}
               filterLogic={search.filterLogic}
             />
-            {process.env.NEXT_PUBLIC_DEPLOYMENT !== 'production' && (
+            {false && (
               <>
                 <div className="tab tab-lg tab-bordered px-2"></div>
                 <SearchTab
@@ -693,7 +692,7 @@ export const Search: React.FC<{ data: any }> = ({
                     if (search.types.includes('cruise')) return 'Cruises';
                     if (search.types.includes('core')) return 'Cores';
                     if (search.types.includes('section')) return 'Sections';
-                    if (process.env.NEXT_PUBLIC_DEPLOYMENT !== 'production' && search.types.includes('sectionHalf')) return 'Section Halves';
+                    if (false && search.types.includes('sectionHalf')) return 'Section Halves';
                     if (search.types.includes('dive')) return 'Dredges/Dives';
                     if (search.types.includes('diveSample')) return 'Rocks';
                     return 'Select Type';
@@ -779,7 +778,7 @@ export const Search: React.FC<{ data: any }> = ({
                     </span>
                   </div>
                 </li>
-                {process.env.NEXT_PUBLIC_DEPLOYMENT !== 'production' && (
+                {false && (
                   <li>
                     <div
                       onClick={() => {
@@ -1535,17 +1534,6 @@ export const Search: React.FC<{ data: any }> = ({
                       <CollectionFilterDropdown search={search} setSearch={setSearch} />
                     </div>
                   </th>
-                  <th className="rounded-none">
-                    <div className="flex items-center gap-1">
-                      <span
-                        className="cursor-pointer hover:text-primary"
-                        onClick={() => toggleSort('area')}
-                      >
-                        Area {getSortIcon('area')}
-                      </span>
-                      <AreaFilterDropdown search={search} setSearch={setSearch} />
-                    </div>
-                  </th>
                   <th className="rounded-none">Location</th>
                   <th className="rounded-none">
                     <div className="flex items-center gap-1">
@@ -1575,7 +1563,6 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.method != null && <><b>Method:</b><br/>{match._source.method}<br/></>}
                         {match._source.material != null && <><b>Material:</b><br/>{match._source.material}<br /></>}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">{match._source.area}</td>
                       <td className="align-top">
                         <CollectionMapThumbnail locations={match._source._locations} lat={match._source.latitudeStart || match._source.latitudeEnd} lon={match._source.longitudeStart || match._source.longitudeEnd} />
                       </td>
@@ -1863,7 +1850,6 @@ export const Search: React.FC<{ data: any }> = ({
               search.filters?.materialTypes?.length > 0 ||
               search.filters?.rvNames?.length > 0 ||
               search.filters?.institutions?.length > 0 ||
-              search.filters?.areas?.length > 0 ||
               search.filters?.textures?.length > 0) && (
               <div className="w-[320px] mx-auto">
                 <div className="sticky top-0 bg-white pb-2">
@@ -1887,7 +1873,6 @@ export const Search: React.FC<{ data: any }> = ({
                                 materialTypes: [],
                                 rvNames: [],
                                 institutions: [],
-                                areas: [],
                                 textures: []
                               }
                             });
@@ -2057,29 +2042,6 @@ export const Search: React.FC<{ data: any }> = ({
                             }}
                           />
                           <span className="label-text text-sm flex-1 break-words"><strong>Cruise PI:</strong> {institution}</span>
-                        </label>
-                      </div>
-                    ))}
-
-                    {/* Areas Filters */}
-                    {search.filters?.areas?.map((area: string) => (
-                      <div key={`area-${area}`} className="form-control">
-                        <label className="label cursor-pointer justify-start gap-2 py-1">
-                          <input
-                            type="checkbox"
-                            className="checkbox checkbox-sm flex-shrink-0"
-                            checked={true}
-                            onChange={() => {
-                              setSearch({
-                                ...search,
-                                filters: {
-                                  ...search.filters,
-                                  areas: search.filters.areas.filter((a: string) => a !== area)
-                                }
-                              });
-                            }}
-                          />
-                          <span className="label-text text-sm flex-1 break-words"><strong>Area:</strong> {area}</span>
                         </label>
                       </div>
                     ))}

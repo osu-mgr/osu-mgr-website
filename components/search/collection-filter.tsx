@@ -27,7 +27,7 @@ export const CollectionFilterDropdown: React.FC<{
 
   // Fetch counts for each method
   const { data: methodCounts, isLoading: methodCountsLoading } = useQuery({
-    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
+    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?methodCounts', {
         method: 'POST',
@@ -52,7 +52,7 @@ export const CollectionFilterDropdown: React.FC<{
 
   // Fetch counts for each material type
   const { data: materialCounts, isLoading: materialCountsLoading } = useQuery({
-    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.areas, search.filters?.textures],
+    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?materialCounts', {
         method: 'POST',
