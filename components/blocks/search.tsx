@@ -11,7 +11,7 @@ import { Container } from "../util/container";
 import { ItemsCount } from '../util/items-count';
 import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
-import { LandingPage, CruiseGlobe, DiveGlobe } from "./landing-page";
+import { LandingPage } from "./landing-page";
 import dynamic from 'next/dynamic';
 import { r2rCruiseLinks, hasFileTypeLabel, getFileTypeLabel } from '../search/search-data';
 import { FileTypesFilterDropdown } from '../search/file-types-filter';
@@ -199,6 +199,7 @@ export const Search: React.FC<{ data: any }> = ({
   const openLandingModal = (osuid: string) => {
     setOsuId(osuid);
     setShowLandingModal(true);
+    setHasProcessedUrlParam(true);
     // Update URL with osu parameter
     router.push(`/search?osu=${encodeURIComponent(osuid)}`, undefined, { shallow: true });
   };
@@ -2116,7 +2117,7 @@ export const Search: React.FC<{ data: any }> = ({
           {/* Modal Container */}
           <div className="flex items-center justify-center min-h-screen px-8 py-24">
             <div
-              className="relative bg-base-100 rounded-2xl shadow-2xl max-w-7xl w-full max-h-[calc(100vh-12rem)] flex flex-col overflow-hidden"
+              className="relative bg-base-100 rounded-2xl shadow-2xl max-w-7xl w-full h-[calc(100vh-12rem)] flex flex-col overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header with Title and Close Button */}
@@ -2147,110 +2148,58 @@ export const Search: React.FC<{ data: any }> = ({
               </div>
 
               {/* Scrollable Container */}
-              <div className="flex-1 overflow-y-auto">
-                {/* Globe Hero Section - Use core coordinates for sections */}
-                {currentDoc && currentDoc._docType === 'section' && coreForSection &&
-                 (coreForSection.latitudeStart != null || coreForSection.latitudeEnd != null ||
-                  coreForSection.longitudeStart != null || coreForSection.longitudeEnd != null) && (
-                  <div className="relative bg-gradient-to-br from-primary/10 via-base-100 to-base-100 border-b border-base-300">
-                    <div className="min-h-[300px]">
-                      <Globe
-                        latitudeStart={coreForSection.latitudeStart}
-                        latitudeEnd={coreForSection.latitudeEnd}
-                        longitudeStart={coreForSection.longitudeStart}
-                        longitudeEnd={coreForSection.longitudeEnd}
-                      />
-                    </div>
-                    {/* Coordinate Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pointer-events-none">
-                      <div className="flex gap-6 text-white">
-                        {coreForSection.latitudeStart != null && (
-                          <div>
-                            <div className="text-xs opacity-80 font-medium mb-1 uppercase tracking-wide">Latitude (Core)</div>
-                            <div className="font-bold">
-                              {numeral(coreForSection.latitudeStart).format('0.0000')}°
-                              {coreForSection.latitudeEnd != null && coreForSection.latitudeStart !== coreForSection.latitudeEnd && (
-                                <span className="text-sm opacity-90 font-normal ml-1">
-                                  to {numeral(coreForSection.latitudeEnd).format('0.0000')}°
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        {coreForSection.longitudeStart != null && (
-                          <div>
-                            <div className="text-xs opacity-80 font-medium mb-1 uppercase tracking-wide">Longitude (Core)</div>
-                            <div className="font-bold">
-                              {numeral(coreForSection.longitudeStart).format('0.0000')}°
-                              {coreForSection.longitudeEnd != null && coreForSection.longitudeStart !== coreForSection.longitudeEnd && (
-                                <span className="text-sm opacity-90 font-normal ml-1">
-                                  to {numeral(coreForSection.longitudeEnd).format('0.0000')}°
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
+              <div className="flex-1 overflow-y-scroll">
+                {/* Globe Hero Section - single Globe instance, props vary by docType */}
+                {(() => {
+                  if (!currentDoc) return null;
+
+                  let globeProps: any = null;
+
+                  if (currentDoc._docType === 'section') {
+                    if (!coreForSection) return null;
+                    if (coreForSection.latitudeStart == null && coreForSection.latitudeEnd == null &&
+                        coreForSection.longitudeStart == null && coreForSection.longitudeEnd == null) return null;
+                    globeProps = {
+                      latitudeStart: coreForSection.latitudeStart,
+                      latitudeEnd: coreForSection.latitudeEnd,
+                      longitudeStart: coreForSection.longitudeStart,
+                      longitudeEnd: coreForSection.longitudeEnd,
+                    };
+                  } else if (currentDoc._docType === 'cruise') {
+                    if (!currentDoc._locations || currentDoc._locations.length === 0) return null;
+                    const coordinates = (currentDoc._locations as any[])
+                      .map(loc => {
+                        const lat = parseFloat(loc.latitudeStart ?? loc.latitudeEnd);
+                        const lon = parseFloat(loc.longitudeStart ?? loc.longitudeEnd);
+                        return !isNaN(lat) && !isNaN(lon) ? { lat, lon } : null;
+                      })
+                      .filter(Boolean) as { lat: number; lon: number }[];
+                    if (coordinates.length === 0) return null;
+                    globeProps = { coordinates };
+                  } else if (currentDoc._docType === 'dive') {
+                    const lat = parseFloat(currentDoc.latitudeStart);
+                    const lon = parseFloat(currentDoc.longitudeStart);
+                    if (isNaN(lat) || isNaN(lon)) return null;
+                    globeProps = { coordinates: [{ lat, lon }] };
+                  } else {
+                    if (currentDoc.latitudeStart == null && currentDoc.latitudeEnd == null &&
+                        currentDoc.longitudeStart == null && currentDoc.longitudeEnd == null) return null;
+                    globeProps = {
+                      latitudeStart: currentDoc.latitudeStart,
+                      latitudeEnd: currentDoc.latitudeEnd,
+                      longitudeStart: currentDoc.longitudeStart,
+                      longitudeEnd: currentDoc.longitudeEnd,
+                    };
+                  }
+
+                  return (
+                    <div className="relative bg-gradient-to-br from-primary/10 via-base-100 to-base-100 border-b border-base-300">
+                      <div className="min-h-[300px]">
+                        <Globe {...globeProps} />
                       </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Globe Hero Section - For non-section documents */}
-                {currentDoc && currentDoc._docType !== 'section' && currentDoc._docType !== 'cruise' && currentDoc._docType !== 'dive' &&
-                 (currentDoc.latitudeStart != null || currentDoc.latitudeEnd != null ||
-                  currentDoc.longitudeStart != null || currentDoc.longitudeEnd != null) && (
-                  <div className="relative bg-gradient-to-br from-primary/10 via-base-100 to-base-100 border-b border-base-300">
-                    <div className="min-h-[300px]">
-                      <Globe
-                        latitudeStart={currentDoc.latitudeStart}
-                        latitudeEnd={currentDoc.latitudeEnd}
-                        longitudeStart={currentDoc.longitudeStart}
-                        longitudeEnd={currentDoc.longitudeEnd}
-                      />
-                    </div>
-                    {/* Coordinate Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pointer-events-none">
-                      <div className="flex gap-6 text-white">
-                        {currentDoc.latitudeStart != null && (
-                          <div>
-                            <div className="text-xs opacity-80 font-medium mb-1 uppercase tracking-wide">Latitude</div>
-                            <div className="font-bold">
-                              {numeral(currentDoc.latitudeStart).format('0.0000')}°
-                              {currentDoc.latitudeEnd != null && currentDoc.latitudeStart !== currentDoc.latitudeEnd && (
-                                <span className="text-sm opacity-90 font-normal ml-1">
-                                  to {numeral(currentDoc.latitudeEnd).format('0.0000')}°
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                        {currentDoc.longitudeStart != null && (
-                          <div>
-                            <div className="text-xs opacity-80 font-medium mb-1 uppercase tracking-wide">Longitude</div>
-                            <div className="font-bold">
-                              {numeral(currentDoc.longitudeStart).format('0.0000')}°
-                              {currentDoc.longitudeEnd != null && currentDoc.longitudeStart !== currentDoc.longitudeEnd && (
-                                <span className="text-sm opacity-90 font-normal ml-1">
-                                  to {numeral(currentDoc.longitudeEnd).format('0.0000')}°
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Cruise Globe Hero Section */}
-                {currentDoc && currentDoc._docType === 'cruise' && currentDoc._locations?.length > 0 && (
-                  <CruiseGlobe cruiseDoc={currentDoc} />
-                )}
-
-                {/* Dive/Rock Globe Hero Section */}
-                {currentDoc && currentDoc._docType === 'dive' && currentDoc.latitudeStart != null && (
-                  <DiveGlobe diveDoc={currentDoc} />
-                )}
+                  );
+                })()}
 
                 {/* Content */}
                 <div className="p-6 lg:p-8">
@@ -2260,7 +2209,6 @@ export const Search: React.FC<{ data: any }> = ({
                     onDocumentLoaded={(doc) => setCurrentDoc(doc)}
                     onNavigateToChild={(childOsuId) => {
                       setOsuId(childOsuId);
-                      setCurrentDoc(null);
                     }}
                   />
                 </div>
