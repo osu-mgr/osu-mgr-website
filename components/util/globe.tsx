@@ -35,7 +35,7 @@ export const Globe: React.FC<GlobeProps> = ({
       coordinates.forEach((coord, index) => {
         points.push({
           name: coord.name || `Point ${index + 1}`,
-          value: [coord.lon, coord.lat, 0],
+          value: [coord.lon, coord.lat, -0.05],
           itemStyle: {
             color: '#ff6600' // Orange primary color
           }
@@ -47,7 +47,7 @@ export const Globe: React.FC<GlobeProps> = ({
       if (latitudeStart != null && longitudeStart != null) {
         points.push({
           name: 'Start',
-          value: [Number(longitudeStart), Number(latitudeStart), 0],
+          value: [Number(longitudeStart), Number(latitudeStart), -0.05],
           itemStyle: {
             color: '#ff6600'
           }
@@ -59,7 +59,7 @@ export const Globe: React.FC<GlobeProps> = ({
           (latitudeEnd !== latitudeStart || longitudeEnd !== longitudeStart)) {
         points.push({
           name: 'End',
-          value: [Number(longitudeEnd), Number(latitudeEnd), 0],
+          value: [Number(longitudeEnd), Number(latitudeEnd), -0.05],
           itemStyle: {
             color: '#ff6600'
           }
@@ -70,7 +70,7 @@ export const Globe: React.FC<GlobeProps> = ({
       if (points.length === 0 && latitude != null && longitude != null) {
         points.push({
           name: 'Location',
-          value: [Number(longitude), Number(latitude), 0],
+          value: [Number(longitude), Number(latitude), -0.05],
           itemStyle: {
             color: '#ff6600'
           }
