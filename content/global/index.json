@@ -43,7 +43,7 @@
           },
           {
             "href": "search",
-            "label": "Search By Name\n"
+            "label": "Search By Name-\n\nAll Collections\n"
           },
           {
             "href": "map",
@@ -51,7 +51,7 @@
           },
           {
             "href": "Antarctic map",
-            "label": "Search by Map- \n\nAntarctic Cores\n"
+            "label": "Search by Map-\n\nAntarctic Cores\n"
           },
           {
             "href": "repositories",
