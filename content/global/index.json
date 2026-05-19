@@ -50,6 +50,10 @@
             "label": "Map Search-\n\nAll Collections\n"
           },
           {
+            "href": "home",
+            "label": "Map Search- \n\nAntarctic Cores\n"
+          },
+          {
             "href": "repositories",
             "label": "Other Repositories\n"
           }
