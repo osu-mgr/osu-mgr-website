@@ -39,6 +39,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
     }
   }, [router.asPath]);
 
+  const currentSlug = router.asPath.replace(/^\//, '').split(/[/?#]/)[0];
   const items = data?.header?.nav?.map((item) => {
     let isActive = false;
     if (item.href === "" || item.href === "/")
@@ -46,7 +47,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
     else if (router.asPath.startsWith("/OSU-"))
       isActive = (item.href === 'collections');
     else
-      isActive = router.asPath.includes(item.href) || item.subnav?.some((subitem) => router.asPath.includes(subitem.href));
+      isActive = currentSlug === item.href || item.subnav?.some((subitem) => currentSlug === subitem.href);
     return {
       ...item,
       isActive
@@ -88,7 +89,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
                 <a
                   key={i}
                   href={subitem.href}
-                  className={`tab tab-lg tab-bordered text-white h-auto ${router.asPath.includes(subitem.href) ? "tab-active !border-white" : ""}`}
+                  className={`tab tab-lg tab-bordered text-white h-auto ${currentSlug === subitem.href ? "tab-active !border-white" : ""}`}
                 >
                   <span data-tina-field={tinaField(subitem)}><TinaMarkdown content={subitem.label as unknown as TinaMarkdownContent} /></span>
                 </a>
@@ -134,7 +135,7 @@ export const Layout = ({ rawData = {} as any, data = layoutData, children }) => 
                 <a
                   key={i}
                   href={subitem.href}
-                  className={`tab tab-bordered text-white h-auto ${router.asPath.includes(subitem.href) ? "tab-active !border-white" : ""}`}
+                  className={`tab tab-bordered text-white h-auto ${currentSlug === subitem.href ? "tab-active !border-white" : ""}`}
                 >
                   <span data-tina-field={tinaField(subitem)}><TinaMarkdown content={subitem.label as unknown as TinaMarkdownContent} /></span>
                 </a>
