@@ -112,7 +112,8 @@ export const Search: React.FC<{ data: any }> = ({
       const payload = {
         types: ['core'],
         terms: {
-          "_coreUUID.keyword": [currentDoc._coreUUID],
+          // A child's _coreUUID points to the parent core's _uuid (cores have no _coreUUID field).
+          "_uuid.keyword": [currentDoc._coreUUID],
         },
       };
       const res = await fetch('/api/opensearch?search', {
@@ -243,7 +244,8 @@ export const Search: React.FC<{ data: any }> = ({
         const payload = {
           types: ['core'],
           terms: {
-            "_coreUUID.keyword": [coreUUID],
+            // coreUUID is the child's _coreUUID, which equals the parent core's _uuid.
+            "_uuid.keyword": [coreUUID],
           },
         };
         const res = await fetch('/api/opensearch?search', {
@@ -273,7 +275,8 @@ export const Search: React.FC<{ data: any }> = ({
         const payload = {
           types: ['dive'],
           terms: {
-            "_diveUUID.keyword": [diveUUID],
+            // diveUUID is the child's _diveUUID, which equals the parent dive's _uuid.
+            "_uuid.keyword": [diveUUID],
           },
         };
         const res = await fetch('/api/opensearch?search', {
