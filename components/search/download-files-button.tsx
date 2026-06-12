@@ -193,7 +193,7 @@ export const DownloadFilesButton: React.FC<{
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `osu-mgr-files-${new Date().toISOString().split('T')[0]}.zip`;
+      a.download = `ldcr-files-${new Date().toISOString().split('T')[0]}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

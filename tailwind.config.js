@@ -12,7 +12,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        currentColor: "#D73F09",
+        currentColor: "#1D4F91",
         neutral: colors.neutral,
       },
       typography: {
@@ -29,7 +29,7 @@ module.exports = {
     themes: [
       {
         osu: {
-          primary: "#D73F09",
+          primary: "#1D4F91",
           secondary: "#E6E6E6",
           accent: "#00859B",
           neutral: "#000000",

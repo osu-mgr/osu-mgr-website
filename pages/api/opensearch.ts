@@ -4,7 +4,7 @@ import { Client } from '@opensearch-project/opensearch';
 const client: Client = new Client({
   node: process.env.OS_NODE,
 });
-const index = 'osu-mgr-20260513-073543';
+const index = 'osu-mgr-ldeo-test1';
 
 const cruisesFirst = {
   "_script": {

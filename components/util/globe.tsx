@@ -37,7 +37,7 @@ export const Globe: React.FC<GlobeProps> = ({
           name: coord.name || `Point ${index + 1}`,
           value: [coord.lon, coord.lat, -0.05],
           itemStyle: {
-            color: '#ff6600' // Orange primary color
+            color: '#6CABDD' // Columbia blue marker
           }
         });
       });
@@ -49,7 +49,7 @@ export const Globe: React.FC<GlobeProps> = ({
           name: 'Start',
           value: [Number(longitudeStart), Number(latitudeStart), -0.05],
           itemStyle: {
-            color: '#ff6600'
+            color: '#6CABDD'
           }
         });
       }
@@ -61,7 +61,7 @@ export const Globe: React.FC<GlobeProps> = ({
           name: 'End',
           value: [Number(longitudeEnd), Number(latitudeEnd), -0.05],
           itemStyle: {
-            color: '#ff6600'
+            color: '#6CABDD'
           }
         });
       }
@@ -72,7 +72,7 @@ export const Globe: React.FC<GlobeProps> = ({
           name: 'Location',
           value: [Number(longitude), Number(latitude), -0.05],
           itemStyle: {
-            color: '#ff6600'
+            color: '#6CABDD'
           }
         });
       }

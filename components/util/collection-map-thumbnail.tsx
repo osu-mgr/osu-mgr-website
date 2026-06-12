@@ -95,7 +95,7 @@ export const CollectionMapThumbnail: React.FC<{
         .attr("cx", markerCoords[0])
         .attr("cy", markerCoords[1])
         .attr("r", 3)
-        .attr("fill", "#D73F09")
+        .attr("fill", "#1D4F91")
         .attr("stroke", "white")
         .attr("stroke-width", 1);
     }
@@ -190,7 +190,7 @@ export const CollectionMapThumbnail: React.FC<{
           .attr("cx", coords[0])
           .attr("cy", coords[1])
           .attr("r", 3)
-          .attr("fill", "#D73F09")
+          .attr("fill", "#1D4F91")
           .attr("stroke", "white")
           .attr("stroke-width", 1);
       }

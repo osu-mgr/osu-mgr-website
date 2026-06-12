@@ -318,8 +318,8 @@ export const Search: React.FC<{ data: any }> = ({
       // Cruise -> Core -> Section/SectionHalf (hierarchical order)
       if (doc._cruiseID) {
         breadcrumbs.push({
-          label: `OSU-${doc._cruiseID}`,
-          osuid: `OSU-${doc._cruiseID}`,
+          label: `LDCR-${doc._cruiseID}`,
+          osuid: `LDCR-${doc._cruiseID}`,
           type: 'cruise'
         });
       }
@@ -341,8 +341,8 @@ export const Search: React.FC<{ data: any }> = ({
       // Core -> Cruise
       if (doc._cruiseID) {
         breadcrumbs.push({
-          label: `OSU-${doc._cruiseID}`,
-          osuid: `OSU-${doc._cruiseID}`,
+          label: `LDCR-${doc._cruiseID}`,
+          osuid: `LDCR-${doc._cruiseID}`,
           type: 'cruise'
         });
       }
@@ -356,8 +356,8 @@ export const Search: React.FC<{ data: any }> = ({
       // Dive -> Cruise
       if (doc._cruiseID) {
         breadcrumbs.push({
-          label: `OSU-${doc._cruiseID}`,
-          osuid: `OSU-${doc._cruiseID}`,
+          label: `LDCR-${doc._cruiseID}`,
+          osuid: `LDCR-${doc._cruiseID}`,
           type: 'cruise'
         });
       }
@@ -371,8 +371,8 @@ export const Search: React.FC<{ data: any }> = ({
       // Rock -> Dive/Dredge -> Cruise
       if (doc._cruiseID) {
         breadcrumbs.push({
-          label: `OSU-${doc._cruiseID}`,
-          osuid: `OSU-${doc._cruiseID}`,
+          label: `LDCR-${doc._cruiseID}`,
+          osuid: `LDCR-${doc._cruiseID}`,
           type: 'cruise'
         });
       }
@@ -461,9 +461,9 @@ export const Search: React.FC<{ data: any }> = ({
       else if (router.query.osu) {
         const osuParam = Array.isArray(router.query.osu) ? router.query.osu[0] : router.query.osu;
         if (osuParam) {
-          // Strip section half suffix (e.g. OSU-7004Y-1PC-1A -> OSU-7004Y-1PC-1)
-          const resolvedId = osuParam.replace(/^(OSU-[^-]+-[^-]+-\d+)[A-Za-z]$/i, '$1');
-          console.log('Processing OSU URL parameter:', resolvedId);
+          // Strip section half suffix (e.g. LDCR-7004Y-1PC-1A -> LDCR-7004Y-1PC-1)
+          const resolvedId = osuParam.replace(/^(LDCR-[^-]+-[^-]+-\d+)[A-Za-z]$/i, '$1');
+          console.log('Processing LDCR URL parameter:', resolvedId);
           setOsuId(resolvedId);
           setSearchString(resolvedId);
           setShowLandingModal(true);
@@ -551,11 +551,11 @@ export const Search: React.FC<{ data: any }> = ({
   return (
     <Section>
       <Container className="my-4 prose max-w-none" width="custom">
-        <h3>Search OSU-MGR Collections</h3>
+        <h3>Search LDCR Collections</h3>
         <div className="form-control">
           <div className="input-group flex">
             <input type="text"
-              placeholder="Search OSU-MGR Collections Text..." className="input input-bordered flex-grow"
+              placeholder="Search LDCR Collections Text..." className="input input-bordered flex-grow"
               value={searchString}
               onChange={(e) => {
                 setSearchString(e.target.value);
