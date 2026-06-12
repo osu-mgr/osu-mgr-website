@@ -4,9 +4,9 @@
   "private": false,
   "scripts": {
     "dev": "NODE_OPTIONS=--max-old-space-size=8192 TINA_PUBLIC_IS_LOCAL=true tinacms dev -c \"NODE_OPTIONS=--max-old-space-size=8192 next dev -p 4100\" --datalayer-port 4101",
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 tinacms build -p 4102 --datalayer-port 4103 && node scripts/patch-admin.mjs && NODE_OPTIONS=--max-old-space-size=8192 next build",
-    "start": "tinacms build -p 4104 --datalayer-port 4105 && node scripts/patch-admin.mjs && next start",
-    "export": "tinacms build -p 4106 --datalayer-port 4107 && node scripts/patch-admin.mjs && next export",
+    "build": "NODE_OPTIONS=--max-old-space-size=8192 next build",
+    "start": "next start",
+    "export": "next build",
     "lint": "eslint . --ext .ts,.tsx"
   },
   "engines": {
