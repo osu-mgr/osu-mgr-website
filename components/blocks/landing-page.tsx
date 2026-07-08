@@ -9,6 +9,7 @@ import { ItemsCount } from '../util/items-count';
 import { CollectionFileButton } from '../util/collection-file-button';
 import { FileCard } from '../util/file-card';
 import { Icon } from "../util/icon";
+import { getDiveMethodLabel } from "../search/search-data";
 
 const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
   ssr: false,
@@ -1059,9 +1060,9 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
       {doc._docType == 'dive' &&
         <div>
           <div className="mb-6">
-            <h3 className="text-xl font-bold mb-4 text-primary">Dive</h3>
+            <h3 className="text-xl font-bold mb-4 text-primary">{getDiveMethodLabel(doc.method)}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-              {doc.id && <p className="m-0"><strong>Dive ID:</strong> {doc.id}</p>}
+              {doc.id && <p className="m-0"><strong>{getDiveMethodLabel(doc.method)} ID:</strong> {doc.id}</p>}
               {doc.title && <p className="m-0"><strong>Title:</strong> {doc.title}</p>}
               {doc.rvName && <p className="m-0"><strong>Research Vessel:</strong> {doc.rvName}</p>}
               {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
@@ -1154,7 +1155,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
 
           {doc._diveOSUID && (
             <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Dive</h3>
+              <h3 className="text-xl font-bold mb-4 text-primary">{getDiveMethodLabel(doc.method)}</h3>
               <div onClick={() => onNavigateToChild?.(doc._diveOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
                 <h4 className="font-semibold text-primary m-0 mb-2">{doc._diveOSUID}</h4>
                 <div className="space-y-1 text-sm text-gray-600">

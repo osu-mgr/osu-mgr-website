@@ -173,3 +173,13 @@ export const hasFileTypeLabel = (fileType: string): boolean => {
 export const getFileTypeLabel = (fileType: string): string => {
   return fileTypeLabelMap[fileType] || fileType;
 };
+
+// A `dive` docType is a catch-all bucket for the rock-recovery methods that share
+// the "-D" OSU-ID hierarchy (Dredge, Grab, Sediment Grab, ROV). Use the actual
+// collection method for display so e.g. a dredge doesn't get labelled "Dive".
+// ROV deployments (and an unknown/missing method) fall back to the generic "Dive".
+export const getDiveMethodLabel = (method?: string): string => {
+  const m = (method || '').trim();
+  if (!m || m.toLowerCase() === 'rov') return 'Dive';
+  return m;
+};
