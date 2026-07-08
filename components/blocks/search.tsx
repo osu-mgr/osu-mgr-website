@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import numeral from 'numeral';
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useRouter } from 'next/router';
 import { useQuery } from '@tanstack/react-query';
 import useLocalStorage from '../hooks/useLocalStorage';
@@ -13,7 +13,7 @@ import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
 import { LandingPage } from "./landing-page";
 import dynamic from 'next/dynamic';
-import { r2rCruiseLinks, hasFileTypeLabel, getFileTypeLabel } from '../search/search-data';
+import { r2rCruiseLinks, hasFileTypeLabel, getFileTypeLabel, getDiveMethodLabel } from '../search/search-data';
 import { FileTypesFilterDropdown } from '../search/file-types-filter';
 import { RelatedFileTypesFilterDropdown } from '../search/related-file-types-filter';
 import { RvNameFilterDropdown } from '../search/rv-name-filter';
@@ -131,14 +131,27 @@ export const Search: React.FC<{ data: any }> = ({
 
   const coreForSection = coreForSectionResults?.hits?.hits?.[0]?._source || null;
 
-  const debouncedSetSearch = useCallback(
-    _.debounce((newSearchString: string) => {
-      const cleanedSearchString = newSearchString.replace(/^http(s?):\/\/osu-mgr.org\//i, '');
-      setSearch(prevSearch => ({ ...prevSearch, searchString: cleanedSearchString }));
-      // Resetting pagination is handled by React Query when the queryKey (search) changes
-    }, 500),
-    [setSearch]
+  // Keep a ref to the latest setSearch so the debounced function can stay a single
+  // stable instance. useLocalStorage returns a new setSearch on every render, so
+  // depending on it (e.g. via useCallback([setSearch])) would recreate the debounced
+  // function each keystroke — which defeats debouncing entirely, since lodash only
+  // cancels a pending call when the *same* instance is invoked again. That caused the
+  // search to fire on every keystroke instead of waiting for typing to pause.
+  const setSearchRef = useRef(setSearch);
+  setSearchRef.current = setSearch;
+
+  const debouncedSetSearch = useMemo(
+    () =>
+      _.debounce((newSearchString: string) => {
+        const cleanedSearchString = newSearchString.replace(/^http(s?):\/\/osu-mgr.org\//i, '');
+        setSearchRef.current(prevSearch => ({ ...prevSearch, searchString: cleanedSearchString }));
+        // Resetting pagination is handled by React Query when the queryKey (search) changes
+      }, 500),
+    []
   );
+
+  // Cancel any pending debounced search when the component unmounts.
+  useEffect(() => () => debouncedSetSearch.cancel(), [debouncedSetSearch]);
 
   const {
     data: results,
@@ -220,14 +233,14 @@ export const Search: React.FC<{ data: any }> = ({
     }
   };
 
-  const getDocTypeLabel = (docType: string | undefined) => {
+  const getDocTypeLabel = (docType: string | undefined, method?: string) => {
     if (!docType) return 'Item';
     switch(docType.toLowerCase()) {
       case 'cruise': return 'Cruise';
       case 'core': return 'Core';
       case 'section': return 'Section';
       case 'sectionhalf': return 'Section Half';
-      case 'dive': return 'Dive';
+      case 'dive': return getDiveMethodLabel(method);
       case 'divesample': return 'Rock';
       default: return docType.charAt(0).toUpperCase() + docType.slice(1);
     }
@@ -2125,7 +2138,7 @@ export const Search: React.FC<{ data: any }> = ({
                 <div className="flex justify-between items-center p-6">
                   <div className="flex items-center gap-3 flex-1">
                     <h2 className="text-2xl font-bold text-primary m-0">
-                      {getDocTypeLabel(currentDoc?._docType)} {osuId || currentDoc?._osuid}
+                      {getDocTypeLabel(currentDoc?._docType, currentDoc?.method)} {osuId || currentDoc?._osuid}
                     </h2>
                     <button
                       className="btn btn-sm btn-ghost hover:bg-base-300 transition-colors text-gray-400"
