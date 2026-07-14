@@ -717,6 +717,103 @@ const DiveSubsamplesPanel: React.FC<{ diveSampleDoc: any; onNavigateToChild?: (o
   );
 };
 
+const ANCESTOR_TYPES = ['cruise', 'core', 'dive', 'section', 'sectionHalf', 'diveSample', 'diveSubsample', 'coreSample'];
+
+const getAncestorTypeLabel = (docType: string, method?: string) => {
+  switch (docType) {
+    case 'cruise': return 'Cruise';
+    case 'core': return 'Core';
+    case 'section': return 'Section';
+    case 'sectionHalf': return 'Section Half';
+    case 'dive': return getDiveMethodLabel(method);
+    case 'diveSample': return 'Rock Sample';
+    case 'diveSubsample': return 'Rock Subsample';
+    case 'coreSample': return 'Core Sample';
+    default: return docType ? docType.charAt(0).toUpperCase() + docType.slice(1) : 'Item';
+  }
+};
+
+// Walk up the _parentOSUID chain, fetching each real ancestor document (immediate
+// parent first, then reversed to top-down: cruise → ... → immediate parent).
+const useAncestors = (doc: any) => {
+  return useQuery({
+    queryKey: ['ancestors', doc?._osuid],
+    enabled: !!doc?._parentOSUID,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const chain: any[] = [];
+      const seen = new Set<string>();
+      let parentOSUID: string | undefined = doc?._parentOSUID;
+      while (parentOSUID && !seen.has(parentOSUID)) {
+        seen.add(parentOSUID);
+        const res = await fetch('/api/opensearch?search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ types: ANCESTOR_TYPES, terms: { '_osuid.keyword': [parentOSUID] } }),
+        });
+        if (!res.ok) break;
+        const results = await res.json();
+        const src = results?.hits?.hits?.[0]?._source;
+        if (!src) break;
+        chain.push(src);
+        parentOSUID = src._parentOSUID;
+      }
+      return chain.reverse();
+    },
+  });
+};
+
+const AncestorCard: React.FC<{ ancestor: any; onNavigate?: (osuid: string) => void }> = ({ ancestor, onNavigate }) => {
+  const isCruise = ancestor._docType === 'cruise';
+  return (
+    <div className="mb-6">
+      <h3 className="text-xl font-bold mb-4 text-primary">{getAncestorTypeLabel(ancestor._docType, ancestor.method)}</h3>
+      <div
+        onClick={() => onNavigate?.(ancestor._osuid)}
+        className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
+      >
+        <h4 className="font-semibold text-primary m-0 mb-2">{ancestor._osuid}</h4>
+        <div className="space-y-1 text-sm text-gray-600">
+          {ancestor.cruise && <p className="m-0"><strong>Name:</strong> {ancestor.cruise}</p>}
+          {ancestor.rvName && <p className="m-0"><strong>Vessel:</strong> {ancestor.rvName}</p>}
+          {ancestor.pi && <p className="m-0"><strong>PI:</strong> {ancestor.pi}</p>}
+          {ancestor.method && <p className="m-0"><strong>Method:</strong> {ancestor.method}</p>}
+          {ancestor.material && <p className="m-0"><strong>Material:</strong> {ancestor.material}</p>}
+          {ancestor.depthTop != null && ancestor.depthBottom != null && <p className="m-0"><strong>Depth Range:</strong> {ancestor.depthTop} - {ancestor.depthBottom} cm</p>}
+          {ancestor.length && <p className="m-0"><strong>Length:</strong> {ancestor.length} cm</p>}
+          {ancestor.area && <p className="m-0"><strong>Area:</strong> {ancestor.area}</p>}
+          {ancestor.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {ancestor.latitudeStart}°</p>}
+          {ancestor.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {ancestor.longitudeStart}°</p>}
+          {ancestor.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {ancestor.waterDepthStart} m</p>}
+          {isCruise && r2rCruiseLinks[ancestor._osuid] && (
+            <div className="flex flex-row flex-wrap gap-1 mt-2">
+              {r2rCruiseLinks[ancestor._osuid].map((link: string, idx: number) => (
+                <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1">
+                  <Icon name="BiLinkExternal" size="xxs" />R2R: {link.split('/').pop()}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Parent/grandparent chain shown above a document's children, so the modal can
+// navigate up and down the hierarchy. Rendered top-down (cruise first).
+const Ancestors: React.FC<{ doc: any; onNavigate?: (osuid: string) => void }> = ({ doc, onNavigate }) => {
+  const { data: ancestors } = useAncestors(doc);
+  if (!ancestors || ancestors.length === 0) return null;
+  return (
+    <>
+      {ancestors.map((ancestor: any) => (
+        <AncestorCard key={ancestor._osuid} ancestor={ancestor} onNavigate={onNavigate} />
+      ))}
+    </>
+  );
+};
+
 export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded?: (doc: any) => void; onNavigateToChild?: (osuid: string) => void }> = ({
     data,
     osuId,
@@ -865,29 +962,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
           )}
 
-          {doc._cruiseOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Cruise</h3>
-              <div onClick={() => onNavigateToChild?.(doc._cruiseOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._cruiseOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.cruise && <p className="m-0"><strong>Name:</strong> {doc.cruise}</p>}
-                  {doc.rvName && <p className="m-0"><strong>Vessel:</strong> {doc.rvName}</p>}
-                  {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
-                  {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-                  {r2rCruiseLinks[doc._cruiseOSUID] && (
-                    <div className="flex flex-row flex-wrap gap-1 mt-2">
-                      {r2rCruiseLinks[doc._cruiseOSUID].map((link: string, idx: number) => (
-                        <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1">
-                          <Icon name="BiLinkExternal" size="xxs" />R2R: {link.split('/').pop()}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
 
           <CoreSectionsPanel coreDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -924,45 +999,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
           )}
 
-          {doc._coreOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Core</h3>
-              <div onClick={() => onNavigateToChild?.(doc._coreOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._coreOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
-                  {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-                  {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
-                  {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
-                  {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {doc._cruiseOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Cruise</h3>
-              <div onClick={() => onNavigateToChild?.(doc._cruiseOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._cruiseOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.cruise && <p className="m-0"><strong>Name:</strong> {doc.cruise}</p>}
-                  {doc.rvName && <p className="m-0"><strong>Vessel:</strong> {doc.rvName}</p>}
-                  {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
-                  {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-                  {r2rCruiseLinks[doc._cruiseOSUID] && (
-                    <div className="flex flex-row flex-wrap gap-1 mt-2">
-                      {r2rCruiseLinks[doc._cruiseOSUID].map((link: string, idx: number) => (
-                        <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1">
-                          <Icon name="BiLinkExternal" size="xxs" />R2R: {link.split('/').pop()}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
         </div>
       }
       {doc._docType == 'sectionHalf' &&
@@ -1000,59 +1037,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
           )}
 
-          {doc._sectionOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Section</h3>
-              <div onClick={() => onNavigateToChild?.(doc._sectionOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._sectionOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.depthTop != null && doc.depthBottom != null && <p className="m-0"><strong>Depth Range:</strong> {doc.depthTop} - {doc.depthBottom} cm</p>}
-                  {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
-                  {doc.diameter && <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {doc._coreOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Core</h3>
-              <div onClick={() => onNavigateToChild?.(doc._coreOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._coreOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
-                  {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-                  {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
-                  {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
-                  {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {doc._cruiseOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Cruise</h3>
-              <div onClick={() => onNavigateToChild?.(doc._cruiseOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._cruiseOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.cruise && <p className="m-0"><strong>Name:</strong> {doc.cruise}</p>}
-                  {doc.rvName && <p className="m-0"><strong>Vessel:</strong> {doc.rvName}</p>}
-                  {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
-                  {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-                  {r2rCruiseLinks[doc._cruiseOSUID] && (
-                    <div className="flex flex-row flex-wrap gap-1 mt-2">
-                      {r2rCruiseLinks[doc._cruiseOSUID].map((link: string, idx: number) => (
-                        <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1">
-                          <Icon name="BiLinkExternal" size="xxs" />R2R: {link.split('/').pop()}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
 
           <CoreSamplesPanel sectionHalfDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -1092,29 +1077,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
           )}
 
-          {doc._cruiseOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Cruise</h3>
-              <div onClick={() => onNavigateToChild?.(doc._cruiseOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._cruiseOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.cruise && <p className="m-0"><strong>Name:</strong> {doc.cruise}</p>}
-                  {doc.rvName && <p className="m-0"><strong>Vessel:</strong> {doc.rvName}</p>}
-                  {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
-                  {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-                  {r2rCruiseLinks[doc._cruiseOSUID] && (
-                    <div className="flex flex-row flex-wrap gap-1 mt-2">
-                      {r2rCruiseLinks[doc._cruiseOSUID].map((link: string, idx: number) => (
-                        <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1">
-                          <Icon name="BiLinkExternal" size="xxs" />R2R: {link.split('/').pop()}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
 
           <RockSamplesPanel rockDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -1153,46 +1116,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
           )}
 
-          {doc._diveOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">{getDiveMethodLabel(doc.method)}</h3>
-              <div onClick={() => onNavigateToChild?.(doc._diveOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._diveOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.rvName && <p className="m-0"><strong>Vessel:</strong> {doc.rvName}</p>}
-                  {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
-                  {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-                  {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
-                  {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
-                  {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart}{doc.waterDepthEnd != null && doc.waterDepthEnd !== doc.waterDepthStart ? ` – ${doc.waterDepthEnd}` : ''} m</p>}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {doc._cruiseOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Cruise</h3>
-              <div onClick={() => onNavigateToChild?.(doc._cruiseOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._cruiseOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.cruise && <p className="m-0"><strong>Name:</strong> {doc.cruise}</p>}
-                  {doc.rvName && <p className="m-0"><strong>Vessel:</strong> {doc.rvName}</p>}
-                  {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
-                  {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-                  {r2rCruiseLinks[doc._cruiseOSUID] && (
-                    <div className="flex flex-row flex-wrap gap-1 mt-2">
-                      {r2rCruiseLinks[doc._cruiseOSUID].map((link: string, idx: number) => (
-                        <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1">
-                          <Icon name="BiLinkExternal" size="xxs" />R2R: {link.split('/').pop()}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
 
           <DiveSubsamplesPanel diveSampleDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -1228,28 +1152,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
           )}
 
-          {doc._cruiseOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Cruise</h3>
-              <div onClick={() => onNavigateToChild?.(doc._cruiseOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._cruiseOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.cruise && <p className="m-0"><strong>Name:</strong> {doc.cruise}</p>}
-                  {doc.rvName && <p className="m-0"><strong>Vessel:</strong> {doc.rvName}</p>}
-                  {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
-                  {r2rCruiseLinks[doc._cruiseOSUID] && (
-                    <div className="flex flex-row flex-wrap gap-1 mt-2">
-                      {r2rCruiseLinks[doc._cruiseOSUID].map((link: string, idx: number) => (
-                        <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1">
-                          <Icon name="BiLinkExternal" size="xxs" />R2R: {link.split('/').pop()}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
         </div>
       }
       {doc._docType == 'coreSample' &&
@@ -1282,58 +1185,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
           )}
 
-          {doc._sectionOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Section</h3>
-              <div onClick={() => onNavigateToChild?.(doc._sectionOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._sectionOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.depthTop != null && doc.depthBottom != null && <p className="m-0"><strong>Depth Range:</strong> {doc.depthTop} - {doc.depthBottom} cm</p>}
-                  {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
-                  {doc.diameter && <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {doc._coreOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Core</h3>
-              <div onClick={() => onNavigateToChild?.(doc._coreOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._coreOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
-                  {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-                  {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
-                  {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
-                  {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {doc._cruiseOSUID && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Cruise</h3>
-              <div onClick={() => onNavigateToChild?.(doc._cruiseOSUID)} className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{doc._cruiseOSUID}</h4>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {doc.cruise && <p className="m-0"><strong>Name:</strong> {doc.cruise}</p>}
-                  {doc.rvName && <p className="m-0"><strong>Vessel:</strong> {doc.rvName}</p>}
-                  {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
-                  {r2rCruiseLinks[doc._cruiseOSUID] && (
-                    <div className="flex flex-row flex-wrap gap-1 mt-2">
-                      {r2rCruiseLinks[doc._cruiseOSUID].map((link: string, idx: number) => (
-                        <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1">
-                          <Icon name="BiLinkExternal" size="xxs" />R2R: {link.split('/').pop()}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
         </div>
       }
       {viewRawData && (
