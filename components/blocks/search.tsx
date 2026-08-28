@@ -13,7 +13,7 @@ import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
 import { LandingPage } from "./landing-page";
 import dynamic from 'next/dynamic';
-import { r2rCruiseLinks, hasFileTypeLabel, getFileTypeLabel, getDiveMethodLabel } from '../search/search-data';
+import { r2rCruiseLinks, hasFileTypeLabel, getFileTypeLabel, getDiveMethodLabel, formatDate, formatTime } from '../search/search-data';
 import { FileTypesFilterDropdown } from '../search/file-types-filter';
 import { RelatedFileTypesFilterDropdown } from '../search/related-file-types-filter';
 import { RvNameFilterDropdown } from '../search/rv-name-filter';
@@ -29,6 +29,48 @@ const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
     <Icon name="TbLoader2" className="w-8 h-8 animate-spin text-primary" />
   </div>
 });
+
+// Date/time column for a result row. Values are formatted with the shared helpers
+// rather than new Date(), which mangles the collection's assorted date formats —
+// bare years become the previous New Year's Eve and clock times like "08:09" come
+// out as "Invalid Date".
+const DateTimeCell: React.FC<{ source: any }> = ({ source }) => {
+  const startDate = formatDate(source.startDate);
+  const startTime = formatTime(source.startTime);
+  const endDate = formatDate(source.endDate);
+  const endTime = formatTime(source.endTime);
+  const date = formatDate(source.date);
+  const time = formatTime(source.time);
+
+  const showEndDate = endDate && endDate !== startDate;
+  const showEndTime = endTime && endTime !== startTime;
+
+  return (
+    <td className="align-top overflow-hidden text-ellipsis max-w-0">
+      {(startDate || startTime || endDate || endTime) ? (
+        <>
+          {startDate && <><b>Date:</b><br/>{startDate}<br/></>}
+          {showEndDate && <><b>End Date:</b><br/>{endDate}<br/></>}
+          {(startTime || showEndTime) && (
+            <>
+              <b>Time:</b><br/>
+              {startTime}
+              {showEndTime && <> to {endTime}</>}
+              <br/>
+            </>
+          )}
+        </>
+      ) : (date || time) ? (
+        <>
+          {date && <><b>Date:</b><br/>{date}<br/></>}
+          {time && <><b>Time:</b><br/>{time}<br/></>}
+        </>
+      ) : (
+        <span className="text-gray-500">—</span>
+      )}
+    </td>
+  );
+};
 
 const SearchTab: React.FC<{
   label: string;
@@ -112,7 +154,8 @@ export const Search: React.FC<{ data: any }> = ({
       const payload = {
         types: ['core'],
         terms: {
-          "_coreUUID.keyword": [currentDoc._coreUUID],
+          // A core's own id lives in _uuid — core docs have no _coreUUID field.
+          "_uuid.keyword": [currentDoc._coreUUID],
         },
       };
       const res = await fetch('/api/opensearch?search', {
@@ -1110,51 +1153,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.method != null && <><b>Method:</b><br/>{match._source.method}<br/></>}
                         {match._source.material != null && <><b>Material:</b><br/>{match._source.material}<br /></>}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
-                        {(() => {
-                          const sd = match._source.startDate ? new Date(match._source.startDate) : null;
-                          const st = match._source.startTime ? new Date(match._source.startTime) : null;
-                          const ed = match._source.endDate ? new Date(match._source.endDate) : null;
-                          const et = match._source.endTime ? new Date(match._source.endTime) : null;
-                          const d = match._source.date ? new Date(match._source.date) : null;
-                          const t = match._source.time ? new Date(match._source.time) : null;
-
-                          const formatDate = (dt: Date | null) => dt ? dt.toLocaleDateString() : '';
-                          const formatTime = (dt: Date | null) => dt ? dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-
-                          if (sd || st || ed || et) {
-                            const startDate = formatDate(sd);
-                            const startTime = formatTime(st);
-                            const endDate = formatDate(ed);
-                            const endTime = formatTime(et);
-                            const showEndDate = endDate && endDate !== startDate;
-                            const showEndTime = endTime && endTime !== startTime;
-                            return (
-                              <>
-                                {startDate && <><b>Date:</b><br/>{startDate}<br/></>}
-                                {showEndDate && <><b>End Date:</b><br/>{endDate}<br/></>}
-                                {(startTime || showEndTime) && (
-                                  <>
-                                    <b>Time:</b><br/>
-                                    {startTime}
-                                    {showEndTime && <> to {endTime}</>}
-                                    <br/>
-                                  </>
-                                )}
-                              </>
-                            );
-                          }
-                          if (d || t) {
-                            return (
-                              <>
-                                {d && <><b>Date:</b><br/>{formatDate(d)}<br/></>}
-                                {t && <><b>Time:</b><br/>{formatTime(t)}<br/></>}
-                              </>
-                            );
-                          }
-                          return <span className="text-gray-500">—</span>;
-                        })()}
-                      </td>
+                      <DateTimeCell source={match._source} />
                       <td className="align-top">
                         <CollectionMapThumbnail
                           lat={match._source.latitudeStart || match._source.latitudeEnd}
@@ -1710,51 +1709,7 @@ export const Search: React.FC<{ data: any }> = ({
                         <b>{match._source._osuid}</b>
                         {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
-                        {(() => {
-                          const sd = match._source.startDate ? new Date(match._source.startDate) : null;
-                          const st = match._source.startTime ? new Date(match._source.startTime) : null;
-                          const ed = match._source.endDate ? new Date(match._source.endDate) : null;
-                          const et = match._source.endTime ? new Date(match._source.endTime) : null;
-                          const d = match._source.date ? new Date(match._source.date) : null;
-                          const t = match._source.time ? new Date(match._source.time) : null;
-
-                          const formatDate = (dt: Date | null) => dt ? dt.toLocaleDateString() : '';
-                          const formatTime = (dt: Date | null) => dt ? dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-
-                          if (sd || st || ed || et) {
-                            const startDate = formatDate(sd);
-                            const startTime = formatTime(st);
-                            const endDate = formatDate(ed);
-                            const endTime = formatTime(et);
-                            const showEndDate = endDate && endDate !== startDate;
-                            const showEndTime = endTime && endTime !== startTime;
-                            return (
-                              <>
-                                {startDate && <><b>Date:</b><br/>{startDate}<br/></>}
-                                {showEndDate && <><b>End Date:</b><br/>{endDate}<br/></>}
-                                {(startTime || showEndTime) && (
-                                  <>
-                                    <b>Time:</b><br/>
-                                    {startTime}
-                                    {showEndTime && <> to {endTime}</>}
-                                    <br/>
-                                  </>
-                                )}
-                              </>
-                            );
-                          }
-                          if (d || t) {
-                            return (
-                              <>
-                                {d && <><b>Date:</b><br/>{formatDate(d)}<br/></>}
-                                {t && <><b>Time:</b><br/>{formatTime(t)}<br/></>}
-                              </>
-                            );
-                          }
-                          return <span className="text-gray-500">—</span>;
-                        })()}
-                      </td>
+                      <DateTimeCell source={match._source} />
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         {(() => {
                           const ws = match._source.waterDepthStart;
@@ -2135,9 +2090,12 @@ export const Search: React.FC<{ data: any }> = ({
             >
               {/* Header with Title and Close Button */}
               <div className="relative border-b border-base-300">
-                <div className="flex justify-between items-center p-6">
-                  <div className="flex items-center gap-3 flex-1">
-                    <h2 className="text-2xl font-bold text-primary m-0">
+                <div className="flex justify-between items-start gap-2 p-6">
+                  {/* On narrow screens the h2 takes the full width so Copy Link wraps
+                      onto its own line, right-aligned under the title; from sm up the
+                      two sit side by side on the left as before. */}
+                  <div className="flex flex-wrap items-center justify-end sm:justify-start gap-x-3 gap-y-1 flex-1 min-w-0">
+                    <h2 className="text-2xl font-bold text-primary m-0 w-full sm:w-auto break-words">
                       {getDocTypeLabel(currentDoc?._docType, currentDoc?.method)} {osuId || currentDoc?._osuid}
                     </h2>
                     <button
@@ -2169,14 +2127,21 @@ export const Search: React.FC<{ data: any }> = ({
                   let globeProps: any = null;
 
                   if (currentDoc._docType === 'section') {
-                    if (!coreForSection) return null;
-                    if (coreForSection.latitudeStart == null && coreForSection.latitudeEnd == null &&
-                        coreForSection.longitudeStart == null && coreForSection.longitudeEnd == null) return null;
+                    // Sections carry their own coordinates (inherited from the core at
+                    // index time); fall back to the parent core for the rare section
+                    // that doesn't.
+                    const src = (currentDoc.latitudeStart != null || currentDoc.latitudeEnd != null ||
+                                 currentDoc.longitudeStart != null || currentDoc.longitudeEnd != null)
+                      ? currentDoc
+                      : coreForSection;
+                    if (!src) return null;
+                    if (src.latitudeStart == null && src.latitudeEnd == null &&
+                        src.longitudeStart == null && src.longitudeEnd == null) return null;
                     globeProps = {
-                      latitudeStart: coreForSection.latitudeStart,
-                      latitudeEnd: coreForSection.latitudeEnd,
-                      longitudeStart: coreForSection.longitudeStart,
-                      longitudeEnd: coreForSection.longitudeEnd,
+                      latitudeStart: src.latitudeStart,
+                      latitudeEnd: src.latitudeEnd,
+                      longitudeStart: src.longitudeStart,
+                      longitudeEnd: src.longitudeEnd,
                     };
                   } else if (currentDoc._docType === 'cruise') {
                     if (!currentDoc._locations || currentDoc._locations.length === 0) return null;

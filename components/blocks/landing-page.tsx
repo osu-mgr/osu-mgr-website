@@ -9,7 +9,7 @@ import { ItemsCount } from '../util/items-count';
 import { CollectionFileButton } from '../util/collection-file-button';
 import { FileCard } from '../util/file-card';
 import { Icon } from "../util/icon";
-import { getDiveMethodLabel } from "../search/search-data";
+import { getDiveMethodLabel, formatDate, formatTime } from "../search/search-data";
 
 const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
   ssr: false,
@@ -886,9 +886,9 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
               {doc.piInstitution && <p className="m-0"><strong>PI Institution:</strong> {doc.piInstitution}</p>}
               {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-              {doc.endDate && <p className="m-0"><strong>End Date:</strong> {new Date(doc.endDate).toLocaleDateString()}</p>}
-              {!doc.startDate && doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
+              {formatDate(doc.endDate) && <p className="m-0"><strong>End Date:</strong> {formatDate(doc.endDate)}</p>}
+              {!formatDate(doc.startDate) && formatDate(doc.date) && <p className="m-0"><strong>Date:</strong> {formatDate(doc.date)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
@@ -941,8 +941,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
               {doc.nSections && <p className="m-0"><strong>Sections:</strong> {doc.nSections}</p>}
               {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-              {doc.endDate && <p className="m-0"><strong>End Date:</strong> {new Date(doc.endDate).toLocaleDateString()}</p>}
+              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
+              {formatDate(doc.endDate) && <p className="m-0"><strong>End Date:</strong> {formatDate(doc.endDate)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
@@ -978,8 +978,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
               {doc.diameter && <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>}
               {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
-              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-              {doc.startTime && <p className="m-0"><strong>Start Time:</strong> {new Date(doc.startTime).toLocaleTimeString()}</p>}
+              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
+              {formatTime(doc.startTime) && <p className="m-0"><strong>Start Time:</strong> {formatTime(doc.startTime)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
@@ -1016,8 +1016,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.thickness && <p className="m-0"><strong>Thickness:</strong> {doc.thickness} cm</p>}
               {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
               {doc.color && <p className="m-0"><strong>Color:</strong> {doc.color}</p>}
-              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-              {doc.startTime && <p className="m-0"><strong>Start Time:</strong> {new Date(doc.startTime).toLocaleTimeString()}</p>}
+              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
+              {formatTime(doc.startTime) && <p className="m-0"><strong>Start Time:</strong> {formatTime(doc.startTime)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
@@ -1055,8 +1055,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
               {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
               {doc.nSections != null && <p className="m-0"><strong>Samples:</strong> {doc.nSections}</p>}
-              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-              {!doc.startDate && doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
+              {!formatDate(doc.startDate) && formatDate(doc.date) && <p className="m-0"><strong>Date:</strong> {formatDate(doc.date)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
@@ -1095,7 +1095,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
               {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
               {doc.color && <p className="m-0"><strong>Color:</strong> {doc.color}</p>}
-              {doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+              {formatDate(doc.date) && <p className="m-0"><strong>Date:</strong> {formatDate(doc.date)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
@@ -1134,7 +1134,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
               {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
               {doc.color && <p className="m-0"><strong>Color:</strong> {doc.color}</p>}
-              {doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+              {formatDate(doc.date) && <p className="m-0"><strong>Date:</strong> {formatDate(doc.date)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
               {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
