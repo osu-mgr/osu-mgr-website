@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import { useRouter } from 'next/router';
 import { useQuery } from '@tanstack/react-query';
+import { DataIssuesPanel } from '../search/data-issues';
 import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Section } from "../util/section";
@@ -963,6 +964,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
 
           <CoreSectionsPanel coreDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -1000,6 +1002,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
         </div>
       }
       {doc._docType == 'sectionHalf' &&
@@ -1038,6 +1041,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
 
           <CoreSamplesPanel sectionHalfDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -1078,6 +1082,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
 
           <RockSamplesPanel rockDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -1117,6 +1122,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
 
           <DiveSubsamplesPanel diveSampleDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -1153,6 +1159,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
         </div>
       }
       {doc._docType == 'coreSample' &&
@@ -1186,6 +1193,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
         </div>
       }
       {viewRawData && (
