@@ -8,6 +8,11 @@ import { Icon } from "../util/icon";
 // Prod deployments never return records with _errors (see
 // pages/api/opensearch.ts guardQuery), so these mostly show on dev.
 
+// Curator-facing annotations are only rendered off prod. Prod never returns
+// records with _errors anyway (guardQuery); records with _warnings stay
+// visible there but without badges.
+const SHOW_DATA_ISSUES = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
+
 const asList = (v: any): string[] =>
   Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.length > 0) : [];
 
@@ -19,7 +24,7 @@ export const getDataIssues = (doc: any) => ({
 /** Compact red/yellow count badges for result rows (sits next to Moratorium / R2R). */
 export const DataIssueBadges: React.FC<{ doc: any }> = ({ doc }) => {
   const { errors, warnings } = getDataIssues(doc);
-  if (errors.length === 0 && warnings.length === 0) return null;
+  if (!SHOW_DATA_ISSUES || (errors.length === 0 && warnings.length === 0)) return null;
   return (
     <div className="mt-1 flex flex-row flex-wrap gap-1">
       {errors.length > 0 && (
@@ -47,7 +52,7 @@ export const DataIssueBadges: React.FC<{ doc: any }> = ({ doc }) => {
 /** Full messages, for the record modal / landing page. */
 export const DataIssuesPanel: React.FC<{ doc: any }> = ({ doc }) => {
   const { errors, warnings } = getDataIssues(doc);
-  if (errors.length === 0 && warnings.length === 0) return null;
+  if (!SHOW_DATA_ISSUES || (errors.length === 0 && warnings.length === 0)) return null;
   return (
     <div className="flex flex-col gap-2 mb-4">
       {errors.length > 0 && (
