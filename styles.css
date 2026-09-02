@@ -11,20 +11,27 @@
   --tab-padding: 0.5rem;
 } */
 
-/* Equal width table columns */
-.table th,
-.table td {
-  width: auto;
+/* Results tables: size columns to their content and never clip it. Headers
+   stay on one line; cells wrap. If the table still outgrows its container, the
+   container scrolls horizontally (see the results wrapper in search.tsx). */
+.table {
+  table-layout: auto;
 }
 
-.table {
-  table-layout: fixed;
+.table th {
+  white-space: nowrap;
+}
+
+.table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* Record tag badges (Moratorium, R2R, errors/warnings, dev): bold uppercase,
-   slightly smaller type, a little more padding than daisyUI's default badge. */
+   slightly smaller type. Height (20px) matches daisyUI's default badge and
+   stays shorter than a btn-xs (24px). */
 @layer components {
   .badge-tag {
-    @apply font-bold uppercase tracking-wide text-xs h-auto px-3 py-1.5;
+    @apply font-bold uppercase tracking-wide text-xs h-auto px-2 py-0.5;
   }
 }

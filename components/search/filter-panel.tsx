@@ -2,7 +2,7 @@ import numeral from 'numeral';
 import React, { useState } from "react";
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
-import { fileTypes, getFileTypeLabel } from './search-data';
+import { fileTypes, hiddenFileTypes, getFileTypeLabel } from './search-data';
 
 const RELATED_FILE_TYPES = [
   'core-description', 'core-image', 'coring-data-sheet', 'cruise-report',
@@ -632,10 +632,10 @@ export const FilterPanel: React.FC<{
     : [];
 
   // Filter out file types with 0 counts, but keep selected ones visible
-  // Sort selected items to the top, and filter out imgs-file
+  // Sort selected items to the top, and drop hidden (bookkeeping) file types
   const availableFileTypes = fileTypeCounts
     ? fileTypes.filter(fileType =>
-        fileType !== 'imgs-file' && // Hide imgs-file from the left panel too
+        !hiddenFileTypes.includes(fileType) &&
         ((fileTypeCounts[fileType] || 0) > 0 || selectedFileTypes.includes(fileType))
       ).sort((a, b) => {
         const aSelected = selectedFileTypes.includes(a);
@@ -644,7 +644,7 @@ export const FilterPanel: React.FC<{
         if (!aSelected && bSelected) return 1;
         return 0;
       })
-    : fileTypes.filter(fileType => fileType !== 'imgs-file');
+    : fileTypes.filter(fileType => !hiddenFileTypes.includes(fileType));
 
   return (
     <div className="pr-4 w-[320px] flex-shrink-0 border-r-2">

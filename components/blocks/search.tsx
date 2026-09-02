@@ -47,7 +47,7 @@ const DateTimeCell: React.FC<{ source: any }> = ({ source }) => {
   const showEndTime = endTime && endTime !== startTime;
 
   return (
-    <td className="align-top overflow-hidden text-ellipsis max-w-0">
+    <td className="align-top">
       {(startDate || startTime || endDate || endTime) ? (
         <>
           {startDate && <><b>Date:</b><br/>{startDate}<br/></>}
@@ -907,7 +907,7 @@ export const Search: React.FC<{ data: any }> = ({
             )}
           </div>
         </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-auto">
           {search.types.includes('cruise') &&
             <table className="table table-compact w-full mt-0">
               <thead className="sticky top-0 z-10 bg-base-100">
@@ -963,12 +963,14 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         <b>{match._source._osuid}</b>
+                        {match._source._coreOSUIDs?.length > 0 && <><br/><b>Cores:</b> {numeral(match._source._coreOSUIDs.length).format(0)}</>}
+                        {match._source._diveOSUIDs?.length > 0 && <><br/><b>Dredges/Dives:</b> {numeral(match._source._diveOSUIDs.length).format(0)}</>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {match._source.rvName}
                         {r2rCruiseLinks[match._source._osuid] && (
                           <div className="mt-1 flex flex-row flex-wrap gap-1">
@@ -989,14 +991,14 @@ export const Search: React.FC<{ data: any }> = ({
                           </div>
                         )}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {match._source.pi && <><b>{match._source.pi}</b><br/></>}
                         {match._source.piInstitution && <>{match._source.piInstitution}<br/></>}
                       </td>
                       <td className="align-top">
                         <CollectionMapThumbnail locations={match._source._locations} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(() => {
                           const files = match._source._files || [];
                           const moratoriumFiles = match._source._moratorium_files || [];
@@ -1047,7 +1049,7 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {renderRelatedFileCounts(match._source)}
                       </td>
                     </tr>
@@ -1136,17 +1138,17 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {match._source.length != null && <><b>Length:</b><br/>{numeral(match._source.length).format(0.00)} cm<br /></>}
                         {match._source.diameter != null && <><b>Diameter:</b><br/>{numeral(match._source.diameter).format(0.00)} cm<br /></>}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(match._source.waterDepthStart != null || match._source.waterDepthEnd != null) &&
                           <>
                             <b>Water Depth:</b><br />
@@ -1154,7 +1156,7 @@ export const Search: React.FC<{ data: any }> = ({
                           </>
                         }
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {match._source.method != null && <><b>Method:</b><br/>{match._source.method}<br/></>}
                         {match._source.material != null && <><b>Material:</b><br/>{match._source.material}<br /></>}
                       </td>
@@ -1165,7 +1167,7 @@ export const Search: React.FC<{ data: any }> = ({
                           lon={match._source.longitudeStart || match._source.longitudeEnd}
                         />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(() => {
                           const files = match._source._files || [];
                           const moratoriumFiles = match._source._moratorium_files || [];
@@ -1216,7 +1218,7 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {renderRelatedFileCounts(match._source)}
                       </td>
                     </tr>
@@ -1298,13 +1300,13 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {match._source.depthTop != null && match._source.depthBottom != null &&
                           <>
                             <b>Length:</b><br />
@@ -1312,7 +1314,7 @@ export const Search: React.FC<{ data: any }> = ({
                           </>
                         }
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(match._source.depthTop != null || match._source.depthBottom != null) &&
                           <>
                             <b>Core Depth:</b><br />
@@ -1326,7 +1328,7 @@ export const Search: React.FC<{ data: any }> = ({
                           lon={match._source.longitudeStart || match._source.longitudeEnd}
                         />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(() => {
                           const files = match._source._files || [];
                           const moratoriumFiles = match._source._moratorium_files || [];
@@ -1377,7 +1379,7 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {renderRelatedFileCounts(match._source)}
                       </td>
                     </tr>
@@ -1446,13 +1448,13 @@ export const Search: React.FC<{ data: any }> = ({
                         <tr key={key} className="hover cursor-pointer" onClick={() => {
                           openLandingModal(match._source._osuid);
                         }}>
-                          <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                          <td className="align-top">
                             <b>{match._source._osuid}</b>
                             {match._source.nSections != null && <><br /><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
                             {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                           </td>
-                          <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                          <td className="align-top">
                             {(() => {
                               const files = match._source._files || [];
                               const moratoriumFiles = match._source._moratorium_files || [];
@@ -1503,7 +1505,7 @@ export const Search: React.FC<{ data: any }> = ({
                               );
                             })()}
                           </td>
-                          <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                          <td className="align-top">
                             {renderRelatedFileCounts(match._source)}
                           </td>
                         </tr>
@@ -1575,19 +1577,19 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {match._source.method != null && <><b>Method:</b><br/>{match._source.method}<br/></>}
                         {match._source.material != null && <><b>Material:</b><br/>{match._source.material}<br /></>}
                       </td>
                       <td className="align-top">
                         <CollectionMapThumbnail locations={match._source._locations} lat={match._source.latitudeStart || match._source.latitudeEnd} lon={match._source.longitudeStart || match._source.longitudeEnd} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(() => {
                           const files = match._source._files || [];
                           const moratoriumFiles = match._source._moratorium_files || [];
@@ -1638,7 +1640,7 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {renderRelatedFileCounts(match._source)}
                       </td>
                     </tr>
@@ -1713,13 +1715,13 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <DateTimeCell source={match._source} />
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(() => {
                           const ws = match._source.waterDepthStart;
                           const we = match._source.waterDepthEnd;
@@ -1731,14 +1733,14 @@ export const Search: React.FC<{ data: any }> = ({
                           return <span className="text-gray-500">—</span>;
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">{match._source.texture || <span className="text-gray-500">—</span>}</td>
+                      <td className="align-top">{match._source.texture || <span className="text-gray-500">—</span>}</td>
                       <td className="align-top">
                         <CollectionMapThumbnail
                           lat={match._source.latitudeStart || match._source.latitudeEnd}
                           lon={match._source.longitudeStart || match._source.longitudeEnd}
                         />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(() => {
                           const files = match._source._files || [];
                           const moratoriumFiles = match._source._moratorium_files || [];
@@ -1789,7 +1791,7 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {renderRelatedFileCounts(match._source)}
                       </td>
                     </tr>

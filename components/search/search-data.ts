@@ -139,6 +139,15 @@ export const fileTypes = [
   'xrf-data'
 ];
 
+// File types that exist in the index but are never offered as a filter or in
+// the bulk download: IGSN registration sheets and IMLGS export files are
+// internal bookkeeping, not collection data. (They are also absent from
+// `fileTypes` above, which drives the filter dropdowns and the API counts.)
+export const hiddenFileTypes = ['igsn-sheet', 'imlgs-file'];
+
+export const isDownloadableFileType = (fileType?: string): boolean =>
+  !!fileType && !fileType.startsWith('itrax-') && !hiddenFileTypes.includes(fileType);
+
 export const fileTypeLabelMap: { [key: string]: string } = {
   'core-description': 'Core Description',
   'core-image': 'Core Image',

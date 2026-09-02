@@ -2,7 +2,7 @@ import numeral from 'numeral';
 import React, { useState, useEffect } from "react";
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
-import { getFileTypeLabel } from './search-data';
+import { getFileTypeLabel, isDownloadableFileType } from './search-data';
 import JSZip from 'jszip';
 
 // Download Files Button Component
@@ -66,8 +66,7 @@ export const DownloadFilesButton: React.FC<{
 
         const files = match._source._files || [];
         for (const file of files) {
-          // Skip itrax file types
-          if (file.type && file.type.startsWith('itrax-')) continue;
+          if (!isDownloadableFileType(file.type)) continue;
 
           if (!uniqueFilesByType[file.type]) {
             uniqueFilesByType[file.type] = new Set();
@@ -89,7 +88,7 @@ export const DownloadFilesButton: React.FC<{
   });
 
   const availableFileTypes = Object.keys(fileTypeCounts || {})
-    .filter(fileType => !fileType.startsWith('itrax-'))
+    .filter(isDownloadableFileType)
     .sort();
 
   // Initialize selected file types when available types change
@@ -159,8 +158,7 @@ export const DownloadFilesButton: React.FC<{
 
         const files = match._source._files || [];
         for (const file of files) {
-          // Skip itrax file types
-          if (file.type && file.type.startsWith('itrax-')) continue;
+          if (!isDownloadableFileType(file.type)) continue;
 
           if (selectedFileTypes.has(file.type)) {
             filesToDownload.push(file);

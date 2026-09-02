@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import { useRouter } from 'next/router';
 import { useQuery } from '@tanstack/react-query';
-import { DataIssuesPanel } from '../search/data-issues';
+import { DataIssueBadges, DataIssuesPanel } from '../search/data-issues';
 import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Section } from "../util/section";
@@ -234,8 +234,9 @@ const CoreSectionsPanel: React.FC<{ coreDoc: any; onNavigateToChild?: (osuid: st
                 onClick={() => onNavigateToChild?.(sectionData._osuid)}
                 className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between gap-2 mb-2">
                   <h4 className="font-semibold text-primary m-0">{sectionData._osuid}</h4>
+                  <DataIssueBadges doc={sectionData} className="" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -335,8 +336,9 @@ const RockSamplesPanel: React.FC<{ rockDoc: any; onNavigateToChild?: (osuid: str
                 onClick={() => onNavigateToChild?.(sampleData._osuid)}
                 className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between gap-2 mb-2">
                   <h4 className="font-semibold text-primary m-0">{sampleData._osuid}</h4>
+                  <DataIssueBadges doc={sampleData} className="" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -479,8 +481,9 @@ const CruiseCoresPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: s
                 onClick={() => onNavigateToChild?.(coreData._osuid)}
                 className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between gap-2 mb-2">
                   <h4 className="font-semibold text-primary m-0">{coreData._osuid}</h4>
+                  <DataIssueBadges doc={coreData} className="" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -588,8 +591,9 @@ const CruiseRocksPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: s
                 onClick={() => onNavigateToChild?.(rockData._osuid)}
                 className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between gap-2 mb-2">
                   <h4 className="font-semibold text-primary m-0">{rockData._osuid}</h4>
+                  <DataIssueBadges doc={rockData} className="" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -661,7 +665,10 @@ const CoreSamplesPanel: React.FC<{ sectionHalfDoc: any; onNavigateToChild?: (osu
             return (
               <div key={index} onClick={() => onNavigateToChild?.(d._osuid)}
                 className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{d._osuid}</h4>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h4 className="font-semibold text-primary m-0">{d._osuid}</h4>
+                  <DataIssueBadges doc={d} className="" />
+                </div>
                 <div className="space-y-1 text-sm text-gray-600">
                   {d.material && <p className="m-0"><strong>Material:</strong> {d.material}</p>}
                   {d.method && <p className="m-0"><strong>Method:</strong> {d.method}</p>}
@@ -702,7 +709,10 @@ const DiveSubsamplesPanel: React.FC<{ diveSampleDoc: any; onNavigateToChild?: (o
             return (
               <div key={index} onClick={() => onNavigateToChild?.(d._osuid)}
                 className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{d._osuid}</h4>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h4 className="font-semibold text-primary m-0">{d._osuid}</h4>
+                  <DataIssueBadges doc={d} className="" />
+                </div>
                 <div className="space-y-1 text-sm text-gray-600">
                   {d.material && <p className="m-0"><strong>Material:</strong> {d.material}</p>}
                   {d.method && <p className="m-0"><strong>Method:</strong> {d.method}</p>}
@@ -773,7 +783,10 @@ const AncestorCard: React.FC<{ ancestor: any; onNavigate?: (osuid: string) => vo
         onClick={() => onNavigate?.(ancestor._osuid)}
         className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
       >
-        <h4 className="font-semibold text-primary m-0 mb-2">{ancestor._osuid}</h4>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h4 className="font-semibold text-primary m-0">{ancestor._osuid}</h4>
+          <DataIssueBadges doc={ancestor} className="" />
+        </div>
         <div className="space-y-1 text-sm text-gray-600">
           {ancestor.cruise && <p className="m-0"><strong>Name:</strong> {ancestor.cruise}</p>}
           {ancestor.rvName && <p className="m-0"><strong>Vessel:</strong> {ancestor.rvName}</p>}
@@ -923,6 +936,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               </div>
             </div>
           )}
+
+          <DataIssuesPanel doc={doc} />
 
           <CruiseCoresPanel cruiseDoc={doc} onNavigateToChild={onNavigateToChild} />
           <CruiseRocksPanel cruiseDoc={doc} onNavigateToChild={onNavigateToChild} />

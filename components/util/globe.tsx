@@ -88,11 +88,19 @@ export const Globe: React.FC<GlobeProps> = ({
       centerLat = points[0].value[1];
       centerLon = points[0].value[0];
     } else {
-      // Calculate average position
-      const sumLat = points.reduce((sum, p) => sum + p.value[1], 0);
-      const sumLon = points.reduce((sum, p) => sum + p.value[0], 0);
-      centerLat = sumLat / points.length;
-      centerLon = sumLon / points.length;
+      // Spherical mean (average of unit vectors) so a cruise straddling the
+      // antimeridian centres on its stations rather than the far side of the globe.
+      const rad = Math.PI / 180;
+      let x = 0, y = 0, z = 0;
+      points.forEach((p) => {
+        const lon = p.value[0] * rad;
+        const lat = p.value[1] * rad;
+        x += Math.cos(lat) * Math.cos(lon);
+        y += Math.cos(lat) * Math.sin(lon);
+        z += Math.sin(lat);
+      });
+      centerLon = Math.atan2(y, x) / rad;
+      centerLat = Math.atan2(z, Math.sqrt(x * x + y * y)) / rad;
     }
 
     console.log('Globe Debug:', {
