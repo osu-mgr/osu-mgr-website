@@ -21,6 +21,10 @@ const PAGE_SIZE = 100;
 
 const joinList = (v: any) => (Array.isArray(v) ? v.join('; ') : v);
 
+// Excel worksheet names may not contain : \ / ? * [ ] and are capped at 31
+// characters, so "Dredges/Dives" becomes "Dredges-Dives".
+const sheetName = (label: string) => label.replace(/[:\\/?*[\]]/g, '-').slice(0, 31);
+
 // Columns in metadata-sheet order, headed the way the curators' metadata
 // sheets are (so an export can be edited and fed back through the pipeline).
 // Columns with no values on a given worksheet are dropped, so each type's
@@ -83,9 +87,11 @@ const buildSheet = (docs: any[]) => {
     return isBlank(v) ? '' : v;
   }));
   const sheet = XLSX.utils.aoa_to_sheet([columns.map(c => c.header), ...rows]);
-  sheet['!cols'] = columns.map((col, i) => ({
-    wch: Math.min(60, Math.max(col.header.length, ...rows.map(r => String(r[i]).length), 8) + 2),
-  }));
+  sheet['!cols'] = columns.map((col, i) => {
+    let widest = Math.max(col.header.length, 8);
+    for (const r of rows) widest = Math.max(widest, String(r[i]).length);
+    return { wch: Math.min(60, widest + 2) };
+  });
   return sheet;
 };
 
@@ -172,13 +178,13 @@ export const DownloadRowsButton: React.FC<{
           fetched += n;
           setDownloadProgress(Math.min(100, (fetched / totalRows) * 100));
         });
-        XLSX.utils.book_append_sheet(workbook, buildSheet(docs), label);
+        XLSX.utils.book_append_sheet(workbook, buildSheet(docs), sheetName(label));
       }
       XLSX.writeFile(workbook, `osu-mgr-search-${new Date().toISOString().split('T')[0]}.xlsx`);
       setIsOpen(false);
     } catch (error) {
       console.error('Row export failed:', error);
-      alert('Failed to export rows. Please try again.');
+      alert(`Failed to export rows: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsDownloading(false);
       setDownloadProgress(0);
