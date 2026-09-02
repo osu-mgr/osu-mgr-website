@@ -19,7 +19,9 @@ export const ItemsCount: React.FC<{
   pluralLabel?: string;
 }> = ({ types, terms, searchString, filters, filterLogic, singularLabel, pluralLabel }) => {
   const { data: countData, isLoading } = useQuery({
-    queryKey: ['itemsCount', types, searchString, filters?.fileTypes, filterLogic?.fileTypes, filters?.methods, filters?.materialTypes, filters?.rvNames, filters?.institutions, filters?.textures],
+    // Key on the whole filter objects so any filter (including dev-only data
+    // issues) invalidates the cached count.
+    queryKey: ['itemsCount', types, searchString, terms, filters, filterLogic],
     queryFn: async (): Promise<CountData> => {
       const res = await fetch('/api/opensearch?count', {
         method: 'POST',

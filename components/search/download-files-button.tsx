@@ -19,7 +19,7 @@ export const DownloadFilesButton: React.FC<{
   // Fetch file counts from ALL result types (not just current)
   // Count unique file names/paths instead of counting duplicates
   const { data: fileTypeCounts, isLoading: countsLoading } = useQuery({
-    queryKey: ['fileTypeCountsAll', search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryKey: ['fileTypeCountsAll', search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       // Fetch all documents from all document types
       const allTypes = ['cruise', 'core', 'section', 'sectionHalf', 'dive', 'diveSample'];

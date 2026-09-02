@@ -380,6 +380,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       }
       
       // Apply non-file type filters to base query
+      const dataIssues_nonFileTypeFilters = dataIssuesFilter(search);
+      if (dataIssues_nonFileTypeFilters) nonFileTypeFilters.push(dataIssues_nonFileTypeFilters);
       if (nonFileTypeFilters.length > 0) {
         if (baseQuery.bool) {
           baseQuery.bool.must = baseQuery.bool.must || [];
@@ -543,6 +545,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           terms: { 'texture.keyword': search.filters.textures }
         });
       }
+      const dataIssues_nonMethodFilters = dataIssuesFilter(search);
+      if (dataIssues_nonMethodFilters) nonMethodFilters.push(dataIssues_nonMethodFilters);
 
       // Apply non-method filters to base query
       if (nonMethodFilters.length > 0) {
@@ -665,6 +669,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           terms: { 'texture.keyword': search.filters.textures }
         });
       }
+      const dataIssues_nonMaterialFilters = dataIssuesFilter(search);
+      if (dataIssues_nonMaterialFilters) nonMaterialFilters.push(dataIssues_nonMaterialFilters);
 
       if (nonMaterialFilters.length > 0) {
         if (!baseQuery.bool) {
@@ -785,6 +791,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           terms: { 'texture.keyword': search.filters.textures }
         });
       }
+      const dataIssues_nonRvFilters = dataIssuesFilter(search);
+      if (dataIssues_nonRvFilters) nonRvFilters.push(dataIssues_nonRvFilters);
 
       if (nonRvFilters.length > 0) {
         if (!baseQuery.bool) {
@@ -910,6 +918,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           terms: { 'texture.keyword': search.filters.textures }
         });
       }
+      const dataIssues_nonInstitutionFilters = dataIssuesFilter(search);
+      if (dataIssues_nonInstitutionFilters) nonInstitutionFilters.push(dataIssues_nonInstitutionFilters);
 
       // Do NOT apply PI/institution filters here - we're getting counts for ALL institutions
 
@@ -1055,6 +1065,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         });
       }
 
+      const dataIssues_nonTextureFilters = dataIssuesFilter(search);
+      if (dataIssues_nonTextureFilters) nonTextureFilters.push(dataIssues_nonTextureFilters);
       if (nonTextureFilters.length > 0) {
         if (!baseQuery.bool) {
           baseQuery = {
@@ -1279,6 +1291,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       if (search.filters.textures?.length > 0) {
         otherFilters.push({ terms: { 'texture.keyword': search.filters.textures } });
       }
+      const dataIssues = dataIssuesFilter(search);
+      if (dataIssues) otherFilters.push(dataIssues);
 
       if (otherFilters.length > 0) {
         if (!baseQuery.bool) { baseQuery = { bool: { must: [baseQuery] } }; }
