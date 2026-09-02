@@ -25,6 +25,10 @@ export const FilterPanel: React.FC<{
   const selectedRvNames = search.filters?.rvNames || [];
   const selectedFileTypes = search.filters?.fileTypes || [];
   const selectedRelatedFileTypes = search.filters?.relatedFileTypes || [];
+  // Data-quality filter is only offered on non-prod deployments; prod hides
+  // flagged records entirely (see pages/api/opensearch.ts guardQuery).
+  const showDataIssues = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
+  const selectedDataIssues: string[] = search.filters?.dataIssues || [];
 
   // Collapse state for each filter section
   const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({
@@ -35,6 +39,7 @@ export const FilterPanel: React.FC<{
     textures: false,
     fileTypes: false,
     relatedFileTypes: false,
+    dataIssues: false,
   });
 
   const toggleSection = (section: string) => {
@@ -51,7 +56,8 @@ export const FilterPanel: React.FC<{
     selectedMethods.length > 0,
     selectedMaterialTypes.length > 0,
     selectedRvNames.length > 0,
-    (search.filters?.institutions || []).length > 0
+    (search.filters?.institutions || []).length > 0,
+    selectedDataIssues.length > 0
   ].filter(Boolean).length;
 
   const toggleFilterLogic = (filterType: string) => {
@@ -166,6 +172,39 @@ export const FilterPanel: React.FC<{
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });
+
+  const { data: dataIssueCounts, isLoading: dataIssuesLoading } = useQuery({
+    queryKey: ['dataIssueCounts', search.types, search.searchString, search.filters?.fileTypes, search.filters?.relatedFileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
+    queryFn: async () => {
+      const res = await fetch('/api/opensearch?dataIssueCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+      return res.ok ? res.json() : { errors: 0, warnings: 0 };
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    enabled: showDataIssues,
+  });
+
+  const handleDataIssueChange = (issue: string, checked: boolean) => {
+    const next = checked
+      ? Array.from(new Set([...selectedDataIssues, issue]))
+      : selectedDataIssues.filter((i: string) => i !== issue);
+    setSearch({
+      ...search,
+      filters: {
+        ...search.filters,
+        dataIssues: next
+      }
+    });
+  };
 
   const handleMethodChange = (method: string, checked: boolean) => {
     const currentMethods = search.filters?.methods || [];
@@ -738,6 +777,71 @@ export const FilterPanel: React.FC<{
         </div>
         )}
       </div>
+      )}
+
+      {showDataIssues && (
+        <div className="form-control mb-4">
+          <div className="label">
+            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('dataIssues')}>
+              <Icon name={collapsedSections.dataIssues ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+              Data Issues
+              <span className="badge badge-warning badge-xs">dev</span>
+            </span>
+            <div className="flex gap-1">
+              <button
+                className="btn btn-xs btn-outline"
+                onClick={() => {
+                  setSearch({
+                    ...search,
+                    filters: {
+                      ...search.filters,
+                      dataIssues: []
+                    }
+                  });
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {!collapsedSections.dataIssues && (
+          <div className="border rounded bg-base-100">
+            <div className="p-2">
+              {dataIssuesLoading ? (
+                <div className="flex justify-center items-center py-4">
+                  <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                  <span className="ml-2 text-sm">Loading data issues...</span>
+                </div>
+              ) : (
+                [
+                  { key: 'errors', label: 'Has errors', count: dataIssueCounts?.errors || 0 },
+                  { key: 'warnings', label: 'Has warnings', count: dataIssueCounts?.warnings || 0 },
+                ].map(({ key, label, count }) => {
+                  const isSelected = selectedDataIssues.includes(key);
+                  const hasResults = count > 0;
+                  return (
+                    <div key={key} className="form-control">
+                      <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && !isSelected ? 'opacity-60' : ''}`}>
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm flex-shrink-0"
+                          checked={isSelected}
+                          onChange={(e) => handleDataIssueChange(key, e.target.checked)}
+                        />
+                        <span className="label-text text-sm flex-1 break-words">{label}</span>
+                        <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                          {numeral(count).format('0,0')}
+                        </span>
+                      </label>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          )}
+        </div>
       )}
 
       {availableInstitutions.some(institution => (institutionCounts?.[institution] || 0) > 0) && (

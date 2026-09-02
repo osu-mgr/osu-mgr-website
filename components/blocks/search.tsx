@@ -120,6 +120,7 @@ export const Search: React.FC<{ data: any }> = ({
       materialTypes: [], // Array of selected material types
       rvNames: [], // Array of selected RV names
       institutions: [], // Array of selected institutions
+      dataIssues: [], // 'errors' | 'warnings' (dev deployments only)
     },
     filterLogic: {
       fileTypes: 'OR', // 'OR' or 'AND'
@@ -657,7 +658,8 @@ export const Search: React.FC<{ data: any }> = ({
                     (search.filters?.fileTypes || []).length > 0,
                     (search.filters?.methods || []).length > 0,
                     (search.filters?.materialTypes || []).length > 0,
-                    (search.filters?.rvNames || []).length > 0
+                    (search.filters?.rvNames || []).length > 0,
+                    (search.filters?.dataIssues || []).length > 0
                   ].filter(Boolean).length}
                 </span>
               </button>
@@ -1819,7 +1821,8 @@ export const Search: React.FC<{ data: any }> = ({
               search.filters?.materialTypes?.length > 0 ||
               search.filters?.rvNames?.length > 0 ||
               search.filters?.institutions?.length > 0 ||
-              search.filters?.textures?.length > 0) && (
+              search.filters?.textures?.length > 0 ||
+              search.filters?.dataIssues?.length > 0) && (
               <div className="w-[320px] mx-auto">
                 <div className="sticky top-0 bg-white pb-2">
                   <div className="flex items-center justify-between">
@@ -1842,7 +1845,8 @@ export const Search: React.FC<{ data: any }> = ({
                                 materialTypes: [],
                                 rvNames: [],
                                 institutions: [],
-                                textures: []
+                                textures: [],
+                                dataIssues: []
                               }
                             });
                           }}
@@ -1988,6 +1992,29 @@ export const Search: React.FC<{ data: any }> = ({
                             }}
                           />
                           <span className="label-text text-sm flex-1 break-words"><strong>RV Name:</strong> {rvName}</span>
+                        </label>
+                      </div>
+                    ))}
+
+                    {/* Data Issues Filters (dev only) */}
+                    {search.filters?.dataIssues?.map((issue: string) => (
+                      <div key={`dataIssue-${issue}`} className="form-control">
+                        <label className="label cursor-pointer justify-start gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
+                            checked={true}
+                            onChange={() => {
+                              setSearch({
+                                ...search,
+                                filters: {
+                                  ...search.filters,
+                                  dataIssues: search.filters.dataIssues.filter((i: string) => i !== issue)
+                                }
+                              });
+                            }}
+                          />
+                          <span className="label-text text-sm flex-1 break-words"><strong>Data Issues:</strong> {issue === 'errors' ? 'Has errors' : 'Has warnings'}</span>
                         </label>
                       </div>
                     ))}
