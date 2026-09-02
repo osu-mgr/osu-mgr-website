@@ -21,6 +21,7 @@ import { InstitutionFilterDropdown } from '../search/institution-filter';
 import { TextureFilterDropdown } from '../search/texture-filter';
 import { CollectionFilterDropdown } from '../search/collection-filter';
 import { DownloadFilesButton } from '../search/download-files-button';
+import { DownloadRowsButton } from '../search/download-rows-button';
 import { FilterPanel } from '../search/filter-panel';
 import { DataIssueBadges } from '../search/data-issues';
 
@@ -628,6 +629,10 @@ export const Search: React.FC<{ data: any }> = ({
             >
               <Icon name="BiX" />
             </button>
+            <DownloadRowsButton
+              search={search}
+              searchString={searchString}
+            />
             <DownloadFilesButton
               search={search}
               searchString={searchString}

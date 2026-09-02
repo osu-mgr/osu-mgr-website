@@ -22,7 +22,7 @@ export const DownloadFilesButton: React.FC<{
     queryKey: ['fileTypeCountsAll', search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
     queryFn: async () => {
       // Fetch all documents from all document types
-      const allTypes = ['cruise', 'core', 'section', 'section-half', 'dive', 'rock'];
+      const allTypes = ['cruise', 'core', 'section', 'sectionHalf', 'dive', 'diveSample'];
       let allMatches: any[] = [];
 
       for (const docType of allTypes) {
@@ -116,7 +116,7 @@ export const DownloadFilesButton: React.FC<{
 
       // Fetch all results from ALL document types by scrolling through pages
       let allMatches: any[] = [];
-      const allTypes = ['cruise', 'core', 'section', 'section-half', 'dive', 'rock'];
+      const allTypes = ['cruise', 'core', 'section', 'sectionHalf', 'dive', 'diveSample'];
 
       for (const docType of allTypes) {
         let pageNum = 0;
