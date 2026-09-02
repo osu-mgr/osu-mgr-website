@@ -965,7 +965,7 @@ export const Search: React.FC<{ data: any }> = ({
                     }}>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
-                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
@@ -979,7 +979,7 @@ export const Search: React.FC<{ data: any }> = ({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="badge badge-ghost hover:badge-ghost no-underline flex items-center gap-1"
+                                className="badge badge-ghost badge-tag hover:badge-ghost no-underline flex items-center gap-1"
                               >
                                 R2R
                                 <Icon name="BiLinkExternal" size="xxs" />
@@ -1139,7 +1139,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
@@ -1301,7 +1301,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
@@ -1449,7 +1449,7 @@ export const Search: React.FC<{ data: any }> = ({
                           <td className="align-top overflow-hidden text-ellipsis max-w-0">
                             <b>{match._source._osuid}</b>
                             {match._source.nSections != null && <><br /><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                            {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                            {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                           </td>
                           <td className="align-top overflow-hidden text-ellipsis max-w-0">
@@ -1577,7 +1577,7 @@ export const Search: React.FC<{ data: any }> = ({
                     }}>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
-                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
@@ -1715,7 +1715,7 @@ export const Search: React.FC<{ data: any }> = ({
                     }}>
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
-                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <DateTimeCell source={match._source} />

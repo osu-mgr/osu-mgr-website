@@ -785,7 +785,7 @@ export const FilterPanel: React.FC<{
             <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('dataIssues')}>
               <Icon name={collapsedSections.dataIssues ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
               Data Issues
-              <span className="badge badge-warning badge-xs">dev</span>
+              <span className="badge badge-warning badge-tag">dev</span>
             </span>
             <div className="flex gap-1">
               <button

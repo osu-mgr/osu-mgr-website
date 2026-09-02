@@ -24,7 +24,7 @@ export const DataIssueBadges: React.FC<{ doc: any }> = ({ doc }) => {
     <div className="mt-1 flex flex-row flex-wrap gap-1">
       {errors.length > 0 && (
         <span
-          className="badge badge-error gap-1"
+          className="badge badge-error badge-tag gap-1"
           title={errors.join('\n')}
         >
           <Icon name="BiErrorCircle" size="xxs" />
@@ -33,7 +33,7 @@ export const DataIssueBadges: React.FC<{ doc: any }> = ({ doc }) => {
       )}
       {warnings.length > 0 && (
         <span
-          className="badge badge-warning gap-1"
+          className="badge badge-warning badge-tag gap-1"
           title={warnings.join('\n')}
         >
           <Icon name="BiError" size="xxs" />

@@ -20,3 +20,11 @@
 .table {
   table-layout: fixed;
 }
+
+/* Record tag badges (Moratorium, R2R, errors/warnings, dev): bold uppercase,
+   slightly smaller type, a little more padding than daisyUI's default badge. */
+@layer components {
+  .badge-tag {
+    @apply font-bold uppercase tracking-wide text-xs h-auto px-3 py-1.5;
+  }
+}

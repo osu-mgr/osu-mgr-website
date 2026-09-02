@@ -789,7 +789,7 @@ const AncestorCard: React.FC<{ ancestor: any; onNavigate?: (osuid: string) => vo
           {isCruise && r2rCruiseLinks[ancestor._osuid] && (
             <div className="flex flex-row flex-wrap gap-1 mt-2">
               {r2rCruiseLinks[ancestor._osuid].map((link: string, idx: number) => (
-                <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1">
+                <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary badge-tag hover:badge-primary-focus no-underline flex items-center gap-1">
                   <Icon name="BiLinkExternal" size="xxs" />R2R: {link.split('/').pop()}
                 </a>
               ))}
@@ -902,7 +902,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
                   <div className="flex flex-row flex-wrap gap-1 mt-1">
                     {r2rCruiseLinks[doc._osuid].map((link: string, idx: number) => (
                       <a key={idx} href={link} target="_blank" rel="noopener noreferrer"
-                        className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1">
+                        className="badge badge-primary badge-tag hover:badge-primary-focus no-underline flex items-center gap-1">
                         <Icon name="BiLinkExternal" size="xxs" />
                         R2R: {link.split('/').pop()}
                       </a>
