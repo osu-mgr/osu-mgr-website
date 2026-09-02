@@ -742,6 +742,20 @@ export const Search: React.FC<{ data: any }> = ({
               filters={search.filters}
               filterLogic={search.filterLogic}
             />
+            {viewRawData && (
+              <>
+                <div className="tab tab-lg tab-bordered px-2"></div>
+                <SearchTab
+                  label="Orphaned Files"
+                  isActive={search.types.includes('file')}
+                  onClick={() => setSearch({ ...search, types: ['file'] })}
+                  type="file"
+                  searchString={search.searchString}
+                  filters={search.filters}
+                  filterLogic={search.filterLogic}
+                />
+              </>
+            )}
             <div className="tab tab-lg tab-bordered flex-grow"></div>
           </div>
 
@@ -760,6 +774,7 @@ export const Search: React.FC<{ data: any }> = ({
                     if (false && search.types.includes('sectionHalf')) return 'Section Halves';
                     if (search.types.includes('dive')) return 'Dredges/Dives';
                     if (search.types.includes('diveSample')) return 'Rocks';
+                    if (search.types.includes('file')) return 'Orphaned Files';
                     return 'Select Type';
                   })()}
                 </b>
@@ -908,6 +923,29 @@ export const Search: React.FC<{ data: any }> = ({
                     </span>
                   </div>
                 </li>
+                {viewRawData && (
+                  <li>
+                    <div
+                      onClick={() => {
+                        setSearch({ ...search, types: ['file'] });
+                        setIsMenuOpen(false);
+                      }}
+                      className={`flex items-center justify-between ${search.types.includes('file') ? 'active' : ''}`}
+                    >
+                      <span>Orphaned Files</span>
+                      <span className="badge badge-sm badge-outline">
+                        <ItemsCount
+                          searchString={search.searchString}
+                          types={['file']}
+                          filters={search.filters}
+                          filterLogic={search.filterLogic}
+                          singularLabel=""
+                          pluralLabel=""
+                        />
+                      </span>
+                    </div>
+                  </li>
+                )}
               </ul>
             )}
           </div>
@@ -1676,6 +1714,63 @@ export const Search: React.FC<{ data: any }> = ({
               </tbody>
             </table>
           }
+          {viewRawData && matches.length > 0 && search.types.includes('file') &&
+            <table className="table table-compact w-full mt-0">
+              <thead className="sticky top-0 z-10 bg-base-100">
+                <tr>
+                  <th
+                    className="rounded-none cursor-pointer hover:bg-base-200"
+                    onClick={() => toggleSort('alpha')}
+                  >
+                    OSU-ID in file name {getSortIcon('alpha')}
+                  </th>
+                  <th className="rounded-none">Cruise</th>
+                  <th className="rounded-none">File</th>
+                  <th className="rounded-none">Issues</th>
+                </tr>
+              </thead>
+              <tbody>
+                {matches.map((match, key) => {
+                  const files = [
+                    ...(match._source._files || []).map((f: any) => ({ ...f, moratorium: false })),
+                    ...(match._source._moratorium_files || []).map((f: any) => ({ ...f, moratorium: true })),
+                  ];
+                  return (
+                    <tr key={key}>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        <b>{match._source._osuid}</b>
+                        {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <DataIssueBadges doc={match._source} />
+                      </td>
+                      <td className="align-top">
+                        {match._source._cruiseID
+                          ? <a className="link" onClick={(e) => { e.stopPropagation(); openLandingModal(`OSU-${match._source._cruiseID}`); }}>OSU-{match._source._cruiseID}</a>
+                          : <span className="text-gray-500">—</span>}
+                      </td>
+                      <td className="align-top break-all">
+                        {files.map((f: any, idx: number) => (
+                          <div key={idx} className="text-sm">
+                            <span className="font-bold">{getFileTypeLabel(f.type)}:</span>{' '}
+                            <span className="font-mono text-xs">{f.path}</span>
+                            {f.moratorium && <span className="badge badge-ghost badge-tag ml-1">moratorium</span>}
+                          </div>
+                        ))}
+                      </td>
+                      <td className="align-top text-sm">
+                        {(match._source._errors || []).map((m: string, idx: number) => (
+                          <div key={`e-${idx}`} className="text-error">{m}</div>
+                        ))}
+                        {(match._source._warnings || []).map((m: string, idx: number) => (
+                          <div key={`w-${idx}`} className="text-warning">{m}</div>
+                        ))}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          }
+
           {matches.length > 0 && search.types.includes('diveSample') &&
             <table className="table table-compact w-full mt-0">
               <thead className="sticky top-0 z-10 bg-base-100">

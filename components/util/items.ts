@@ -9,6 +9,7 @@ export const itemTypes = [
   'dive',
   'diveSample',
   'diveSubsample',
+  'file', // orphaned file (recognised file whose OSU-ID has no record); dev only
 ];
 
 export type ItemType = typeof itemTypes[number];
@@ -22,6 +23,7 @@ export const itemTypesSingular: Record<ItemType, string> = {
   dive: 'Dredge/Dive',
   diveSample: 'Dredge/Dive Sample',
   diveSubsample: 'Dredge/Dive Subsample',
+  file: 'File',
 };
 
 export const itemTypesPlural: Record<ItemType, string> = {
@@ -33,6 +35,7 @@ export const itemTypesPlural: Record<ItemType, string> = {
   dive: 'Dredges/Dives',
   diveSample: 'Dredge/Dive Samples',
   diveSubsample: 'Dredge/Dive Subsamples',
+  file: 'Files',
 };
 
 export const itemTypesHierarchy: Record<ItemType, ItemType[]> = {
@@ -44,6 +47,7 @@ export const itemTypesHierarchy: Record<ItemType, ItemType[]> = {
   dive: ['diveSample'],
   diveSample: ['diveSubsample'],
   diveSubsample: [],
+  file: [],
 };
 
 export const itemFieldNames = {
