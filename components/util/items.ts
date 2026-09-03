@@ -10,6 +10,7 @@ export const itemTypes = [
   'diveSample',
   'diveSubsample',
   'file', // orphaned file (recognised file whose OSU-ID has no record); dev only
+  'location', // orphaned storage-location row (OSU-ID has no record); dev only
 ];
 
 export type ItemType = typeof itemTypes[number];
@@ -24,6 +25,7 @@ export const itemTypesSingular: Record<ItemType, string> = {
   diveSample: 'Dredge/Dive Sample',
   diveSubsample: 'Dredge/Dive Subsample',
   file: 'File',
+  location: 'Storage Location',
 };
 
 export const itemTypesPlural: Record<ItemType, string> = {
@@ -36,6 +38,7 @@ export const itemTypesPlural: Record<ItemType, string> = {
   diveSample: 'Dredge/Dive Samples',
   diveSubsample: 'Dredge/Dive Subsamples',
   file: 'Files',
+  location: 'Storage Locations',
 };
 
 export const itemTypesHierarchy: Record<ItemType, ItemType[]> = {
@@ -48,6 +51,7 @@ export const itemTypesHierarchy: Record<ItemType, ItemType[]> = {
   diveSample: ['diveSubsample'],
   diveSubsample: [],
   file: [],
+  location: [],
 };
 
 export const itemFieldNames = {

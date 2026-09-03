@@ -746,9 +746,9 @@ export const Search: React.FC<{ data: any }> = ({
               <>
                 <div className="tab tab-lg tab-bordered px-2"></div>
                 <SearchTab
-                  label="Orphaned Files"
+                  label="Orphans"
                   isActive={search.types.includes('file')}
-                  onClick={() => setSearch({ ...search, types: ['file'] })}
+                  onClick={() => setSearch({ ...search, types: ['file', 'location'] })}
                   type="file"
                   searchString={search.searchString}
                   filters={search.filters}
@@ -774,7 +774,7 @@ export const Search: React.FC<{ data: any }> = ({
                     if (false && search.types.includes('sectionHalf')) return 'Section Halves';
                     if (search.types.includes('dive')) return 'Dredges/Dives';
                     if (search.types.includes('diveSample')) return 'Rocks';
-                    if (search.types.includes('file')) return 'Orphaned Files';
+                    if (search.types.includes('file')) return 'Orphans';
                     return 'Select Type';
                   })()}
                 </b>
@@ -927,16 +927,16 @@ export const Search: React.FC<{ data: any }> = ({
                   <li>
                     <div
                       onClick={() => {
-                        setSearch({ ...search, types: ['file'] });
+                        setSearch({ ...search, types: ['file', 'location'] });
                         setIsMenuOpen(false);
                       }}
                       className={`flex items-center justify-between ${search.types.includes('file') ? 'active' : ''}`}
                     >
-                      <span>Orphaned Files</span>
+                      <span>Orphans</span>
                       <span className="badge badge-sm badge-outline">
                         <ItemsCount
                           searchString={search.searchString}
-                          types={['file']}
+                          types={['file', 'location']}
                           filters={search.filters}
                           filterLogic={search.filterLogic}
                           singularLabel=""
@@ -1722,10 +1722,10 @@ export const Search: React.FC<{ data: any }> = ({
                     className="rounded-none cursor-pointer hover:bg-base-200"
                     onClick={() => toggleSort('alpha')}
                   >
-                    OSU-ID in file name {getSortIcon('alpha')}
+                    OSU-ID referenced {getSortIcon('alpha')}
                   </th>
                   <th className="rounded-none">Cruise</th>
-                  <th className="rounded-none">File</th>
+                  <th className="rounded-none">File / Storage location</th>
                   <th className="rounded-none">Issues</th>
                 </tr>
               </thead>
@@ -1755,6 +1755,23 @@ export const Search: React.FC<{ data: any }> = ({
                             {f.moratorium && <span className="badge badge-ghost badge-tag ml-1">moratorium</span>}
                           </div>
                         ))}
+                        {match._source._docType === 'location' && (
+                          (match._source.storageLocations || [{
+                            storageLocation: match._source.storageLocation,
+                            toteId: match._source.toteId,
+                            palletName: match._source.palletName,
+                          }]).map((pl: any, idx: number) => (
+                            <div key={`loc-${idx}`} className="text-sm">
+                              <span className="font-bold">Location:</span>{' '}
+                              <span className="font-mono text-xs">{pl.storageLocation || '—'}</span>
+                              {pl.palletName && <span className="ml-2">pallet <span className="font-mono text-xs">{pl.palletName}</span></span>}
+                              {pl.toteId && <span className="ml-2">tote <span className="font-mono text-xs">{pl.toteId}</span></span>}
+                            </div>
+                          ))
+                        )}
+                        {match._source._docType === 'location' && match._source.weight != null && (
+                          <div className="text-sm"><span className="font-bold">Weight:</span> {match._source.weight}</div>
+                        )}
                       </td>
                       <td className="align-top text-sm">
                         {(match._source._errors || []).map((m: string, idx: number) => (
