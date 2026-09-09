@@ -12,6 +12,16 @@ interface GlobeProps {
   coordinates?: Array<{ lat: number; lon: number; name?: string }>;
 }
 
+// echarts-gl builds the globe's altitude axis from the data's altitude extent
+// and maps it onto [globeRadius, globeOuterRadius]. When every point shares one
+// altitude the extent is degenerate and the value lands at the OUTER radius, so
+// with the default outer radius (150) points floated 50 units off the surface.
+// Keeping the outer radius 1 unit above the surface bounds that to 1 unit,
+// which also keeps markers clear of z-fighting with the terrain mesh.
+const GLOBE_RADIUS = 100;
+const GLOBE_OUTER_RADIUS = GLOBE_RADIUS + 1;
+const POINT_ALTITUDE = 1;
+
 export const Globe: React.FC<GlobeProps> = ({
   latitude,
   longitude,
@@ -35,7 +45,7 @@ export const Globe: React.FC<GlobeProps> = ({
       coordinates.forEach((coord, index) => {
         points.push({
           name: coord.name || `Point ${index + 1}`,
-          value: [coord.lon, coord.lat, -0.05],
+          value: [coord.lon, coord.lat, POINT_ALTITUDE],
           itemStyle: {
             color: '#ff6600' // Orange primary color
           }
@@ -47,7 +57,7 @@ export const Globe: React.FC<GlobeProps> = ({
       if (latitudeStart != null && longitudeStart != null) {
         points.push({
           name: 'Start',
-          value: [Number(longitudeStart), Number(latitudeStart), -0.05],
+          value: [Number(longitudeStart), Number(latitudeStart), POINT_ALTITUDE],
           itemStyle: {
             color: '#ff6600'
           }
@@ -59,7 +69,7 @@ export const Globe: React.FC<GlobeProps> = ({
           (latitudeEnd !== latitudeStart || longitudeEnd !== longitudeStart)) {
         points.push({
           name: 'End',
-          value: [Number(longitudeEnd), Number(latitudeEnd), -0.05],
+          value: [Number(longitudeEnd), Number(latitudeEnd), POINT_ALTITUDE],
           itemStyle: {
             color: '#ff6600'
           }
@@ -70,7 +80,7 @@ export const Globe: React.FC<GlobeProps> = ({
       if (points.length === 0 && latitude != null && longitude != null) {
         points.push({
           name: 'Location',
-          value: [Number(longitude), Number(latitude), -0.05],
+          value: [Number(longitude), Number(latitude), POINT_ALTITUDE],
           itemStyle: {
             color: '#ff6600'
           }
@@ -123,6 +133,8 @@ export const Globe: React.FC<GlobeProps> = ({
       backgroundColor: '#000000',
       globe: {
         baseTexture: '/Equirectangular-projection-topographic-world.jpg',
+        globeRadius: GLOBE_RADIUS,
+        globeOuterRadius: GLOBE_OUTER_RADIUS,
         shading: 'color',
         atmosphere: {
           show: false

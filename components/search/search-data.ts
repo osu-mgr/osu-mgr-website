@@ -282,3 +282,11 @@ export const formatTime = (value: any): string | null => {
 
   return raw;
 };
+
+// Local date and time, filename-safe (e.g. 2026-09-02_14-07-33), so repeated
+// downloads on the same day don't collide.
+export const fileTimestamp = (): string => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+};

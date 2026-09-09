@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { Icon } from "../util/icon";
+import { fileTimestamp } from './search-data';
 
 // The search-result types offered as tabs, in tab order. Each becomes a
 // worksheet in the exported workbook.
@@ -20,6 +21,11 @@ const MAX_ROWS = 10000;
 const PAGE_SIZE = 100;
 
 const joinList = (v: any) => (Array.isArray(v) ? v.join('; ') : v);
+
+// Prod hides flagged records and never shows issue annotations, so the export
+// leaves those columns out there too (see components/search/data-issues.tsx).
+const SHOW_DATA_ISSUES = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
+
 
 // Excel worksheet names may not contain : \ / ? * [ ] and are capped at 31
 // characters, so "Dredges/Dives" becomes "Dredges-Dives".
@@ -74,8 +80,8 @@ const COLUMNS: { header: string; value: (doc: any) => any }[] = [
   { header: 'Cores', value: d => d._coreOSUIDs?.length || undefined },
   { header: 'Dredges/Dives', value: d => d._diveOSUIDs?.length || undefined },
   { header: 'Moratorium', value: d => (d._moratorium ? 'Yes' : undefined) },
-  { header: 'Errors', value: d => joinList(d._errors) || undefined },
-  { header: 'Warnings', value: d => joinList(d._warnings) || undefined },
+  { header: 'Errors', value: d => (SHOW_DATA_ISSUES ? joinList(d._errors) || undefined : undefined) },
+  { header: 'Warnings', value: d => (SHOW_DATA_ISSUES ? joinList(d._warnings) || undefined : undefined) },
 ];
 
 const isBlank = (v: any) => v === undefined || v === null || v === '';
@@ -180,7 +186,7 @@ export const DownloadRowsButton: React.FC<{
         });
         XLSX.utils.book_append_sheet(workbook, buildSheet(docs), sheetName(label));
       }
-      XLSX.writeFile(workbook, `osu-mgr-search-${new Date().toISOString().split('T')[0]}.xlsx`);
+      XLSX.writeFile(workbook, `osu-mgr-search-${fileTimestamp()}.xlsx`);
       setIsOpen(false);
     } catch (error) {
       console.error('Row export failed:', error);

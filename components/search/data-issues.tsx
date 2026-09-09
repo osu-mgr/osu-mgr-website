@@ -58,11 +58,13 @@ export const DataIssuesPanel: React.FC<{ doc: any }> = ({ doc }) => {
       {errors.length > 0 && (
         <div className="alert alert-error py-2 px-3 !grid-flow-col !grid-cols-[auto_1fr] !justify-items-start !text-left items-start">
           <Icon name="BiErrorCircle" size="sm" className="mt-0.5" />
-          <div className="text-sm w-full min-w-0">
+          {/* daisyUI lays the alert's children out as centred flex rows; keep the
+              count on the first line when there are several messages. */}
+          <div className="text-sm w-full min-w-0 !items-start">
             <div className="font-semibold">
               {errors.length} {errors.length === 1 ? 'error' : 'errors'}
             </div>
-            <ul className="list-disc pl-5 m-0 mt-1 break-words [&>li]:m-0 [&>li]:pl-0">
+            <ul className="list-disc pl-5 m-0 break-words [&>li]:m-0 [&>li]:pl-0">
               {errors.map((message, idx) => <li key={idx}>{message}</li>)}
             </ul>
           </div>
@@ -71,11 +73,13 @@ export const DataIssuesPanel: React.FC<{ doc: any }> = ({ doc }) => {
       {warnings.length > 0 && (
         <div className="alert alert-warning py-2 px-3 !grid-flow-col !grid-cols-[auto_1fr] !justify-items-start !text-left items-start">
           <Icon name="BiError" size="sm" className="mt-0.5" />
-          <div className="text-sm w-full min-w-0">
+          {/* daisyUI lays the alert's children out as centred flex rows; keep the
+              count on the first line when there are several messages. */}
+          <div className="text-sm w-full min-w-0 !items-start">
             <div className="font-semibold">
               {warnings.length} {warnings.length === 1 ? 'warning' : 'warnings'}
             </div>
-            <ul className="list-disc pl-5 m-0 mt-1 break-words [&>li]:m-0 [&>li]:pl-0">
+            <ul className="list-disc pl-5 m-0 break-words [&>li]:m-0 [&>li]:pl-0">
               {warnings.map((message, idx) => <li key={idx}>{message}</li>)}
             </ul>
           </div>

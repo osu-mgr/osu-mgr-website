@@ -2,7 +2,7 @@ import numeral from 'numeral';
 import React, { useState, useEffect } from "react";
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
-import { getFileTypeLabel, isDownloadableFileType } from './search-data';
+import { getFileTypeLabel, isDownloadableFileType, fileTimestamp } from './search-data';
 import JSZip from 'jszip';
 
 // Download Files Button Component
@@ -191,7 +191,7 @@ export const DownloadFilesButton: React.FC<{
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `osu-mgr-files-${new Date().toISOString().split('T')[0]}.zip`;
+      a.download = `osu-mgr-files-${fileTimestamp()}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
