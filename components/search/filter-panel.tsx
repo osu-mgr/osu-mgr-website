@@ -2,7 +2,7 @@ import numeral from 'numeral';
 import React, { useState } from "react";
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
-import { fileTypes, getFileTypeLabel } from './search-data';
+import { fileTypes, hiddenFileTypes, getFileTypeLabel } from './search-data';
 
 const RELATED_FILE_TYPES = [
   'core-description', 'core-image', 'coring-data-sheet', 'cruise-report',
@@ -25,6 +25,10 @@ export const FilterPanel: React.FC<{
   const selectedRvNames = search.filters?.rvNames || [];
   const selectedFileTypes = search.filters?.fileTypes || [];
   const selectedRelatedFileTypes = search.filters?.relatedFileTypes || [];
+  // Data-quality filter is only offered on non-prod deployments; prod hides
+  // flagged records entirely (see pages/api/opensearch.ts guardQuery).
+  const showDataIssues = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
+  const selectedDataIssues: string[] = search.filters?.dataIssues || [];
 
   // Collapse state for each filter section
   const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({
@@ -35,6 +39,7 @@ export const FilterPanel: React.FC<{
     textures: false,
     fileTypes: false,
     relatedFileTypes: false,
+    dataIssues: false,
   });
 
   const toggleSection = (section: string) => {
@@ -51,7 +56,8 @@ export const FilterPanel: React.FC<{
     selectedMethods.length > 0,
     selectedMaterialTypes.length > 0,
     selectedRvNames.length > 0,
-    (search.filters?.institutions || []).length > 0
+    (search.filters?.institutions || []).length > 0,
+    selectedDataIssues.length > 0
   ].filter(Boolean).length;
 
   const toggleFilterLogic = (filterType: string) => {
@@ -68,7 +74,7 @@ export const FilterPanel: React.FC<{
   };
 
   const { data: methodCounts, isLoading: methodsLoading } = useQuery({
-    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.methods, search.filterLogic?.methods, search.filters?.fileTypes, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
+    queryKey: ['methodCounts', search.types, search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?methodCounts', {
         method: 'POST',
@@ -87,7 +93,7 @@ export const FilterPanel: React.FC<{
   });
 
   const { data: materialCounts, isLoading: materialsLoading } = useQuery({
-    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.materialTypes, search.filterLogic?.materialTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
+    queryKey: ['materialCounts', search.types, search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?materialCounts', {
         method: 'POST',
@@ -106,7 +112,7 @@ export const FilterPanel: React.FC<{
   });
 
   const { data: rvNameCounts, isLoading: rvNamesLoading } = useQuery({
-    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters?.rvNames, search.filterLogic?.rvNames, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.institutions, search.filters?.textures],
+    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?rvNameCounts', {
         method: 'POST',
@@ -126,7 +132,7 @@ export const FilterPanel: React.FC<{
 
   // Fetch counts for each file type - reuse the same query as FileTypesFilterDropdown
   const { data: fileTypeCounts, isLoading: fileTypesLoading } = useQuery({
-    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
+    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?fileTypeCounts', {
         method: 'POST',
@@ -149,7 +155,7 @@ export const FilterPanel: React.FC<{
   });
 
   const { data: relatedFileTypeCounts, isLoading: relatedFileTypesLoading } = useQuery({
-    queryKey: ['relatedFileTypeCounts', search.types, search.searchString, search.filters?.relatedFileTypes, search.filterLogic?.relatedFileTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
+    queryKey: ['relatedFileTypeCounts', search.types, search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?relatedFileTypeCounts', {
         method: 'POST',
@@ -166,6 +172,39 @@ export const FilterPanel: React.FC<{
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   });
+
+  const { data: dataIssueCounts, isLoading: dataIssuesLoading } = useQuery({
+    queryKey: ['dataIssueCounts', search.types, search.searchString, search.filters, search.filterLogic],
+    queryFn: async () => {
+      const res = await fetch('/api/opensearch?dataIssueCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic
+        }),
+      });
+      return res.ok ? res.json() : { errors: 0, warnings: 0 };
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    enabled: showDataIssues,
+  });
+
+  const handleDataIssueChange = (issue: string, checked: boolean) => {
+    const next = checked
+      ? Array.from(new Set([...selectedDataIssues, issue]))
+      : selectedDataIssues.filter((i: string) => i !== issue);
+    setSearch({
+      ...search,
+      filters: {
+        ...search.filters,
+        dataIssues: next
+      }
+    });
+  };
 
   const handleMethodChange = (method: string, checked: boolean) => {
     const currentMethods = search.filters?.methods || [];
@@ -430,7 +469,7 @@ export const FilterPanel: React.FC<{
     : [];
 
   const { data: institutionData, isLoading: institutionsLoading } = useQuery({
-    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.institutions, search.filterLogic?.institutions, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.textures],
+    queryKey: ['institutionCounts', search.types, search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?institutionCounts', {
         method: 'POST',
@@ -513,7 +552,7 @@ export const FilterPanel: React.FC<{
     : [];
 
   const { data: textureCounts, isLoading: texturesLoading } = useQuery({
-    queryKey: ['textureCounts', search.types, search.searchString, search.filters?.textures, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions],
+    queryKey: ['textureCounts', search.types, search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?textureCounts', {
         method: 'POST',
@@ -593,10 +632,10 @@ export const FilterPanel: React.FC<{
     : [];
 
   // Filter out file types with 0 counts, but keep selected ones visible
-  // Sort selected items to the top, and filter out imgs-file
+  // Sort selected items to the top, and drop hidden (bookkeeping) file types
   const availableFileTypes = fileTypeCounts
     ? fileTypes.filter(fileType =>
-        fileType !== 'imgs-file' && // Hide imgs-file from the left panel too
+        !hiddenFileTypes.includes(fileType) &&
         ((fileTypeCounts[fileType] || 0) > 0 || selectedFileTypes.includes(fileType))
       ).sort((a, b) => {
         const aSelected = selectedFileTypes.includes(a);
@@ -605,7 +644,7 @@ export const FilterPanel: React.FC<{
         if (!aSelected && bSelected) return 1;
         return 0;
       })
-    : fileTypes.filter(fileType => fileType !== 'imgs-file');
+    : fileTypes.filter(fileType => !hiddenFileTypes.includes(fileType));
 
   return (
     <div className="pr-4 w-[320px] flex-shrink-0 border-r-2">
@@ -738,6 +777,71 @@ export const FilterPanel: React.FC<{
         </div>
         )}
       </div>
+      )}
+
+      {showDataIssues && (
+        <div className="form-control mb-4">
+          <div className="label">
+            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('dataIssues')}>
+              <Icon name={collapsedSections.dataIssues ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+              Data Issues
+              <span className="badge badge-warning badge-tag">dev</span>
+            </span>
+            <div className="flex gap-1">
+              <button
+                className="btn btn-xs btn-outline"
+                onClick={() => {
+                  setSearch({
+                    ...search,
+                    filters: {
+                      ...search.filters,
+                      dataIssues: []
+                    }
+                  });
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {!collapsedSections.dataIssues && (
+          <div className="border rounded bg-base-100">
+            <div className="p-2">
+              {dataIssuesLoading ? (
+                <div className="flex justify-center items-center py-4">
+                  <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                  <span className="ml-2 text-sm">Loading data issues...</span>
+                </div>
+              ) : (
+                [
+                  { key: 'errors', label: 'Has errors', count: dataIssueCounts?.errors || 0 },
+                  { key: 'warnings', label: 'Has warnings', count: dataIssueCounts?.warnings || 0 },
+                ].map(({ key, label, count }) => {
+                  const isSelected = selectedDataIssues.includes(key);
+                  const hasResults = count > 0;
+                  return (
+                    <div key={key} className="form-control">
+                      <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && !isSelected ? 'opacity-60' : ''}`}>
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm flex-shrink-0"
+                          checked={isSelected}
+                          onChange={(e) => handleDataIssueChange(key, e.target.checked)}
+                        />
+                        <span className="label-text text-sm flex-1 break-words">{label}</span>
+                        <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                          {numeral(count).format('0,0')}
+                        </span>
+                      </label>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          )}
+        </div>
       )}
 
       {availableInstitutions.some(institution => (institutionCounts?.[institution] || 0) > 0) && (

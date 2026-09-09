@@ -26,7 +26,7 @@ export const RvNameFilterDropdown: React.FC<{
 
   // Fetch counts for each RV name
   const { data: rvNameCounts, isLoading: countsLoading } = useQuery({
-    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?rvNameCounts', {
         method: 'POST',

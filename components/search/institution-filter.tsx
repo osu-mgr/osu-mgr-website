@@ -26,7 +26,7 @@ export const InstitutionFilterDropdown: React.FC<{
 
   // Fetch counts for each institution
   const { data: institutionData, isLoading: countsLoading } = useQuery({
-    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.textures],
+    queryKey: ['institutionCounts', search.types, search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?institutionCounts', {
         method: 'POST',

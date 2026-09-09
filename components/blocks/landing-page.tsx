@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import { useRouter } from 'next/router';
 import { useQuery } from '@tanstack/react-query';
+import { DataIssueBadges, DataIssuesPanel } from '../search/data-issues';
 import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Section } from "../util/section";
@@ -9,7 +10,7 @@ import { ItemsCount } from '../util/items-count';
 import { CollectionFileButton } from '../util/collection-file-button';
 import { FileCard } from '../util/file-card';
 import { Icon } from "../util/icon";
-import { getDiveMethodLabel } from "../search/search-data";
+import { getDiveMethodLabel, formatDate, formatTime } from "../search/search-data";
 
 const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
   ssr: false,
@@ -233,8 +234,9 @@ const CoreSectionsPanel: React.FC<{ coreDoc: any; onNavigateToChild?: (osuid: st
                 onClick={() => onNavigateToChild?.(sectionData._osuid)}
                 className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between gap-2 mb-2">
                   <h4 className="font-semibold text-primary m-0">{sectionData._osuid}</h4>
+                  <DataIssueBadges doc={sectionData} className="" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -334,8 +336,9 @@ const RockSamplesPanel: React.FC<{ rockDoc: any; onNavigateToChild?: (osuid: str
                 onClick={() => onNavigateToChild?.(sampleData._osuid)}
                 className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between gap-2 mb-2">
                   <h4 className="font-semibold text-primary m-0">{sampleData._osuid}</h4>
+                  <DataIssueBadges doc={sampleData} className="" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -478,8 +481,9 @@ const CruiseCoresPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: s
                 onClick={() => onNavigateToChild?.(coreData._osuid)}
                 className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between gap-2 mb-2">
                   <h4 className="font-semibold text-primary m-0">{coreData._osuid}</h4>
+                  <DataIssueBadges doc={coreData} className="" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -587,8 +591,9 @@ const CruiseRocksPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: s
                 onClick={() => onNavigateToChild?.(rockData._osuid)}
                 className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
               >
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between gap-2 mb-2">
                   <h4 className="font-semibold text-primary m-0">{rockData._osuid}</h4>
+                  <DataIssueBadges doc={rockData} className="" />
                 </div>
                 
                 <div className="space-y-1 text-sm text-gray-600">
@@ -660,7 +665,10 @@ const CoreSamplesPanel: React.FC<{ sectionHalfDoc: any; onNavigateToChild?: (osu
             return (
               <div key={index} onClick={() => onNavigateToChild?.(d._osuid)}
                 className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{d._osuid}</h4>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h4 className="font-semibold text-primary m-0">{d._osuid}</h4>
+                  <DataIssueBadges doc={d} className="" />
+                </div>
                 <div className="space-y-1 text-sm text-gray-600">
                   {d.material && <p className="m-0"><strong>Material:</strong> {d.material}</p>}
                   {d.method && <p className="m-0"><strong>Method:</strong> {d.method}</p>}
@@ -701,7 +709,10 @@ const DiveSubsamplesPanel: React.FC<{ diveSampleDoc: any; onNavigateToChild?: (o
             return (
               <div key={index} onClick={() => onNavigateToChild?.(d._osuid)}
                 className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <h4 className="font-semibold text-primary m-0 mb-2">{d._osuid}</h4>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h4 className="font-semibold text-primary m-0">{d._osuid}</h4>
+                  <DataIssueBadges doc={d} className="" />
+                </div>
                 <div className="space-y-1 text-sm text-gray-600">
                   {d.material && <p className="m-0"><strong>Material:</strong> {d.material}</p>}
                   {d.method && <p className="m-0"><strong>Method:</strong> {d.method}</p>}
@@ -772,7 +783,10 @@ const AncestorCard: React.FC<{ ancestor: any; onNavigate?: (osuid: string) => vo
         onClick={() => onNavigate?.(ancestor._osuid)}
         className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
       >
-        <h4 className="font-semibold text-primary m-0 mb-2">{ancestor._osuid}</h4>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h4 className="font-semibold text-primary m-0">{ancestor._osuid}</h4>
+          <DataIssueBadges doc={ancestor} className="" />
+        </div>
         <div className="space-y-1 text-sm text-gray-600">
           {ancestor.cruise && <p className="m-0"><strong>Name:</strong> {ancestor.cruise}</p>}
           {ancestor.rvName && <p className="m-0"><strong>Vessel:</strong> {ancestor.rvName}</p>}
@@ -788,7 +802,7 @@ const AncestorCard: React.FC<{ ancestor: any; onNavigate?: (osuid: string) => vo
           {isCruise && r2rCruiseLinks[ancestor._osuid] && (
             <div className="flex flex-row flex-wrap gap-1 mt-2">
               {r2rCruiseLinks[ancestor._osuid].map((link: string, idx: number) => (
-                <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1">
+                <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary badge-tag hover:badge-primary-focus no-underline flex items-center gap-1">
                   <Icon name="BiLinkExternal" size="xxs" />R2R: {link.split('/').pop()}
                 </a>
               ))}
@@ -886,9 +900,9 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
               {doc.piInstitution && <p className="m-0"><strong>PI Institution:</strong> {doc.piInstitution}</p>}
               {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-              {doc.endDate && <p className="m-0"><strong>End Date:</strong> {new Date(doc.endDate).toLocaleDateString()}</p>}
-              {!doc.startDate && doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
+              {formatDate(doc.endDate) && <p className="m-0"><strong>End Date:</strong> {formatDate(doc.endDate)}</p>}
+              {!formatDate(doc.startDate) && formatDate(doc.date) && <p className="m-0"><strong>Date:</strong> {formatDate(doc.date)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
@@ -901,7 +915,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
                   <div className="flex flex-row flex-wrap gap-1 mt-1">
                     {r2rCruiseLinks[doc._osuid].map((link: string, idx: number) => (
                       <a key={idx} href={link} target="_blank" rel="noopener noreferrer"
-                        className="badge badge-primary hover:badge-primary-focus no-underline flex items-center gap-1">
+                        className="badge badge-primary badge-tag hover:badge-primary-focus no-underline flex items-center gap-1">
                         <Icon name="BiLinkExternal" size="xxs" />
                         R2R: {link.split('/').pop()}
                       </a>
@@ -923,6 +937,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
             </div>
           )}
 
+          <DataIssuesPanel doc={doc} />
+
           <CruiseCoresPanel cruiseDoc={doc} onNavigateToChild={onNavigateToChild} />
           <CruiseRocksPanel cruiseDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -941,8 +957,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
               {doc.nSections && <p className="m-0"><strong>Sections:</strong> {doc.nSections}</p>}
               {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-              {doc.endDate && <p className="m-0"><strong>End Date:</strong> {new Date(doc.endDate).toLocaleDateString()}</p>}
+              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
+              {formatDate(doc.endDate) && <p className="m-0"><strong>End Date:</strong> {formatDate(doc.endDate)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
@@ -963,6 +979,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
 
           <CoreSectionsPanel coreDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -978,8 +995,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
               {doc.diameter && <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>}
               {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
-              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-              {doc.startTime && <p className="m-0"><strong>Start Time:</strong> {new Date(doc.startTime).toLocaleTimeString()}</p>}
+              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
+              {formatTime(doc.startTime) && <p className="m-0"><strong>Start Time:</strong> {formatTime(doc.startTime)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
@@ -1000,6 +1017,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
         </div>
       }
       {doc._docType == 'sectionHalf' &&
@@ -1016,8 +1034,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.thickness && <p className="m-0"><strong>Thickness:</strong> {doc.thickness} cm</p>}
               {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
               {doc.color && <p className="m-0"><strong>Color:</strong> {doc.color}</p>}
-              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-              {doc.startTime && <p className="m-0"><strong>Start Time:</strong> {new Date(doc.startTime).toLocaleTimeString()}</p>}
+              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
+              {formatTime(doc.startTime) && <p className="m-0"><strong>Start Time:</strong> {formatTime(doc.startTime)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
@@ -1038,6 +1056,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
 
           <CoreSamplesPanel sectionHalfDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -1055,8 +1074,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
               {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
               {doc.nSections != null && <p className="m-0"><strong>Samples:</strong> {doc.nSections}</p>}
-              {doc.startDate && <p className="m-0"><strong>Start Date:</strong> {new Date(doc.startDate).toLocaleDateString()}</p>}
-              {!doc.startDate && doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
+              {!formatDate(doc.startDate) && formatDate(doc.date) && <p className="m-0"><strong>Date:</strong> {formatDate(doc.date)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
@@ -1078,6 +1097,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
 
           <RockSamplesPanel rockDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -1095,7 +1115,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
               {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
               {doc.color && <p className="m-0"><strong>Color:</strong> {doc.color}</p>}
-              {doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+              {formatDate(doc.date) && <p className="m-0"><strong>Date:</strong> {formatDate(doc.date)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
@@ -1117,6 +1137,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
 
           <DiveSubsamplesPanel diveSampleDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
@@ -1134,7 +1155,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
               {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
               {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
               {doc.color && <p className="m-0"><strong>Color:</strong> {doc.color}</p>}
-              {doc.date && <p className="m-0"><strong>Date:</strong> {new Date(doc.date).toLocaleDateString()}</p>}
+              {formatDate(doc.date) && <p className="m-0"><strong>Date:</strong> {formatDate(doc.date)}</p>}
               {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
               {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
               {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
@@ -1153,6 +1174,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
         </div>
       }
       {doc._docType == 'coreSample' &&
@@ -1186,6 +1208,7 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
           )}
 
           <Ancestors doc={doc} onNavigate={onNavigateToChild} />
+          <DataIssuesPanel doc={doc} />
         </div>
       }
       {viewRawData && (

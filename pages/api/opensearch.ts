@@ -4,7 +4,29 @@ import { Client } from '@opensearch-project/opensearch';
 const client: Client = new Client({
   node: process.env.OS_NODE,
 });
-const index = 'osu-mgr';
+const isProd = process.env.NEXT_PUBLIC_TINA_BRANCH === 'prod';
+const index = isProd ? 'osu-mgr' : 'osu-mgr-dev';
+
+// Records the pipeline flagged with data-quality errors (e.g. "Not in any
+// metadata sheet") are only surfaced on non-prod deployments, where the
+// Data Issues filter lets curators find and fix them. On prod they are
+// hidden from every query (results, counts and facet aggregations).
+const HIDE_FLAGGED_ON_PROD = [{ exists: { field: '_errors' } }];
+function guardQuery(query: any): any {
+  if (!isProd) return query;
+  return { bool: { must: [query], must_not: HIDE_FLAGGED_ON_PROD } };
+}
+
+// Dev-only "Data Issues" filter: errors | warnings (OR between selected)
+function dataIssuesFilter(search: any): any | null {
+  const issues: string[] = search?.filters?.dataIssues || [];
+  if (isProd || issues.length === 0) return null;
+  const should = [];
+  if (issues.includes('errors')) should.push({ exists: { field: '_errors' } });
+  if (issues.includes('warnings')) should.push({ exists: { field: '_warnings' } });
+  if (should.length === 0) return null;
+  return { bool: { should, minimum_should_match: 1 } };
+}
 
 const cruisesFirst = {
   "_script": {
@@ -246,6 +268,10 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       });
     }
 
+    // Handle data issues filter (dev only)
+    const dataIssues = dataIssuesFilter(search);
+    if (dataIssues) filters.push(dataIssues);
+
     // Apply all filters
     if (filters.length > 0) {
       // Wrap existing query in a bool query if it's not already
@@ -268,7 +294,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
     const body: any = {
       from: search.from || 0,
       size: search.size || 10,
-      query
+      query: guardQuery(query)
     };
 
     // Add sort only if size > 0 (not for aggregation-only queries)
@@ -295,7 +321,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
     resp = await client.count({
       index,
       body: {
-        query,
+        query: guardQuery(query),
       }
     } as any);
   }
@@ -354,6 +380,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       }
       
       // Apply non-file type filters to base query
+      const dataIssues_nonFileTypeFilters = dataIssuesFilter(search);
+      if (dataIssues_nonFileTypeFilters) nonFileTypeFilters.push(dataIssues_nonFileTypeFilters);
       if (nonFileTypeFilters.length > 0) {
         if (baseQuery.bool) {
           baseQuery.bool.must = baseQuery.bool.must || [];
@@ -424,7 +452,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         const countResp = await client.count({
           index,
           body: {
-            query: fileTypeQuery,
+            query: guardQuery(fileTypeQuery),
           }
         } as any);
         counts[fileType] = countResp.body.count || 0;
@@ -517,6 +545,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           terms: { 'texture.keyword': search.filters.textures }
         });
       }
+      const dataIssues_nonMethodFilters = dataIssuesFilter(search);
+      if (dataIssues_nonMethodFilters) nonMethodFilters.push(dataIssues_nonMethodFilters);
 
       // Apply non-method filters to base query
       if (nonMethodFilters.length > 0) {
@@ -539,7 +569,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         index,
         body: {
           size: 0,
-          query: baseQuery,
+          query: guardQuery(baseQuery),
           aggs: {
             methods: {
               terms: { field: methodField, size: 200 }
@@ -639,6 +669,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           terms: { 'texture.keyword': search.filters.textures }
         });
       }
+      const dataIssues_nonMaterialFilters = dataIssuesFilter(search);
+      if (dataIssues_nonMaterialFilters) nonMaterialFilters.push(dataIssues_nonMaterialFilters);
 
       if (nonMaterialFilters.length > 0) {
         if (!baseQuery.bool) {
@@ -658,7 +690,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         index,
         body: {
           size: 0,
-          query: baseQuery,
+          query: guardQuery(baseQuery),
           aggs: {
             materials: {
               terms: { field: materialField, size: 200 }
@@ -759,6 +791,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           terms: { 'texture.keyword': search.filters.textures }
         });
       }
+      const dataIssues_nonRvFilters = dataIssuesFilter(search);
+      if (dataIssues_nonRvFilters) nonRvFilters.push(dataIssues_nonRvFilters);
 
       if (nonRvFilters.length > 0) {
         if (!baseQuery.bool) {
@@ -778,7 +812,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         index,
         body: {
           size: 0,
-          query: baseQuery,
+          query: guardQuery(baseQuery),
           aggs: {
             rvNames: {
               terms: {
@@ -884,6 +918,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
           terms: { 'texture.keyword': search.filters.textures }
         });
       }
+      const dataIssues_nonInstitutionFilters = dataIssuesFilter(search);
+      if (dataIssues_nonInstitutionFilters) nonInstitutionFilters.push(dataIssues_nonInstitutionFilters);
 
       // Do NOT apply PI/institution filters here - we're getting counts for ALL institutions
 
@@ -905,7 +941,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         index,
         body: {
           size: 0,
-          query: baseQuery,
+          query: guardQuery(baseQuery),
           aggs: {
             institutions: {
               terms: {
@@ -1029,6 +1065,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         });
       }
 
+      const dataIssues_nonTextureFilters = dataIssuesFilter(search);
+      if (dataIssues_nonTextureFilters) nonTextureFilters.push(dataIssues_nonTextureFilters);
       if (nonTextureFilters.length > 0) {
         if (!baseQuery.bool) {
           baseQuery = {
@@ -1047,7 +1085,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         index,
         body: {
           size: 0,
-          query: baseQuery,
+          query: guardQuery(baseQuery),
           aggs: {
             textures: {
               terms: {
@@ -1069,6 +1107,83 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
 
     return res.status(200).send(counts);
   }
+  else if (req.query.dataIssueCounts !== undefined && search.types !== undefined) {
+    // Dev-only facet counts for the Data Issues filter: how many records in the
+    // current search (all other filters applied) carry _errors / _warnings.
+    if (isProd) return res.status(200).send({ errors: 0, warnings: 0 });
+
+    let baseQuery: any = {};
+    if (search.searchString === '') {
+      baseQuery = { terms: { '_docType.keyword': search.types } };
+    } else {
+      baseQuery = {
+        bool: {
+          must: [
+            { terms: { '_docType.keyword': search.types } }],
+          should: buildShould(search.searchString),
+          minimum_should_match: 1,
+        }
+      };
+    }
+
+    if (search.filters) {
+      const isCruise = search.types.includes('cruise');
+      const otherFilters: any[] = [];
+      if (search.filters.fileTypes?.length > 0) {
+        otherFilters.push({ terms: { '_files.type.keyword': search.filters.fileTypes } });
+      }
+      if (search.filters.relatedFileTypes?.length > 0) {
+        otherFilters.push({
+          bool: {
+            should: [
+              { terms: { '_parentFiles.type.keyword': search.filters.relatedFileTypes } },
+              { terms: { '_childFiles.type.keyword': search.filters.relatedFileTypes } },
+            ],
+            minimum_should_match: 1,
+          }
+        });
+      }
+      if (search.filters.methods?.length > 0) {
+        otherFilters.push({ terms: { [isCruise ? 'methods.keyword' : 'method.keyword']: search.filters.methods } });
+      }
+      if (search.filters.materialTypes?.length > 0) {
+        otherFilters.push({ terms: { [isCruise ? 'materials.keyword' : 'material.keyword']: search.filters.materialTypes } });
+      }
+      if (search.filters.rvNames?.length > 0) {
+        otherFilters.push({ terms: { 'rvName.keyword': search.filters.rvNames } });
+      }
+      if (search.filters.institutions?.length > 0) {
+        otherFilters.push({ terms: { 'pi.keyword': search.filters.institutions } });
+      }
+      if (search.filters.textures?.length > 0) {
+        otherFilters.push({ terms: { 'texture.keyword': search.filters.textures } });
+      }
+      if (otherFilters.length > 0) {
+        baseQuery = { bool: { must: [baseQuery], filter: otherFilters } };
+      }
+    }
+
+    const counts = { errors: 0, warnings: 0 };
+    try {
+      const aggResp = await client.search({
+        index,
+        body: {
+          size: 0,
+          query: baseQuery,
+          aggs: {
+            errors: { filter: { exists: { field: '_errors' } } },
+            warnings: { filter: { exists: { field: '_warnings' } } },
+          }
+        }
+      } as any);
+      const aggs: any = aggResp.body.aggregations || {};
+      counts.errors = aggs.errors?.doc_count || 0;
+      counts.warnings = aggs.warnings?.doc_count || 0;
+    } catch (error) {
+      console.error('Error fetching data issue counts:', error);
+    }
+    return res.status(200).send(counts);
+  }
   else if (req.query.perCruiseCollection !== undefined && search.cruiseIds !== undefined) {
     // Returns { [cruiseOsuid]: { methods: string[], materialTypes: string[] } }
     // by running a single terms-aggregation query over cores filtered to the given cruise IDs.
@@ -1078,14 +1193,14 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         index,
         body: {
           size: 0,
-          query: {
+          query: guardQuery({
             bool: {
               must: [
                 { terms: { '_docType.keyword': ['core'] } },
                 { terms: { 'cruise.keyword': search.cruiseIds } },
               ],
             },
-          },
+          }),
           aggs: {
             byCruise: {
               terms: { field: 'cruise.keyword', size: 1000 },
@@ -1176,6 +1291,8 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       if (search.filters.textures?.length > 0) {
         otherFilters.push({ terms: { 'texture.keyword': search.filters.textures } });
       }
+      const dataIssues = dataIssuesFilter(search);
+      if (dataIssues) otherFilters.push(dataIssues);
 
       if (otherFilters.length > 0) {
         if (!baseQuery.bool) { baseQuery = { bool: { must: [baseQuery] } }; }
@@ -1204,7 +1321,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
         index,
         body: {
           size: 0,
-          query: baseQuery,
+          query: guardQuery(baseQuery),
           aggs: { relatedFileTypes: { filters: { filters: aggFilters } } }
         }
       } as any);

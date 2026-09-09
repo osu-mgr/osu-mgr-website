@@ -13,7 +13,7 @@ import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
 import { LandingPage } from "./landing-page";
 import dynamic from 'next/dynamic';
-import { r2rCruiseLinks, hasFileTypeLabel, getFileTypeLabel, getDiveMethodLabel } from '../search/search-data';
+import { r2rCruiseLinks, hasFileTypeLabel, getFileTypeLabel, getDiveMethodLabel, formatDate, formatTime } from '../search/search-data';
 import { FileTypesFilterDropdown } from '../search/file-types-filter';
 import { RelatedFileTypesFilterDropdown } from '../search/related-file-types-filter';
 import { RvNameFilterDropdown } from '../search/rv-name-filter';
@@ -21,7 +21,9 @@ import { InstitutionFilterDropdown } from '../search/institution-filter';
 import { TextureFilterDropdown } from '../search/texture-filter';
 import { CollectionFilterDropdown } from '../search/collection-filter';
 import { DownloadFilesButton } from '../search/download-files-button';
+import { DownloadRowsButton } from '../search/download-rows-button';
 import { FilterPanel } from '../search/filter-panel';
+import { DataIssueBadges } from '../search/data-issues';
 
 const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
   ssr: false,
@@ -29,6 +31,48 @@ const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
     <Icon name="TbLoader2" className="w-8 h-8 animate-spin text-primary" />
   </div>
 });
+
+// Date/time column for a result row. Values are formatted with the shared helpers
+// rather than new Date(), which mangles the collection's assorted date formats —
+// bare years become the previous New Year's Eve and clock times like "08:09" come
+// out as "Invalid Date".
+const DateTimeCell: React.FC<{ source: any }> = ({ source }) => {
+  const startDate = formatDate(source.startDate);
+  const startTime = formatTime(source.startTime);
+  const endDate = formatDate(source.endDate);
+  const endTime = formatTime(source.endTime);
+  const date = formatDate(source.date);
+  const time = formatTime(source.time);
+
+  const showEndDate = endDate && endDate !== startDate;
+  const showEndTime = endTime && endTime !== startTime;
+
+  return (
+    <td className="align-top">
+      {(startDate || startTime || endDate || endTime) ? (
+        <>
+          {startDate && <><b>Date:</b><br/>{startDate}<br/></>}
+          {showEndDate && <><b>End Date:</b><br/>{endDate}<br/></>}
+          {(startTime || showEndTime) && (
+            <>
+              <b>Time:</b><br/>
+              {startTime}
+              {showEndTime && <> to {endTime}</>}
+              <br/>
+            </>
+          )}
+        </>
+      ) : (date || time) ? (
+        <>
+          {date && <><b>Date:</b><br/>{date}<br/></>}
+          {time && <><b>Time:</b><br/>{time}<br/></>}
+        </>
+      ) : (
+        <span className="text-gray-500">—</span>
+      )}
+    </td>
+  );
+};
 
 const SearchTab: React.FC<{
   label: string;
@@ -78,6 +122,7 @@ export const Search: React.FC<{ data: any }> = ({
       materialTypes: [], // Array of selected material types
       rvNames: [], // Array of selected RV names
       institutions: [], // Array of selected institutions
+      dataIssues: [], // 'errors' | 'warnings' (dev deployments only)
     },
     filterLogic: {
       fileTypes: 'OR', // 'OR' or 'AND'
@@ -112,7 +157,8 @@ export const Search: React.FC<{ data: any }> = ({
       const payload = {
         types: ['core'],
         terms: {
-          "_coreUUID.keyword": [currentDoc._coreUUID],
+          // A core's own id lives in _uuid — core docs have no _coreUUID field.
+          "_uuid.keyword": [currentDoc._coreUUID],
         },
       };
       const res = await fetch('/api/opensearch?search', {
@@ -583,6 +629,10 @@ export const Search: React.FC<{ data: any }> = ({
             >
               <Icon name="BiX" />
             </button>
+            <DownloadRowsButton
+              search={search}
+              searchString={searchString}
+            />
             <DownloadFilesButton
               search={search}
               searchString={searchString}
@@ -614,7 +664,8 @@ export const Search: React.FC<{ data: any }> = ({
                     (search.filters?.fileTypes || []).length > 0,
                     (search.filters?.methods || []).length > 0,
                     (search.filters?.materialTypes || []).length > 0,
-                    (search.filters?.rvNames || []).length > 0
+                    (search.filters?.rvNames || []).length > 0,
+                    (search.filters?.dataIssues || []).length > 0
                   ].filter(Boolean).length}
                 </span>
               </button>
@@ -691,6 +742,20 @@ export const Search: React.FC<{ data: any }> = ({
               filters={search.filters}
               filterLogic={search.filterLogic}
             />
+            {viewRawData && (
+              <>
+                <div className="tab tab-lg tab-bordered px-2"></div>
+                <SearchTab
+                  label="Orphans"
+                  isActive={search.types.includes('file')}
+                  onClick={() => setSearch({ ...search, types: ['file', 'location'] })}
+                  type="file"
+                  searchString={search.searchString}
+                  filters={search.filters}
+                  filterLogic={search.filterLogic}
+                />
+              </>
+            )}
             <div className="tab tab-lg tab-bordered flex-grow"></div>
           </div>
 
@@ -709,6 +774,7 @@ export const Search: React.FC<{ data: any }> = ({
                     if (false && search.types.includes('sectionHalf')) return 'Section Halves';
                     if (search.types.includes('dive')) return 'Dredges/Dives';
                     if (search.types.includes('diveSample')) return 'Rocks';
+                    if (search.types.includes('file')) return 'Orphans';
                     return 'Select Type';
                   })()}
                 </b>
@@ -857,11 +923,34 @@ export const Search: React.FC<{ data: any }> = ({
                     </span>
                   </div>
                 </li>
+                {viewRawData && (
+                  <li>
+                    <div
+                      onClick={() => {
+                        setSearch({ ...search, types: ['file', 'location'] });
+                        setIsMenuOpen(false);
+                      }}
+                      className={`flex items-center justify-between ${search.types.includes('file') ? 'active' : ''}`}
+                    >
+                      <span>Orphans</span>
+                      <span className="badge badge-sm badge-outline">
+                        <ItemsCount
+                          searchString={search.searchString}
+                          types={['file', 'location']}
+                          filters={search.filters}
+                          filterLogic={search.filterLogic}
+                          singularLabel=""
+                          pluralLabel=""
+                        />
+                      </span>
+                    </div>
+                  </li>
+                )}
               </ul>
             )}
           </div>
         </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-auto">
           {search.types.includes('cruise') &&
             <table className="table table-compact w-full mt-0">
               <thead className="sticky top-0 z-10 bg-base-100">
@@ -917,11 +1006,14 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         <b>{match._source._osuid}</b>
-                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._coreOSUIDs?.length > 0 && <><br/><b>Cores:</b> {numeral(match._source._coreOSUIDs.length).format(0)}</>}
+                        {match._source._diveOSUIDs?.length > 0 && <><br/><b>Dredges/Dives:</b> {numeral(match._source._diveOSUIDs.length).format(0)}</>}
+                        {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <DataIssueBadges doc={match._source} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {match._source.rvName}
                         {r2rCruiseLinks[match._source._osuid] && (
                           <div className="mt-1 flex flex-row flex-wrap gap-1">
@@ -932,7 +1024,7 @@ export const Search: React.FC<{ data: any }> = ({
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="badge badge-ghost hover:badge-ghost no-underline flex items-center gap-1"
+                                className="badge badge-ghost badge-tag hover:badge-ghost no-underline flex items-center gap-1"
                               >
                                 R2R
                                 <Icon name="BiLinkExternal" size="xxs" />
@@ -942,14 +1034,14 @@ export const Search: React.FC<{ data: any }> = ({
                           </div>
                         )}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {match._source.pi && <><b>{match._source.pi}</b><br/></>}
                         {match._source.piInstitution && <>{match._source.piInstitution}<br/></>}
                       </td>
                       <td className="align-top">
                         <CollectionMapThumbnail locations={match._source._locations} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(() => {
                           const files = match._source._files || [];
                           const moratoriumFiles = match._source._moratorium_files || [];
@@ -1000,7 +1092,7 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {renderRelatedFileCounts(match._source)}
                       </td>
                     </tr>
@@ -1089,16 +1181,17 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <DataIssueBadges doc={match._source} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {match._source.length != null && <><b>Length:</b><br/>{numeral(match._source.length).format(0.00)} cm<br /></>}
                         {match._source.diameter != null && <><b>Diameter:</b><br/>{numeral(match._source.diameter).format(0.00)} cm<br /></>}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(match._source.waterDepthStart != null || match._source.waterDepthEnd != null) &&
                           <>
                             <b>Water Depth:</b><br />
@@ -1106,62 +1199,18 @@ export const Search: React.FC<{ data: any }> = ({
                           </>
                         }
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {match._source.method != null && <><b>Method:</b><br/>{match._source.method}<br/></>}
                         {match._source.material != null && <><b>Material:</b><br/>{match._source.material}<br /></>}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
-                        {(() => {
-                          const sd = match._source.startDate ? new Date(match._source.startDate) : null;
-                          const st = match._source.startTime ? new Date(match._source.startTime) : null;
-                          const ed = match._source.endDate ? new Date(match._source.endDate) : null;
-                          const et = match._source.endTime ? new Date(match._source.endTime) : null;
-                          const d = match._source.date ? new Date(match._source.date) : null;
-                          const t = match._source.time ? new Date(match._source.time) : null;
-
-                          const formatDate = (dt: Date | null) => dt ? dt.toLocaleDateString() : '';
-                          const formatTime = (dt: Date | null) => dt ? dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-
-                          if (sd || st || ed || et) {
-                            const startDate = formatDate(sd);
-                            const startTime = formatTime(st);
-                            const endDate = formatDate(ed);
-                            const endTime = formatTime(et);
-                            const showEndDate = endDate && endDate !== startDate;
-                            const showEndTime = endTime && endTime !== startTime;
-                            return (
-                              <>
-                                {startDate && <><b>Date:</b><br/>{startDate}<br/></>}
-                                {showEndDate && <><b>End Date:</b><br/>{endDate}<br/></>}
-                                {(startTime || showEndTime) && (
-                                  <>
-                                    <b>Time:</b><br/>
-                                    {startTime}
-                                    {showEndTime && <> to {endTime}</>}
-                                    <br/>
-                                  </>
-                                )}
-                              </>
-                            );
-                          }
-                          if (d || t) {
-                            return (
-                              <>
-                                {d && <><b>Date:</b><br/>{formatDate(d)}<br/></>}
-                                {t && <><b>Time:</b><br/>{formatTime(t)}<br/></>}
-                              </>
-                            );
-                          }
-                          return <span className="text-gray-500">—</span>;
-                        })()}
-                      </td>
+                      <DateTimeCell source={match._source} />
                       <td className="align-top">
                         <CollectionMapThumbnail
                           lat={match._source.latitudeStart || match._source.latitudeEnd}
                           lon={match._source.longitudeStart || match._source.longitudeEnd}
                         />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(() => {
                           const files = match._source._files || [];
                           const moratoriumFiles = match._source._moratorium_files || [];
@@ -1212,7 +1261,7 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {renderRelatedFileCounts(match._source)}
                       </td>
                     </tr>
@@ -1294,12 +1343,13 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <DataIssueBadges doc={match._source} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {match._source.depthTop != null && match._source.depthBottom != null &&
                           <>
                             <b>Length:</b><br />
@@ -1307,7 +1357,7 @@ export const Search: React.FC<{ data: any }> = ({
                           </>
                         }
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(match._source.depthTop != null || match._source.depthBottom != null) &&
                           <>
                             <b>Core Depth:</b><br />
@@ -1321,7 +1371,7 @@ export const Search: React.FC<{ data: any }> = ({
                           lon={match._source.longitudeStart || match._source.longitudeEnd}
                         />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(() => {
                           const files = match._source._files || [];
                           const moratoriumFiles = match._source._moratorium_files || [];
@@ -1372,7 +1422,7 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {renderRelatedFileCounts(match._source)}
                       </td>
                     </tr>
@@ -1441,12 +1491,13 @@ export const Search: React.FC<{ data: any }> = ({
                         <tr key={key} className="hover cursor-pointer" onClick={() => {
                           openLandingModal(match._source._osuid);
                         }}>
-                          <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                          <td className="align-top">
                             <b>{match._source._osuid}</b>
                             {match._source.nSections != null && <><br /><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                            {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                            {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <DataIssueBadges doc={match._source} />
                           </td>
-                          <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                          <td className="align-top">
                             {(() => {
                               const files = match._source._files || [];
                               const moratoriumFiles = match._source._moratorium_files || [];
@@ -1497,7 +1548,7 @@ export const Search: React.FC<{ data: any }> = ({
                               );
                             })()}
                           </td>
-                          <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                          <td className="align-top">
                             {renderRelatedFileCounts(match._source)}
                           </td>
                         </tr>
@@ -1569,18 +1620,19 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         <b>{match._source._osuid}</b>
-                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <DataIssueBadges doc={match._source} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {match._source.method != null && <><b>Method:</b><br/>{match._source.method}<br/></>}
                         {match._source.material != null && <><b>Material:</b><br/>{match._source.material}<br /></>}
                       </td>
                       <td className="align-top">
                         <CollectionMapThumbnail locations={match._source._locations} lat={match._source.latitudeStart || match._source.latitudeEnd} lon={match._source.longitudeStart || match._source.longitudeEnd} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(() => {
                           const files = match._source._files || [];
                           const moratoriumFiles = match._source._moratorium_files || [];
@@ -1631,7 +1683,7 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {renderRelatedFileCounts(match._source)}
                       </td>
                     </tr>
@@ -1662,6 +1714,80 @@ export const Search: React.FC<{ data: any }> = ({
               </tbody>
             </table>
           }
+          {viewRawData && matches.length > 0 && search.types.includes('file') &&
+            <table className="table table-compact w-full mt-0">
+              <thead className="sticky top-0 z-10 bg-base-100">
+                <tr>
+                  <th
+                    className="rounded-none cursor-pointer hover:bg-base-200"
+                    onClick={() => toggleSort('alpha')}
+                  >
+                    OSU-ID referenced {getSortIcon('alpha')}
+                  </th>
+                  <th className="rounded-none">Cruise</th>
+                  <th className="rounded-none">File / Storage location</th>
+                  <th className="rounded-none">Issues</th>
+                </tr>
+              </thead>
+              <tbody>
+                {matches.map((match, key) => {
+                  const files = [
+                    ...(match._source._files || []).map((f: any) => ({ ...f, moratorium: false })),
+                    ...(match._source._moratorium_files || []).map((f: any) => ({ ...f, moratorium: true })),
+                  ];
+                  return (
+                    <tr key={key}>
+                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                        <b>{match._source._osuid}</b>
+                        {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <DataIssueBadges doc={match._source} />
+                      </td>
+                      <td className="align-top">
+                        {match._source._cruiseID
+                          ? <a className="link" onClick={(e) => { e.stopPropagation(); openLandingModal(`OSU-${match._source._cruiseID}`); }}>OSU-{match._source._cruiseID}</a>
+                          : <span className="text-gray-500">—</span>}
+                      </td>
+                      <td className="align-top break-all">
+                        {files.map((f: any, idx: number) => (
+                          <div key={idx} className="text-sm">
+                            <span className="font-bold">{getFileTypeLabel(f.type)}:</span>{' '}
+                            <span className="font-mono text-xs">{f.path}</span>
+                            {f.moratorium && <span className="badge badge-ghost badge-tag ml-1">moratorium</span>}
+                          </div>
+                        ))}
+                        {match._source._docType === 'location' && (
+                          (match._source.storageLocations || [{
+                            storageLocation: match._source.storageLocation,
+                            toteId: match._source.toteId,
+                            palletName: match._source.palletName,
+                          }]).map((pl: any, idx: number) => (
+                            <div key={`loc-${idx}`} className="text-sm">
+                              <span className="font-bold">Location:</span>{' '}
+                              <span className="font-mono text-xs">{pl.storageLocation || '—'}</span>
+                              {pl.palletName && <span className="ml-2">pallet <span className="font-mono text-xs">{pl.palletName}</span></span>}
+                              {pl.toteId && <span className="ml-2">tote <span className="font-mono text-xs">{pl.toteId}</span></span>}
+                            </div>
+                          ))
+                        )}
+                        {match._source._docType === 'location' && match._source.weight != null && (
+                          <div className="text-sm"><span className="font-bold">Weight:</span> {match._source.weight}</div>
+                        )}
+                      </td>
+                      <td className="align-top text-sm">
+                        {(match._source._errors || []).map((m: string, idx: number) => (
+                          <div key={`e-${idx}`} className="text-error">{m}</div>
+                        ))}
+                        {(match._source._warnings || []).map((m: string, idx: number) => (
+                          <div key={`w-${idx}`} className="text-warning">{m}</div>
+                        ))}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          }
+
           {matches.length > 0 && search.types.includes('diveSample') &&
             <table className="table table-compact w-full mt-0">
               <thead className="sticky top-0 z-10 bg-base-100">
@@ -1706,56 +1832,13 @@ export const Search: React.FC<{ data: any }> = ({
                     <tr key={key} className="hover cursor-pointer" onClick={() => {
                       openLandingModal(match._source._osuid);
                     }}>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         <b>{match._source._osuid}</b>
-                        {match._source._moratorium && <div><span className="badge btn-primary">Moratorium</span></div>}
+                        {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <DataIssueBadges doc={match._source} />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
-                        {(() => {
-                          const sd = match._source.startDate ? new Date(match._source.startDate) : null;
-                          const st = match._source.startTime ? new Date(match._source.startTime) : null;
-                          const ed = match._source.endDate ? new Date(match._source.endDate) : null;
-                          const et = match._source.endTime ? new Date(match._source.endTime) : null;
-                          const d = match._source.date ? new Date(match._source.date) : null;
-                          const t = match._source.time ? new Date(match._source.time) : null;
-
-                          const formatDate = (dt: Date | null) => dt ? dt.toLocaleDateString() : '';
-                          const formatTime = (dt: Date | null) => dt ? dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-
-                          if (sd || st || ed || et) {
-                            const startDate = formatDate(sd);
-                            const startTime = formatTime(st);
-                            const endDate = formatDate(ed);
-                            const endTime = formatTime(et);
-                            const showEndDate = endDate && endDate !== startDate;
-                            const showEndTime = endTime && endTime !== startTime;
-                            return (
-                              <>
-                                {startDate && <><b>Date:</b><br/>{startDate}<br/></>}
-                                {showEndDate && <><b>End Date:</b><br/>{endDate}<br/></>}
-                                {(startTime || showEndTime) && (
-                                  <>
-                                    <b>Time:</b><br/>
-                                    {startTime}
-                                    {showEndTime && <> to {endTime}</>}
-                                    <br/>
-                                  </>
-                                )}
-                              </>
-                            );
-                          }
-                          if (d || t) {
-                            return (
-                              <>
-                                {d && <><b>Date:</b><br/>{formatDate(d)}<br/></>}
-                                {t && <><b>Time:</b><br/>{formatTime(t)}<br/></>}
-                              </>
-                            );
-                          }
-                          return <span className="text-gray-500">—</span>;
-                        })()}
-                      </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <DateTimeCell source={match._source} />
+                      <td className="align-top">
                         {(() => {
                           const ws = match._source.waterDepthStart;
                           const we = match._source.waterDepthEnd;
@@ -1767,14 +1850,14 @@ export const Search: React.FC<{ data: any }> = ({
                           return <span className="text-gray-500">—</span>;
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">{match._source.texture || <span className="text-gray-500">—</span>}</td>
+                      <td className="align-top">{match._source.texture || <span className="text-gray-500">—</span>}</td>
                       <td className="align-top">
                         <CollectionMapThumbnail
                           lat={match._source.latitudeStart || match._source.latitudeEnd}
                           lon={match._source.longitudeStart || match._source.longitudeEnd}
                         />
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {(() => {
                           const files = match._source._files || [];
                           const moratoriumFiles = match._source._moratorium_files || [];
@@ -1825,7 +1908,7 @@ export const Search: React.FC<{ data: any }> = ({
                           );
                         })()}
                       </td>
-                      <td className="align-top overflow-hidden text-ellipsis max-w-0">
+                      <td className="align-top">
                         {renderRelatedFileCounts(match._source)}
                       </td>
                     </tr>
@@ -1864,7 +1947,8 @@ export const Search: React.FC<{ data: any }> = ({
               search.filters?.materialTypes?.length > 0 ||
               search.filters?.rvNames?.length > 0 ||
               search.filters?.institutions?.length > 0 ||
-              search.filters?.textures?.length > 0) && (
+              search.filters?.textures?.length > 0 ||
+              search.filters?.dataIssues?.length > 0) && (
               <div className="w-[320px] mx-auto">
                 <div className="sticky top-0 bg-white pb-2">
                   <div className="flex items-center justify-between">
@@ -1887,7 +1971,8 @@ export const Search: React.FC<{ data: any }> = ({
                                 materialTypes: [],
                                 rvNames: [],
                                 institutions: [],
-                                textures: []
+                                textures: [],
+                                dataIssues: []
                               }
                             });
                           }}
@@ -2037,6 +2122,29 @@ export const Search: React.FC<{ data: any }> = ({
                       </div>
                     ))}
 
+                    {/* Data Issues Filters (dev only) */}
+                    {search.filters?.dataIssues?.map((issue: string) => (
+                      <div key={`dataIssue-${issue}`} className="form-control">
+                        <label className="label cursor-pointer justify-start gap-2 py-1">
+                          <input
+                            type="checkbox"
+                            className="checkbox checkbox-sm flex-shrink-0"
+                            checked={true}
+                            onChange={() => {
+                              setSearch({
+                                ...search,
+                                filters: {
+                                  ...search.filters,
+                                  dataIssues: search.filters.dataIssues.filter((i: string) => i !== issue)
+                                }
+                              });
+                            }}
+                          />
+                          <span className="label-text text-sm flex-1 break-words"><strong>Data Issues:</strong> {issue === 'errors' ? 'Has errors' : 'Has warnings'}</span>
+                        </label>
+                      </div>
+                    ))}
+
                     {/* Institutions Filters */}
                     {search.filters?.institutions?.map((institution: string) => (
                       <div key={`institution-${institution}`} className="form-control">
@@ -2135,9 +2243,12 @@ export const Search: React.FC<{ data: any }> = ({
             >
               {/* Header with Title and Close Button */}
               <div className="relative border-b border-base-300">
-                <div className="flex justify-between items-center p-6">
-                  <div className="flex items-center gap-3 flex-1">
-                    <h2 className="text-2xl font-bold text-primary m-0">
+                <div className="flex justify-between items-start gap-2 p-6">
+                  {/* On narrow screens the h2 takes the full width so Copy Link wraps
+                      onto its own line, right-aligned under the title; from sm up the
+                      two sit side by side on the left as before. */}
+                  <div className="flex flex-wrap items-center justify-end sm:justify-start gap-x-3 gap-y-1 flex-1 min-w-0">
+                    <h2 className="text-2xl font-bold text-primary m-0 w-full sm:w-auto break-words">
                       {getDocTypeLabel(currentDoc?._docType, currentDoc?.method)} {osuId || currentDoc?._osuid}
                     </h2>
                     <button
@@ -2169,14 +2280,21 @@ export const Search: React.FC<{ data: any }> = ({
                   let globeProps: any = null;
 
                   if (currentDoc._docType === 'section') {
-                    if (!coreForSection) return null;
-                    if (coreForSection.latitudeStart == null && coreForSection.latitudeEnd == null &&
-                        coreForSection.longitudeStart == null && coreForSection.longitudeEnd == null) return null;
+                    // Sections carry their own coordinates (inherited from the core at
+                    // index time); fall back to the parent core for the rare section
+                    // that doesn't.
+                    const src = (currentDoc.latitudeStart != null || currentDoc.latitudeEnd != null ||
+                                 currentDoc.longitudeStart != null || currentDoc.longitudeEnd != null)
+                      ? currentDoc
+                      : coreForSection;
+                    if (!src) return null;
+                    if (src.latitudeStart == null && src.latitudeEnd == null &&
+                        src.longitudeStart == null && src.longitudeEnd == null) return null;
                     globeProps = {
-                      latitudeStart: coreForSection.latitudeStart,
-                      latitudeEnd: coreForSection.latitudeEnd,
-                      longitudeStart: coreForSection.longitudeStart,
-                      longitudeEnd: coreForSection.longitudeEnd,
+                      latitudeStart: src.latitudeStart,
+                      latitudeEnd: src.latitudeEnd,
+                      longitudeStart: src.longitudeStart,
+                      longitudeEnd: src.longitudeEnd,
                     };
                   } else if (currentDoc._docType === 'cruise') {
                     if (!currentDoc._locations || currentDoc._locations.length === 0) return null;

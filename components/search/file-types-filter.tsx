@@ -27,7 +27,7 @@ export const FileTypesFilterDropdown: React.FC<{
 
   // Fetch counts for each file type
   const { data: fileTypeCounts, isLoading: countsLoading } = useQuery({
-    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?fileTypeCounts', {
         method: 'POST',
