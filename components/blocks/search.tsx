@@ -1755,20 +1755,22 @@ export const Search: React.FC<{ data: any }> = ({
                             {f.moratorium && <span className="badge badge-ghost badge-tag ml-1">moratorium</span>}
                           </div>
                         ))}
-                        {match._source._docType === 'location' && (
-                          (match._source.storageLocations || [{
-                            storageLocation: match._source.storageLocation,
-                            toteId: match._source.toteId,
-                            palletName: match._source.palletName,
-                          }]).map((pl: any, idx: number) => (
+                        {match._source._docType === 'location' && (() => {
+                          // storageLocation is a list of "<rack slot>-<tote>" strings with
+                          // parallel toteId / palletName lists (single strings in old indexes).
+                          const asList = (v: any) => (Array.isArray(v) ? v : v ? [v] : []);
+                          const slots = asList(match._source.storageLocation);
+                          const totes = asList(match._source.toteId);
+                          const pallets = asList(match._source.palletName);
+                          return (slots.length ? slots : ['—']).map((slot: string, idx: number) => (
                             <div key={`loc-${idx}`} className="text-sm">
                               <span className="font-bold">Location:</span>{' '}
-                              <span className="font-mono text-xs">{pl.storageLocation || '—'}</span>
-                              {pl.palletName && <span className="ml-2">pallet <span className="font-mono text-xs">{pl.palletName}</span></span>}
-                              {pl.toteId && <span className="ml-2">tote <span className="font-mono text-xs">{pl.toteId}</span></span>}
+                              <span className="font-mono text-xs">{slot}</span>
+                              {pallets[idx] && <span className="ml-2">pallet <span className="font-mono text-xs">{pallets[idx]}</span></span>}
+                              {totes[idx] && <span className="ml-2">tote <span className="font-mono text-xs">{totes[idx]}</span></span>}
                             </div>
-                          ))
-                        )}
+                          ));
+                        })()}
                         {match._source._docType === 'location' && match._source.weight != null && (
                           <div className="text-sm"><span className="font-bold">Weight:</span> {match._source.weight}</div>
                         )}
