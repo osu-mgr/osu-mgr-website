@@ -54,6 +54,10 @@
             "label": "Search by Map:\n\nAntarctic Cores\n"
           },
           {
+            "href": "home",
+            "label": "Search by Map:\n\nOregon Drill Cores\n"
+          },
+          {
             "href": "repositories",
             "label": "Other Repositories\n"
           }
