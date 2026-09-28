@@ -25,8 +25,10 @@ export default function Page(
 export const getStaticProps = async ({ params }) => {
   const isLandingPage = (path) => path.match(/^OSU-[^/]+$/i);
   if (isLandingPage(params.filename)) {
-    // Strip section half suffix (e.g. OSU-7004Y-1PC-1A -> OSU-7004Y-1PC-1)
-    const osuId = params.filename.replace(/^(OSU-[^-]+-[^-]+-\d+)[A-Za-z]$/i, '$1');
+    // Passed through as-is: the modal resolves the record type itself and
+    // shows a section half's parent section (IDs of cores, sections and rock
+    // samples can also end in a digit plus a letter, so no pattern is safe).
+    const osuId = params.filename;
     // Client-side navigation to search with OSU ID
     return {
       redirect: {

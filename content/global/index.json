@@ -47,11 +47,7 @@
           },
           {
             "href": "map",
-            "label": "Search by Map:\n\nAll Collections\n"
-          },
-          {
-            "href": "antarctic-map",
-            "label": "Search by Map:\n\nAntarctic Cores\n"
+            "label": "Search by Map\n"
           },
           {
             "href": "repositories",
