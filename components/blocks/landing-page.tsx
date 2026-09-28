@@ -1,29 +1,78 @@
 import _ from 'lodash';
 import { useRouter } from 'next/router';
-import { useQuery } from '@tanstack/react-query';
-import { DataIssueBadges, DataIssuesPanel } from '../search/data-issues';
-import { useEffect } from 'react';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useInView } from 'react-hook-inview';
+import { DataIssueBadges, DataIssuesPanel, SHOW_DATA_ISSUES, getDataIssues } from '../search/data-issues';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import numeral from 'numeral';
 import dynamic from 'next/dynamic';
 import { Section } from "../util/section";
 import { Container } from "../util/container";
 import { ItemsCount } from '../util/items-count';
 import { CollectionFileButton } from '../util/collection-file-button';
-import { FileCard } from '../util/file-card';
+import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
+import { DateTimeCell } from '../search/date-time-cell';
+import { MapPoint, stationLine, toMapPoint } from '../search/map-points';
+import { DetailFilterButton, OnDetailFilter } from '../search/detail-filter-button';
 import { Icon } from "../util/icon";
-import { getDiveMethodLabel, formatDate, formatTime } from "../search/search-data";
+import { getDiveMethodLabel, formatDate, formatTime, formatField, getFileTypeLabel, isPlaceholder, isVisibleFileType, shown } from "../search/search-data";
 
-const Globe = dynamic(() => import("../util/globe").then(mod => mod.Globe), {
+const MapLibreMap = dynamic(() => import("../search/maplibre-map"), {
   ssr: false,
-  loading: () => <div className="w-full h-[300px] flex items-center justify-center bg-base-200">Loading globe...</div>,
+  loading: () => <div className="w-full h-full flex items-center justify-center bg-base-200">Loading map...</div>,
 });
 
-const HIDDEN_FILE_TYPE_SUBSTRINGS = ['igsn', 'imlgs', 'itrax-xray-image'];
-const isVisibleFile = (file: any) => {
-  const t = file?.type?.toLowerCase() ?? '';
-  return !HIDDEN_FILE_TYPE_SUBSTRINGS.some(s => t.includes(s));
-};
+const isVisibleFile = (file: any) => isVisibleFileType(file?.type?.toLowerCase());
 const hasVisibleFiles = (doc: any) =>
   (doc?._files || []).some(isVisibleFile) || (doc?._moratorium_files || []).some(isVisibleFile);
+
+// Child-record lookup shared by the tab counts and the panels. Both call it with
+// the same key, so react-query dedupes the fetch. Capped at 100 hits; the tab
+// badge uses hits.total so it stays right past the cap.
+// Paged like the search results: PAGE_SIZE rows per request, the next page
+// fetched as the list is scrolled. hits.total on the first page drives the tab
+// badge, so the count is right before the rest has loaded.
+const PAGE_SIZE = 10;
+const useChildDocs = (key: string, types: string[], termField: string, uuid?: string) =>
+  useInfiniteQuery<any>({
+    queryKey: [key, uuid],
+    enabled: !!uuid,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      if (!uuid) return null;
+      const from = (pageParam as number) * PAGE_SIZE;
+      const payload = { types, terms: { [termField]: [uuid] }, sortOrder: 'ids asc', from, size: PAGE_SIZE };
+      const res = await fetch('/api/opensearch?search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error(e.message || `Failed to fetch ${types.join(', ')}`);
+      }
+      return res.json();
+    },
+    getNextPageParam: (lastPage: any, allPages: any[]) => {
+      const fetched = allPages.reduce((n, p) => n + (p?.hits?.hits?.length || 0), 0);
+      const total = hitsTotal(lastPage) ?? 0;
+      return fetched < total ? allPages.length : undefined;
+    },
+  });
+
+const hitsTotal = (results: any): number | undefined => {
+  const t = results?.hits?.total;
+  if (t == null) return undefined;
+  return typeof t === 'number' ? t : t.value;
+};
+
+// External links are labelled "Site: Title", e.g. "R2R: EW0408".
+const r2rPageTitle = (link: string) => `R2R: ${link.split('/').pop()}`;
+
+// Citations come from Crossref and may carry inline markup such as
+// "TEX<sub>86</sub>"; keep only harmless inline tags (no attributes).
+const citationHtml = (citation: string) =>
+  String(citation).replace(/<(?!\/?(?:sub|sup|i|em|b|strong)>)[^>]*>/gi, '');
 
 const r2rCruiseLinks: { [key: string]: string[] } = {
   'OSU-AT0003': ['https://www.rvdata.us/search/cruise/AT3-49'],
@@ -174,555 +223,254 @@ const Cruise: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
   );
 }
 
-const CoreSectionsPanel: React.FC<{ coreDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ coreDoc, onNavigateToChild }) => {
-  const {
-    data: sectionsResults,
-    isLoading: isSectionsLoading,
-  } = useQuery({
-    queryKey: ['coreSections', coreDoc._uuid],
-    queryFn: async () => {
-      if (!coreDoc._uuid) return null;
+// Descendant tabs per record type. Each one lists the records that carry this
+// record's UUID (so a cruise gets grandchildren like Sections and Core Samples,
+// not just its direct children). Subsamples carry no ancestor UUIDs in the
+// index, so they are found by parent OSU ID instead.
+type DescendantTab = { key: string; label: string; types: string[]; termField: string; uuidField: string };
 
-      const payload = {
-        types: ['section'],
-        terms: {
-          "_coreUUID.keyword": [coreDoc._uuid],
-        },
-        sortOrder: 'ids asc',
-        size: 100, // Get up to 100 sections
-      };
-      const res = await fetch('/api/opensearch?search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const errorresults = await res.json();
-        throw new Error(errorresults.message || 'Failed to fetch sections');
-      }
-      return res.json();
-    },
-    enabled: !!coreDoc._uuid,
-  });
+const DESCENDANT_TABS: { [docType: string]: DescendantTab[] } = {
+  cruise: [
+    { key: 'cores', label: 'Cores', types: ['core'], termField: '_cruiseUUID.keyword', uuidField: '_uuid' },
+    { key: 'sections', label: 'Sections', types: ['section'], termField: '_cruiseUUID.keyword', uuidField: '_uuid' },
+    { key: 'coreSamples', label: 'Core Samples', types: ['coreSample'], termField: '_cruiseUUID.keyword', uuidField: '_uuid' },
+    { key: 'dives', label: 'Dredges/Dives', types: ['dive'], termField: '_cruiseUUID.keyword', uuidField: '_uuid' },
+    { key: 'rocks', label: 'Rocks', types: ['diveSample'], termField: '_cruiseUUID.keyword', uuidField: '_uuid' },
+  ],
+  core: [
+    { key: 'sections', label: 'Sections', types: ['section'], termField: '_coreUUID.keyword', uuidField: '_uuid' },
+    { key: 'coreSamples', label: 'Core Samples', types: ['coreSample'], termField: '_coreUUID.keyword', uuidField: '_uuid' },
+  ],
+  section: [
+    { key: 'coreSamples', label: 'Core Samples', types: ['coreSample'], termField: '_sectionUUID.keyword', uuidField: '_uuid' },
+  ],
+  sectionHalf: [
+    { key: 'coreSamples', label: 'Core Samples', types: ['coreSample'], termField: '_sectionHalfUUID.keyword', uuidField: '_sectionHalfUUID' },
+  ],
+  dive: [
+    { key: 'rockSamples', label: 'Rock Samples', types: ['diveSample'], termField: '_diveUUID.keyword', uuidField: '_diveUUID' },
+  ],
+  diveSample: [
+    { key: 'subsamples', label: 'Subsamples', types: ['diveSubsample'], termField: '_parentOSUID', uuidField: '_osuid' },
+  ],
+};
+// Hooks must run the same number of times on every render, so the descendant
+// queries use a fixed number of slots regardless of record type.
+const MAX_DESCENDANT_TABS = 5;
 
-  const sections = sectionsResults?.hits?.hits || [];
+// Same loading indicator as the search results list.
+const LoadingRows: React.FC<{ label?: string }> = ({ label = 'Loading...' }) => (
+  <div className="flex justify-center items-center min-h-[200px] p-4">
+    <Icon name="TbLoader2" className="w-8 h-8 text-primary animate-spin" />
+    <span className="ml-2">{label}</span>
+  </div>
+);
 
-  if (!coreDoc._uuid) return null;
+// Tabs with hundreds of rows (each with a map thumbnail or image) take a moment
+// to render even when their data is already cached, and the click would appear
+// to do nothing until React finished. This paints the loading indicator first
+// and mounts the heavy content on the next frame.
+const Deferred: React.FC<{ label?: string; children: React.ReactNode }> = ({ label, children }) => {
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const frame = requestAnimationFrame(() => { timer = setTimeout(() => setReady(true), 0); });
+    return () => { cancelAnimationFrame(frame); if (timer) clearTimeout(timer); };
+  }, []);
+  return ready ? <>{children}</> : <LoadingRows label={label} />;
+};
 
-  return (
-    <div className="mt-6">
-      <h3 className="text-xl font-bold mb-4 text-primary">Core Sections</h3>
-      
-      {isSectionsLoading && (
-        <div className="flex justify-center items-center py-8">
-          <Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" />
-          <span className="ml-2">Loading sections...</span>
-        </div>
-      )}
+// Parent and child records render as tables laid out like the search results
+// tables for the same record type, minus the Files / Related Files columns.
+type Column = { header: string; render: (d: any) => React.ReactNode };
 
-      {!isSectionsLoading && sections.length === 0 && (
-        <p className="text-gray-500">No sections found for this core.</p>
-      )}
+const idCell = (d: any) => (
+  <>
+    <b>{d._osuid}</b>
+    {d._docType === 'cruise' && d._coreOSUIDs?.length > 0 && <><br/><b>Cores:</b> {numeral(d._coreOSUIDs.length).format(0)}</>}
+    {d._docType === 'cruise' && d._diveOSUIDs?.length > 0 && <><br/><b>Dredges/Dives:</b> {numeral(d._diveOSUIDs.length).format(0)}</>}
+    {['core', 'section', 'sectionHalf'].includes(d._docType) && d.nSections != null && <><br/><b>Sections:</b> {numeral(d.nSections).format(0)}</>}
+    {Array.isArray(d._publications) && d._publications.length > 0 && <><br/><b>Publications:</b> {numeral(d._publications.length).format(0)}</>}
+    {d._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+    <DataIssueBadges doc={d} />
+  </>
+);
 
-      {!isSectionsLoading && sections.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sections.map((section, index) => {
-            const sectionData = section._source;
-            return (
-              <div
-                key={index}
-                onClick={() => onNavigateToChild?.(sectionData._osuid)}
-                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
-              >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <h4 className="font-semibold text-primary m-0">{sectionData._osuid}</h4>
-                  <DataIssueBadges doc={sectionData} className="" />
-                </div>
-                
-                <div className="space-y-1 text-sm text-gray-600">
-                  {sectionData.depthTop != null && sectionData.depthBottom != null && (
-                    <p className="m-0">
-                      <strong>Depth:</strong> {sectionData.depthTop} - {sectionData.depthBottom} cm
-                    </p>
-                  )}
-                  
-                  {sectionData.length && (
-                    <p className="m-0">
-                      <strong>Length:</strong> {sectionData.length} cm
-                    </p>
-                  )}
+const collectionCell = (d: any) => (
+  <>
+    {!isPlaceholder(d.method) && <><b>Method:</b><br/>{d.method}<br/></>}
+    {!isPlaceholder(d.material) && <><b>Material:</b><br/>{d.material}<br/></>}
+  </>
+);
 
-                  {sectionData.material && (
-                    <p className="m-0">
-                      <strong>Material:</strong> {sectionData.material}
-                    </p>
-                  )}
+const waterDepthCell = (d: any) => {
+  const ws = d.waterDepthStart;
+  const we = d.waterDepthEnd;
+  if (ws == null && we == null) return <span className="text-gray-500">—</span>;
+  const left = ws != null ? formatField('waterDepthStart', ws) : '';
+  const right = we != null && ws !== we ? formatField('waterDepthEnd', we) : '';
+  return <span>{left}{(ws != null && we != null && ws !== we) ? ' to ' : ''}{right} m</span>;
+};
 
-                  {sectionData._files && sectionData._files.length > 0 && (
-                    <div className="flex items-center gap-1 mt-2">
-                      <Icon name="TbFiles" className="w-3 h-3 text-gray-500" />
-                      <span className="text-xs text-gray-500">
-                        {sectionData._files.length} file{sectionData._files.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
+const locationCell = (d: any) => (
+  <CollectionMapThumbnail
+    locations={d._locations}
+    lat={d.latitudeStart || d.latitudeEnd}
+    lon={d.longitudeStart || d.longitudeEnd}
+  />
+);
 
-const RockSamplesPanel: React.FC<{ rockDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ rockDoc, onNavigateToChild }) => {
-  const {
-    data: samplesResults,
-    isLoading: isSamplesLoading,
-  } = useQuery({
-    queryKey: ['rockSamples', rockDoc._diveUUID],
-    queryFn: async () => { 
-      if (!rockDoc._diveUUID) return null;
-      
-      const payload = {
-        types: ['diveSample'],
-        terms: {
-          "_diveUUID.keyword": [rockDoc._diveUUID],
-        },
-        sortOrder: 'ids asc',
-        size: 100, // Get up to 100 samples
-      };
-      const res = await fetch('/api/opensearch?search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const errorresults = await res.json();
-        throw new Error(errorresults.message || 'Failed to fetch rock samples');
-      }
-      return res.json();
-    },
-    enabled: !!rockDoc._diveUUID,
-  });
+const dateTimeColumn: Column = { header: 'Date Time', render: () => null }; // rendered via DateTimeCell
 
-  const samples = samplesResults?.hits?.hits || [];
-
-  if (!rockDoc._diveUUID) return null;
-
-  return (
-    <div className="mt-6">
-      <h3 className="text-xl font-bold mb-4 text-primary">Rock Samples</h3>
-      
-      {isSamplesLoading && (
-        <div className="flex justify-center items-center py-8">
-          <Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" />
-          <span className="ml-2">Loading samples...</span>
-        </div>
-      )}
-
-      {!isSamplesLoading && samples.length === 0 && (
-        <p className="text-gray-500">No samples found for this rock.</p>
-      )}
-
-      {!isSamplesLoading && samples.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {samples.map((sample, index) => {
-            const sampleData = sample._source;
-            return (
-              <div
-                key={index}
-                onClick={() => onNavigateToChild?.(sampleData._osuid)}
-                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
-              >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <h4 className="font-semibold text-primary m-0">{sampleData._osuid}</h4>
-                  <DataIssueBadges doc={sampleData} className="" />
-                </div>
-                
-                <div className="space-y-1 text-sm text-gray-600">
-                  <p className="m-0">
-                    <strong>Type:</strong> Sample
-                  </p>
-                  
-                  {sampleData.method && (
-                    <p className="m-0">
-                      <strong>Method:</strong> {sampleData.method}
-                    </p>
-                  )}
-
-                  {sampleData.weight && (
-                    <p className="m-0">
-                      <strong>Weight:</strong> {sampleData.weight} kg
-                    </p>
-                  )}
-
-                  {sampleData.area && (
-                    <p className="m-0">
-                      <strong>Area:</strong> {sampleData.area}
-                    </p>
-                  )}
-
-                  {sampleData._files && sampleData._files.length > 0 && (
-                    <div className="flex items-center gap-1 mt-2">
-                      <Icon name="TbFiles" className="w-3 h-3 text-gray-500" />
-                      <span className="text-xs text-gray-500">
-                        {sampleData._files.length} file{sampleData._files.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-export const CruiseGlobe: React.FC<{ cruiseDoc: any }> = ({ cruiseDoc }) => {
-  if (!cruiseDoc._locations || cruiseDoc._locations.length === 0) return null;
-
-  const coordinates = (cruiseDoc._locations as any[])
-    .map(loc => {
-      const lat = parseFloat(loc.latitudeStart ?? loc.latitudeEnd);
-      const lon = parseFloat(loc.longitudeStart ?? loc.longitudeEnd);
-      return !isNaN(lat) && !isNaN(lon) ? { lat, lon } : null;
-    })
-    .filter(Boolean);
-
-  if (coordinates.length === 0) return null;
-
-  return (
-    <div className="relative bg-gradient-to-br from-primary/10 via-base-100 to-base-100 border-b border-base-300">
-      <div className="min-h-[300px]">
-        <Globe coordinates={coordinates} />
-      </div>
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4 pointer-events-none">
-        <div className="text-white">
-          <div className="text-xs opacity-80 font-medium mb-1 uppercase tracking-wide">
-            Showing {coordinates.length} location{coordinates.length !== 1 ? 's' : ''}
+const TABLE_COLUMNS: { [docType: string]: Column[] } = {
+  cruise: [
+    { header: 'Cruise', render: idCell },
+    { header: 'RV Name', render: (d) => (
+      <>
+        {shown(d.rvName)}
+        {r2rCruiseLinks[d._osuid] && (
+          <div className="mt-1 flex flex-row flex-wrap gap-1">
+            {r2rCruiseLinks[d._osuid].map((link: string, idx: number) => (
+              <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
+                className="badge badge-ghost badge-tag hover:badge-ghost no-underline flex items-center gap-1">
+                R2R<Icon name="BiLinkExternal" size="xxs" /><span className="font-normal">{link.split('/').pop()}</span>
+              </a>
+            ))}
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+        )}
+      </>
+    ) },
+    { header: 'Cruise PI', render: (d) => (
+      <>
+        {!isPlaceholder(d.pi) && <><b>{d.pi}</b><br/></>}
+        {!isPlaceholder(d.piInstitution) && <>{d.piInstitution}<br/></>}
+      </>
+    ) },
+    { header: 'Location', render: locationCell },
+  ],
+  core: [
+    { header: 'Core', render: idCell },
+    { header: 'Size', render: (d) => (
+      <>
+        {d.length != null && <><b>Length:</b><br/>{formatField('length', d.length)} cm<br /></>}
+        {d.diameter != null && <><b>Diameter:</b><br/>{formatField('diameter', d.diameter)} cm<br /></>}
+      </>
+    ) },
+    { header: 'Depth', render: (d) => (d.waterDepthStart != null || d.waterDepthEnd != null) ? <><b>Water Depth:</b><br />{waterDepthCell(d)}</> : null },
+    { header: 'Collection', render: collectionCell },
+    dateTimeColumn,
+    { header: 'Location', render: locationCell },
+  ],
+  section: [
+    { header: 'Section', render: idCell },
+    { header: 'Size', render: (d) => d.depthTop != null && d.depthBottom != null
+      ? <><b>Length:</b><br />{formatField('length', parseFloat(d.depthBottom) - parseFloat(d.depthTop))} cm<br /></> : null },
+    { header: 'Depth', render: (d) => (d.depthTop != null || d.depthBottom != null)
+      ? <><b>Core Depth:</b><br />{d.depthTop != null ? formatField('depthTop', d.depthTop) : ''}{d.depthTop != null && d.depthBottom != null ? ' - ' : ''}{d.depthBottom != null ? formatField('depthBottom', d.depthBottom) : ''} cm<br /></> : null },
+    { header: 'Location', render: locationCell },
+  ],
+  sectionHalf: [
+    { header: 'Section Half', render: idCell },
+    { header: 'Half', render: (d) => shown(d.halfType) || <span className="text-gray-500">—</span> },
+    { header: 'Depth', render: (d) => (d.depthTop != null || d.depthBottom != null)
+      ? <>{d.depthTop != null ? formatField('depthTop', d.depthTop) : ''}{d.depthTop != null && d.depthBottom != null ? ' - ' : ''}{d.depthBottom != null ? formatField('depthBottom', d.depthBottom) : ''} cm</> : null },
+  ],
+  dive: [
+    { header: 'Rock', render: idCell },
+    { header: 'Collection', render: collectionCell },
+    { header: 'Location', render: locationCell },
+  ],
+  diveSample: [
+    { header: 'Rock Sample', render: idCell },
+    dateTimeColumn,
+    { header: 'Water Depth', render: waterDepthCell },
+    { header: 'Texture', render: (d) => shown(d.texture) || <span className="text-gray-500">—</span> },
+    { header: 'Location', render: locationCell },
+  ],
+  diveSubsample: [
+    { header: 'Subsample', render: idCell },
+    { header: 'Collection', render: collectionCell },
+    { header: 'Weight', render: (d) => d.weight != null && d.weight !== '' ? <>{formatField('weight', d.weight)} kg</> : <span className="text-gray-500">—</span> },
+    { header: 'Location', render: locationCell },
+  ],
+  coreSample: [
+    { header: 'Core Sample', render: idCell },
+    { header: 'Collection', render: collectionCell },
+    { header: 'Depth', render: (d) => (d.depthTop != null || d.depthBottom != null)
+      ? <>{d.depthTop != null ? formatField('depthTop', d.depthTop) : ''}{d.depthTop != null && d.depthBottom != null ? ' - ' : ''}{d.depthBottom != null ? formatField('depthBottom', d.depthBottom) : ''} cm</> : <span className="text-gray-500">—</span> },
+    { header: 'Location', render: locationCell },
+  ],
+};
+const DEFAULT_COLUMNS: Column[] = [
+  { header: 'Record', render: idCell },
+  { header: 'Collection', render: collectionCell },
+  { header: 'Location', render: locationCell },
+];
 
-export const DiveGlobe: React.FC<{ diveDoc: any }> = ({ diveDoc }) => {
-  const lat = parseFloat(diveDoc.latitudeStart);
-  const lon = parseFloat(diveDoc.longitudeStart);
-  if (isNaN(lat) || isNaN(lon)) return null;
-
+const RecordTable: React.FC<{ rows: any[]; docType: string; onNavigate?: (osuid: string) => void }> = ({ rows, docType, onNavigate }) => {
+  const cols = TABLE_COLUMNS[docType] || DEFAULT_COLUMNS;
   return (
-    <div className="relative bg-gradient-to-br from-primary/10 via-base-100 to-base-100 border-b border-base-300">
-      <div className="min-h-[300px]">
-        <Globe coordinates={[{ lat, lon }]} />
-      </div>
-    </div>
-  );
-}
-
-const CruiseCoresPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ cruiseDoc, onNavigateToChild }) => {
-  const {
-    data: coresResults,
-    isLoading: isCoresLoading,
-  } = useQuery({
-    queryKey: ['cruiseCores', cruiseDoc._uuid],
-    queryFn: async () => {
-      if (!cruiseDoc._uuid) return null;
-
-      const payload = {
-        types: ['core'],
-        terms: {
-          "_cruiseUUID.keyword": [cruiseDoc._uuid],
-        },
-        sortOrder: 'ids asc',
-        size: 100, // Get up to 100 cores
-      };
-      const res = await fetch('/api/opensearch?search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const errorresults = await res.json();
-        throw new Error(errorresults.message || 'Failed to fetch cores');
-      }
-      return res.json();
-    },
-    enabled: !!cruiseDoc._uuid,
-  });
-
-  const cores = coresResults?.hits?.hits || [];
-
-  if (!cruiseDoc._uuid || cores.length === 0) return null;
-
-  return (
-    <div className="mt-6">
-      <h3 className="text-xl font-bold mb-4 text-primary">Cores</h3>
-      
-      {isCoresLoading && (
-        <div className="flex justify-center items-center py-8">
-          <Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" />
-          <span className="ml-2">Loading cores...</span>
-        </div>
-      )}
-
-      {!isCoresLoading && cores.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {cores.map((core, index) => {
-            const coreData = core._source;
-            return (
-              <div
-                key={index}
-                onClick={() => onNavigateToChild?.(coreData._osuid)}
-                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
-              >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <h4 className="font-semibold text-primary m-0">{coreData._osuid}</h4>
-                  <DataIssueBadges doc={coreData} className="" />
-                </div>
-                
-                <div className="space-y-1 text-sm text-gray-600">
-                  {coreData.material && (
-                    <p className="m-0">
-                      <strong>Material:</strong> {coreData.material}
-                    </p>
-                  )}
-                  
-                  {coreData.method && (
-                    <p className="m-0">
-                      <strong>Method:</strong> {coreData.method}
-                    </p>
-                  )}
-
-                  {coreData.length && (
-                    <p className="m-0">
-                      <strong>Length:</strong> {coreData.length} cm
-                    </p>
-                  )}
-
-                  {coreData.diameter && (
-                    <p className="m-0">
-                      <strong>Diameter:</strong> {coreData.diameter} cm
-                    </p>
-                  )}
-
-                  {coreData.nSections && (
-                    <p className="m-0">
-                      <strong>Sections:</strong> {coreData.nSections}
-                    </p>
-                  )}
-
-                  {coreData._files && coreData._files.length > 0 && (
-                    <div className="flex items-center gap-1 mt-2">
-                      <Icon name="TbFiles" className="w-3 h-3 text-gray-500" />
-                      <span className="text-xs text-gray-500">
-                        {coreData._files.length} file{coreData._files.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-const CruiseRocksPanel: React.FC<{ cruiseDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ cruiseDoc, onNavigateToChild }) => {
-  const {
-    data: rocksResults,
-    isLoading: isRocksLoading,
-  } = useQuery({
-    queryKey: ['cruiseRocks', cruiseDoc._uuid],
-    queryFn: async () => {
-      if (!cruiseDoc._uuid) return null;
-
-      const payload = {
-        types: ['dive'],
-        terms: {
-          "_cruiseUUID.keyword": [cruiseDoc._uuid],
-        },
-        sortOrder: 'ids asc',
-        size: 100, // Get up to 100 rocks
-      };
-      const res = await fetch('/api/opensearch?search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const errorresults = await res.json();
-        throw new Error(errorresults.message || 'Failed to fetch rocks');
-      }
-      return res.json();
-    },
-    enabled: !!cruiseDoc._uuid,
-  });
-
-  const rocks = rocksResults?.hits?.hits || [];
-
-  if (!cruiseDoc._uuid || rocks.length === 0) return null;
-
-  return (
-    <div className="mt-6">
-      <h3 className="text-xl font-bold mb-4 text-primary">Rocks</h3>
-      
-      {isRocksLoading && (
-        <div className="flex justify-center items-center py-8">
-          <Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" />
-          <span className="ml-2">Loading rocks...</span>
-        </div>
-      )}
-
-      {!isRocksLoading && rocks.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {rocks.map((rock, index) => {
-            const rockData = rock._source;
-            return (
-              <div
-                key={index}
-                onClick={() => onNavigateToChild?.(rockData._osuid)}
-                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
-              >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <h4 className="font-semibold text-primary m-0">{rockData._osuid}</h4>
-                  <DataIssueBadges doc={rockData} className="" />
-                </div>
-                
-                <div className="space-y-1 text-sm text-gray-600">
-                  {rockData.material && (
-                    <p className="m-0">
-                      <strong>Material:</strong> {rockData.material}
-                    </p>
-                  )}
-                  
-                  {rockData.method && (
-                    <p className="m-0">
-                      <strong>Method:</strong> {rockData.method}
-                    </p>
-                  )}
-
-                  {rockData.weight && (
-                    <p className="m-0">
-                      <strong>Weight:</strong> {rockData.weight} kg
-                    </p>
-                  )}
-
-                  {rockData.texture && (
-                    <p className="m-0">
-                      <strong>Texture:</strong> {rockData.texture}
-                    </p>
-                  )}
-
-                  {rockData._files && rockData._files.length > 0 && (
-                    <div className="flex items-center gap-1 mt-2">
-                      <Icon name="TbFiles" className="w-3 h-3 text-gray-500" />
-                      <span className="text-xs text-gray-500">
-                        {rockData._files.length} file{rockData._files.length !== 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-
-const CoreSamplesPanel: React.FC<{ sectionHalfDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ sectionHalfDoc, onNavigateToChild }) => {
-  const { data, isLoading } = useQuery({
-    queryKey: ['coreSamples', sectionHalfDoc._sectionHalfUUID],
-    queryFn: async () => {
-      if (!sectionHalfDoc._sectionHalfUUID) return null;
-      const payload = { types: ['coreSample'], terms: { "_sectionHalfUUID.keyword": [sectionHalfDoc._sectionHalfUUID] }, sortOrder: 'ids asc', size: 100 };
-      const res = await fetch('/api/opensearch?search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.message || 'Failed to fetch core samples'); }
-      return res.json();
-    },
-    enabled: !!sectionHalfDoc._sectionHalfUUID,
-  });
-  const samples = data?.hits?.hits || [];
-  if (!sectionHalfDoc._sectionHalfUUID || (samples.length === 0 && !isLoading)) return null;
-  return (
-    <div className="mt-6">
-      <h3 className="text-xl font-bold mb-4 text-primary">Core Samples</h3>
-      {isLoading && <div className="flex justify-center items-center py-8"><Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" /><span className="ml-2">Loading core samples...</span></div>}
-      {!isLoading && samples.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {samples.map((sample, index) => {
-            const d = sample._source;
-            return (
-              <div key={index} onClick={() => onNavigateToChild?.(d._osuid)}
-                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <h4 className="font-semibold text-primary m-0">{d._osuid}</h4>
-                  <DataIssueBadges doc={d} className="" />
-                </div>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {d.material && <p className="m-0"><strong>Material:</strong> {d.material}</p>}
-                  {d.method && <p className="m-0"><strong>Method:</strong> {d.method}</p>}
-                  {d.weight && <p className="m-0"><strong>Weight:</strong> {d.weight} kg</p>}
-                  {d._files?.length > 0 && <div className="flex items-center gap-1 mt-2"><Icon name="TbFiles" className="w-3 h-3 text-gray-500" /><span className="text-xs text-gray-500">{d._files.length} file{d._files.length !== 1 ? 's' : ''}</span></div>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+    <div className="overflow-x-auto w-full">
+      <table className="table table-compact w-full min-w-full mt-0">
+        <thead className="sticky top-0 z-10 bg-base-100">
+          <tr>{cols.map((c) => <th key={c.header} className="rounded-none">{c.header}</th>)}</tr>
+        </thead>
+        <tbody>
+          {rows.map((d) => (
+            <tr key={d._osuid} className="hover cursor-pointer" onClick={() => onNavigate?.(d._osuid)}>
+              {cols.map((c, i) => c === dateTimeColumn
+                ? <DateTimeCell key={c.header} source={d} />
+                : <td key={c.header} className={`align-top ${i === 0 ? '!whitespace-nowrap w-px' : ''}`}>{c.render(d)}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 };
 
-const DiveSubsamplesPanel: React.FC<{ diveSampleDoc: any; onNavigateToChild?: (osuid: string) => void }> = ({ diveSampleDoc, onNavigateToChild }) => {
-  const { data, isLoading } = useQuery({
-    queryKey: ['diveSubsamples', diveSampleDoc._diveSampleUUID],
-    queryFn: async () => {
-      if (!diveSampleDoc._diveSampleUUID) return null;
-      const payload = { types: ['diveSubsample'], terms: { "_diveSampleUUID.keyword": [diveSampleDoc._diveSampleUUID] }, sortOrder: 'ids asc', size: 100 };
-      const res = await fetch('/api/opensearch?search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.message || 'Failed to fetch subsamples'); }
-      return res.json();
-    },
-    enabled: !!diveSampleDoc._diveSampleUUID,
-  });
-  const subsamples = data?.hits?.hits || [];
-  if (!diveSampleDoc._diveSampleUUID || (subsamples.length === 0 && !isLoading)) return null;
+// "Loading more" spinner at the end of a list, as on the search page.
+const LoadingMore: React.FC = () => (
+  <div className="flex justify-center items-center py-4">
+    <Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" />
+    <span className="ml-2">Loading more...</span>
+  </div>
+);
+
+// End-of-list trigger. Only the first page loads on its own; the next page is
+// fetched when this scrolls INTO view (it must have been out of view first, so
+// a short first page never auto-fills the pane). A "Load more" button covers
+// the case where the list is too short to scroll at all.
+const LoadMore: React.FC<{ onMore: () => void }> = ({ onMore }) => {
+  const [ref, isVisible] = useInView({ threshold: 0 });
+  const callback = useRef(onMore);
+  callback.current = onMore;
+  const wasHidden = useRef(false);
+  useEffect(() => {
+    if (!isVisible) { wasHidden.current = true; return; }
+    if (wasHidden.current) { wasHidden.current = false; callback.current(); }
+  }, [isVisible]);
   return (
-    <div className="mt-6">
-      <h3 className="text-xl font-bold mb-4 text-primary">Subsamples</h3>
-      {isLoading && <div className="flex justify-center items-center py-8"><Icon name="TbLoader2" className="w-6 h-6 text-primary animate-spin" /><span className="ml-2">Loading subsamples...</span></div>}
-      {!isLoading && subsamples.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {subsamples.map((sub, index) => {
-            const d = sub._source;
-            return (
-              <div key={index} onClick={() => onNavigateToChild?.(d._osuid)}
-                className="block bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer">
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <h4 className="font-semibold text-primary m-0">{d._osuid}</h4>
-                  <DataIssueBadges doc={d} className="" />
-                </div>
-                <div className="space-y-1 text-sm text-gray-600">
-                  {d.material && <p className="m-0"><strong>Material:</strong> {d.material}</p>}
-                  {d.method && <p className="m-0"><strong>Method:</strong> {d.method}</p>}
-                  {d.weight && <p className="m-0"><strong>Weight:</strong> {d.weight} kg</p>}
-                  {d._files?.length > 0 && <div className="flex items-center gap-1 mt-2"><Icon name="TbFiles" className="w-3 h-3 text-gray-500" /><span className="text-xs text-gray-500">{d._files.length} file{d._files.length !== 1 ? 's' : ''}</span></div>}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+    <div ref={ref} className="flex justify-center py-2">
+      <button type="button" className="btn btn-sm btn-ghost" onClick={() => callback.current()}>Load more</button>
+    </div>
+  );
+};
+
+const DescendantsPanel: React.FC<{ tab: DescendantTab; query: any; onNavigate?: (osuid: string) => void }> = ({ tab, query, onNavigate }) => {
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = query;
+  const hits = (data?.pages || []).flatMap((p: any) => p?.hits?.hits || []);
+  const loadMore = () => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); };
+  return (
+    <div>
+      {isLoading && <LoadingRows label={`Loading ${tab.label.toLowerCase()}...`} />}
+      {!isLoading && hits.length === 0 && <p className="text-gray-500 p-4">No {tab.label.toLowerCase()} found for this record.</p>}
+      {!isLoading && hits.length > 0 && (
+        <Deferred label={`Loading ${tab.label.toLowerCase()}...`}>
+          <RecordTable rows={hits.map((h: any) => h._source)} docType={tab.types[0]} onNavigate={onNavigate} />
+          {isFetchingNextPage && <LoadingMore />}
+          {hasNextPage && !isFetchingNextPage && <LoadMore onMore={loadMore} />}
+        </Deferred>
       )}
     </div>
   );
@@ -774,65 +522,496 @@ const useAncestors = (doc: any) => {
   });
 };
 
-const AncestorCard: React.FC<{ ancestor: any; onNavigate?: (osuid: string) => void }> = ({ ancestor, onNavigate }) => {
-  const isCruise = ancestor._docType === 'cruise';
-  return (
-    <div className="mb-6">
-      <h3 className="text-xl font-bold mb-4 text-primary">{getAncestorTypeLabel(ancestor._docType, ancestor.method)}</h3>
-      <div
-        onClick={() => onNavigate?.(ancestor._osuid)}
-        className="bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-200 border border-gray-200 hover:border-primary cursor-pointer"
-      >
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <h4 className="font-semibold text-primary m-0">{ancestor._osuid}</h4>
-          <DataIssueBadges doc={ancestor} className="" />
-        </div>
-        <div className="space-y-1 text-sm text-gray-600">
-          {ancestor.cruise && <p className="m-0"><strong>Name:</strong> {ancestor.cruise}</p>}
-          {ancestor.rvName && <p className="m-0"><strong>Vessel:</strong> {ancestor.rvName}</p>}
-          {ancestor.pi && <p className="m-0"><strong>PI:</strong> {ancestor.pi}</p>}
-          {ancestor.method && <p className="m-0"><strong>Method:</strong> {ancestor.method}</p>}
-          {ancestor.material && <p className="m-0"><strong>Material:</strong> {ancestor.material}</p>}
-          {ancestor.depthTop != null && ancestor.depthBottom != null && <p className="m-0"><strong>Depth Range:</strong> {ancestor.depthTop} - {ancestor.depthBottom} cm</p>}
-          {ancestor.length && <p className="m-0"><strong>Length:</strong> {ancestor.length} cm</p>}
-          {ancestor.area && <p className="m-0"><strong>Area:</strong> {ancestor.area}</p>}
-          {ancestor.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {ancestor.latitudeStart}°</p>}
-          {ancestor.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {ancestor.longitudeStart}°</p>}
-          {ancestor.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {ancestor.waterDepthStart} m</p>}
-          {isCruise && r2rCruiseLinks[ancestor._osuid] && (
-            <div className="flex flex-row flex-wrap gap-1 mt-2">
-              {r2rCruiseLinks[ancestor._osuid].map((link: string, idx: number) => (
-                <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="badge badge-primary badge-tag hover:badge-primary-focus no-underline flex items-center gap-1">
-                  <Icon name="BiLinkExternal" size="xxs" />R2R: {link.split('/').pop()}
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
+// ---------------------------------------------------------------------------
+// Tabbed modal layout
+// ---------------------------------------------------------------------------
 
-// Parent/grandparent chain shown above a document's children, so the modal can
-// navigate up and down the hierarchy. Rendered top-down (cruise first).
-const Ancestors: React.FC<{ doc: any; onNavigate?: (osuid: string) => void }> = ({ doc, onNavigate }) => {
-  const { data: ancestors } = useAncestors(doc);
-  if (!ancestors || ancestors.length === 0) return null;
+type ModalTab = { key: string; label: string; count?: number; isLoading?: boolean };
+
+// Count badge in the same style as the search results tabs (SearchTab in search.tsx).
+const TabCount: React.FC<{ count?: number; isLoading?: boolean; active: boolean; size?: 'md' | 'sm' }> = ({ count, isLoading, active, size = 'md' }) => (
+  <span className={`badge ${size === 'sm' ? 'badge-sm' : 'badge-md'} ${active ? 'badge-primary' : 'badge-outline'}`}>
+    {isLoading
+      ? <Icon name="TbLoader2" size="1rem" className="animate-spin" />
+      : <b>{numeral(count ?? 0).format('0,0')}</b>}
+  </span>
+);
+
+const hasCount = (t: ModalTab) => t.count !== undefined || t.isLoading;
+
+// Left-hand vertical tab list on large screens; on smaller screens it collapses
+// into the current-tab button + dropdown used by the search results tabs.
+const SectionTabs: React.FC<{ tabs: ModalTab[]; active: string; onSelect: (key: string) => void }> = ({ tabs, active, onSelect }) => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const current = tabs.find(t => t.key === active) || tabs[0];
+  if (!current) return null;
   return (
     <>
-      {ancestors.map((ancestor: any) => (
-        <AncestorCard key={ancestor._osuid} ancestor={ancestor} onNavigate={onNavigate} />
-      ))}
+      {/* Desktop: vertical tabs */}
+      <nav className="hidden lg:flex flex-col w-max shrink-0 grow-0 self-stretch overflow-y-auto gap-1 py-4 pr-4 border-r border-base-300 not-prose">
+        {tabs.map(t => {
+          const isActive = t.key === current.key;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => onSelect(t.key)}
+              className={`flex items-center justify-between gap-3 px-3 py-2 rounded-r-lg text-left border-l-4 whitespace-nowrap transition-colors ${
+                isActive ? 'border-primary bg-primary/10 text-primary' : 'border-transparent hover:bg-base-200'
+              }`}
+            >
+              <b>{t.label}</b>
+              {hasCount(t) && <TabCount count={t.count} isLoading={t.isLoading} active={isActive} />}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Mobile: current tab + menu, pinned above the scrolling panel. The menu
+          opens in normal flow (not as an overlay) so the panel below can't clip it. */}
+      <div className="lg:hidden shrink-0 px-4 pt-4 not-prose">
+        <div className="tabs flex-nowrap min-w-full px-0">
+          <button
+            type="button"
+            className="tab tab-lg tab-bordered tab-active text-primary justify-between no-animation px-0 min-w-0"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            <div className="flex items-center gap-2 mr-2 min-w-0">
+              <b className="truncate">{current.label}</b>
+              {hasCount(current) && <TabCount count={current.count} isLoading={current.isLoading} active />}
+            </div>
+            <Icon name={isMenuOpen ? 'LuChevronUp' : 'LuChevronDown'} size="xxs" />
+          </button>
+          <div className="tab tab-lg tab-bordered flex-grow" onClick={() => setIsMenuOpen(!isMenuOpen)}></div>
+        </div>
+
+        {isMenuOpen && (
+          <ul className="menu flex-nowrap max-h-[50vh] overflow-y-auto bg-base-100 rounded-box w-full p-1 shadow border mt-2 list-none m-0">
+            {tabs.map(t => (
+              <li key={t.key}>
+                <div
+                  onClick={() => { onSelect(t.key); setIsMenuOpen(false); }}
+                  className={`flex items-center justify-between ${t.key === current.key ? 'active' : ''}`}
+                >
+                  <span>{t.label}</span>
+                  {hasCount(t) && <TabCount count={t.count} isLoading={t.isLoading} active={false} size="sm" />}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </>
   );
 };
 
-export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded?: (doc: any) => void; onNavigateToChild?: (osuid: string) => void }> = ({
+// The OSU ID a file belongs to is embedded in its file name (the same pattern
+// the pipeline uses to attach files to records). Falls back to the file name.
+const FILE_OSUID_RE = /OSU-([^/~]+?)(?:-(?:coredescription|coringdatasheet|cruisereport|dredgelog|image|itraximage|itraxxray|xray|field\d*|field\.wr|ts\.(?:ppl|xpl)(?:\.foi)?|wr(?:\.foi)?|mst|ptmag|xrfdata|igsnsheet|ctscan|publications|imlgsfile))/i;
+const fileOsuId = (path: string): string => {
+  const m = FILE_OSUID_RE.exec(path || '');
+  if (m) return `OSU-${m[1].toUpperCase()}`;
+  const name = (path || '').split('/').pop() || 'File';
+  return name.replace(/\.[^.]+$/, '');
+};
+
+// Tab label for a file type: "Core Description" -> "Core Descriptions",
+// "CT Density" -> "CT Densities", "XRF Data" stays. Labels that end in an
+// adjective ("Thin Section Cross-Polarized") get "Images"/"Files" appended.
+const pluralizeLabel = (label: string, fileType: string) => {
+  if (/(data|s)$/i.test(label)) return label;
+  if (/y$/i.test(label)) return label.replace(/y$/i, 'ies');
+  if (/(image|description|sheet|report|log|foi|file)$/i.test(label)) return `${label}s`;
+  return `${label} ${fileType.includes('image') ? 'Images' : 'Files'}`;
+};
+
+// One tab per file type. A record's own files come first ("Core Descriptions");
+// files the pipeline inherited from ancestors (_parentFiles, e.g. the cruise
+// report) or adopted from descendants (_childFiles, e.g. every section image
+// under a core) are merged into "Related …" tabs after them.
+type FileTab = ModalTab & { fileType: string; files: any[]; moratoriumFiles: any[]; related: boolean };
+
+const buildFileTabs = (doc: any): FileTab[] => {
+  const groups: { [key: string]: FileTab } = {};
+  const add = (list: any[], related: boolean, moratorium: boolean) => {
+    (list || []).filter(isVisibleFile).forEach((f: any) => {
+      const fileType = f?.type || 'file';
+      const key = `${related ? 'related' : 'files'}:${fileType}`;
+      if (!groups[key]) {
+        groups[key] = {
+          key,
+          label: `${related ? 'Related ' : ''}${pluralizeLabel(getFileTypeLabel(fileType), fileType)}`,
+          count: 0,
+          fileType,
+          files: [],
+          moratoriumFiles: [],
+          related,
+        };
+      }
+      (moratorium ? groups[key].moratoriumFiles : groups[key].files).push(f);
+      groups[key].count = (groups[key].count || 0) + 1;
+    });
+  };
+  add(doc?._files, false, false);
+  add(doc?._moratorium_files, false, true);
+  add(doc?._parentFiles, true, false);
+  add(doc?._parentMoratoriumFiles, true, true);
+  add(doc?._childFiles, true, false);
+  add(doc?._childMoratoriumFiles, true, true);
+  return Object.values(groups).sort((x, y) =>
+    x.related === y.related ? x.label.localeCompare(y.label) : (x.related ? 1 : -1));
+};
+
+// Image file types that are long strips scanned top-to-bottom; they are shown
+// rotated -90° (top of the strip on the left) so they read across the row.
+const ROTATED_IMAGE_TYPES = ['core-image'];
+
+// A core-image strip shown the long way across the row. Once the natural size
+// is known: a tall image (height > width) is rotated -90° inside a box with the
+// inverse aspect ratio, so it becomes wide without dead space; an image that is
+// already wide is rotated 180° (its box is unchanged).
+const RotatedImage: React.FC<{ src: string; alt: string; onLoaded?: (w: number, h: number) => void }> = ({ src, alt, onLoaded }) => {
+  const [ratio, setRatio] = useState<number | null>(null); // naturalWidth / naturalHeight
+  const tall = ratio != null && ratio < 1;
+  const onLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (img.naturalWidth && img.naturalHeight) {
+      setRatio(img.naturalWidth / img.naturalHeight);
+      onLoaded?.(img.naturalWidth, img.naturalHeight);
+    }
+  };
+  if (ratio != null && !tall) {
+    return <img src={src} alt={alt} onLoad={onLoad} className="block w-full h-auto m-0" style={{ transform: 'rotate(180deg)' }} />;
+  }
+  return (
+    <div
+      className="relative w-full overflow-hidden bg-base-200"
+      style={ratio ? { aspectRatio: `${1 / ratio}` } : { minHeight: '4rem' }}
+    >
+      <img
+        src={src}
+        alt={alt}
+        onLoad={onLoad}
+        className={`absolute left-1/2 top-1/2 max-w-none m-0 ${ratio ? '' : 'opacity-0'}`}
+        style={{
+          width: ratio ? `${ratio * 100}%` : 'auto',
+          height: 'auto',
+          transform: 'translate(-50%, -50%) rotate(-90deg)',
+        }}
+      />
+    </div>
+  );
+};
+
+// Icon for a non-image file, by file type or extension.
+const fileIconName = (type: string, path: string) => {
+  const t = (type || '').toLowerCase();
+  const ext = (path || '').split('.').pop()?.toLowerCase() || '';
+  if (ext === 'pdf' || t.includes('description') || t.includes('report') || t.includes('log') || t.includes('sheet')) return 'TbFileText';
+  if (['xlsx', 'xls', 'csv', 'tsv', 'txt'].includes(ext) || t.includes('data')) return 'TbFileSpreadsheet';
+  if (['jpg', 'jpeg', 'png', 'gif', 'tif', 'tiff', 'bmp', 'webp'].includes(ext) || t.includes('image')) return 'TbPhoto';
+  if (['doc', 'docx'].includes(ext)) return 'TbFileDescription';
+  return 'TbFile';
+};
+
+const isImagePath = (path: string) =>
+  ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes((path || '').split('.').pop()?.toLowerCase() || '');
+
+// File size from a HEAD request to the file proxy (the index stores no sizes).
+const useFileSize = (path: string) =>
+  useQuery({
+    queryKey: ['fileSize', path],
+    enabled: !!path,
+    staleTime: Infinity,
+    retry: false,
+    queryFn: async () => {
+      const res = await fetch(`/api/file/${path}`, { method: 'HEAD' });
+      if (!res.ok) return null;
+      const len = res.headers.get('content-length');
+      return len ? parseInt(len, 10) : null;
+    },
+  });
+
+const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean }> = ({ file, moratorium, rotate }) => {
+  const id = fileOsuId(file.path);
+  const url = `/api/file/${file.path}`;
+  const ext = ((file.path || '').split('.').pop() || 'file').toUpperCase();
+  const image = !moratorium && isImagePath(file.path);
+  const { data: size } = useFileSize(moratorium ? '' : file.path);
+  const [dims, setDims] = useState<string | null>(null);
+  const onLoaded = (w: number, h: number) => setDims(`${w} × ${h}`);
+  return (
+    <tr>
+      <td className="align-top !whitespace-nowrap w-px">
+        <b>{id}</b>
+        <div className="flex flex-col items-start gap-1 mt-1">
+          {moratorium && <span className="badge badge-warning badge-tag">Moratorium</span>}
+          <span className="badge badge-ghost badge-tag">{ext}</span>
+          {size != null && <span className="badge badge-ghost badge-tag">{numeral(size).format('0.0 b')}</span>}
+          {dims && <span className="badge badge-ghost badge-tag">{dims} px</span>}
+        </div>
+      </td>
+      <td className="align-top w-full">
+        {moratorium ? (
+          <span className="btn btn-outline no-animation h-auto min-h-0 py-3 px-4 gap-3 opacity-60 cursor-not-allowed">
+            <Icon name="TbLock" className="w-6 h-6 text-warning" />{ext}
+          </span>
+        ) : image ? (
+          <a href={url} target="_blank" rel="noopener noreferrer" className="block w-full no-underline">
+            {rotate
+              ? <RotatedImage src={url} alt={id} onLoaded={onLoaded} />
+              : <img src={url} alt={id} className="block w-full h-auto m-0" loading="lazy"
+                  onLoad={(e) => onLoaded(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)} />}
+          </a>
+        ) : (
+          <a href={url} target="_blank" rel="noopener noreferrer" className="btn btn-outline h-auto min-h-0 py-3 px-4 gap-3 no-underline hover:bg-primary hover:text-white">
+            <Icon name={fileIconName(file.type, file.path)} className="w-6 h-6" />{ext}
+          </a>
+        )}
+      </td>
+    </tr>
+  );
+};
+
+// Every file tab is a two-column grid: record ID (with file size and, for
+// images, pixel dimensions underneath), then the file. Image files show the
+// image itself (core images rotated); anything else, or an image type stored in
+// a format the browser can't show, gets a button with a PDF / data / image /
+// document icon and the file extension. Same table markup as the record tables
+// so headers match; the ID column is pinned to its content width (1px + nowrap)
+// and the file column takes all remaining width.
+const FileTable: React.FC<{ tab: FileTab }> = ({ tab }) => {
+  const rotate = ROTATED_IMAGE_TYPES.includes(tab.fileType);
+  const rows = [
+    ...tab.files.map((f: any) => ({ file: f, moratorium: false })),
+    ...tab.moratoriumFiles.map((f: any) => ({ file: f, moratorium: true })),
+  ];
+  const anyImages = rows.some(({ file }) => isImagePath(file.path));
+  // Files are already in memory, but each row loads an image or a HEAD request,
+  // so rows are revealed a page at a time as the list is scrolled.
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  const showMore = () => setLimit((n) => Math.min(n + PAGE_SIZE, rows.length));
+  return (
+    <div className="overflow-x-auto w-full">
+      <table className="table table-compact w-full min-w-full mt-0">
+        <thead className="sticky top-0 z-10 bg-base-100">
+          <tr>
+            <th className="rounded-none w-px whitespace-nowrap">ID</th>
+            <th className="rounded-none">{anyImages ? 'Image' : 'File'}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.slice(0, limit).map(({ file, moratorium }, index) => (
+            <FileRow key={`${moratorium ? 'm' : 'f'}-${index}`} file={file} moratorium={moratorium} rotate={rotate} />
+          ))}
+        </tbody>
+      </table>
+      {limit < rows.length && <LoadMore onMore={showMore} />}
+    </div>
+  );
+};
+
+const FileTypePanel: React.FC<{ tab: FileTab }> = ({ tab }) => (
+  <Deferred label={`Loading ${tab.label.toLowerCase()}...`}>
+    <FileTable tab={tab} />
+  </Deferred>
+);
+
+// Each ancestor gets its own tab (Cruise, Core, Section, …), keyed by OSU ID.
+const parentTabKey = (ancestor: any) => `parent:${ancestor._osuid}`;
+
+// Set by the search modal: values that are also search filters get a filter
+// icon (filterBy names the key in search.filters) that runs that search.
+const DetailFilterContext = React.createContext<{ onFilter?: OnDetailFilter; docType: string }>({ docType: '' });
+
+const DetailRow: React.FC<{ label: string; value: any; field?: string; suffix?: string; className?: string; filterBy?: string }> = ({ label, value, field = '', suffix = '', className = '', filterBy }) => {
+  const { onFilter, docType } = React.useContext(DetailFilterContext);
+  if (isPlaceholder(value) || value === false) return null;
+  return (
+    <p className={`m-0 ${className}`}>
+      <strong>{label}:</strong> {formatField(field, value)}{suffix}
+      {filterBy && onFilter && typeof value === 'string' && (
+        <DetailFilterButton filter={{ key: filterBy, value, label }} docType={docType} onFilter={onFilter} />
+      )}
+    </p>
+  );
+};
+
+// Map at the top of the Details tab: a cruise's stations, or the record's own
+// position. Sections normally carry coordinates inherited from their core; the
+// rare one that doesn't falls back to the core from the parent chain the modal
+// already fetched. Rocks are plotted as their dredge/dive.
+const mapType = (docType: string) => (docType === 'dive' || docType === 'rock' ? 'dive' : 'core');
+const DetailsGlobe: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid: string) => void }> = ({ doc, ancestors, onNavigate }) => {
+  // Memoised: the map re-centres whenever its points change.
+  const points = useMemo((): MapPoint[] => {
+    if (doc._docType === 'cruise') {
+      return ((doc._locations || []) as any[])
+        .map(loc => toMapPoint(loc, mapType(loc._docType)))
+        .filter((p): p is MapPoint => p !== null);
+    }
+    const hasCoords = (d: any) => d && (d.latitudeStart != null || d.latitudeEnd != null || d.longitudeStart != null || d.longitudeEnd != null);
+    const src = hasCoords(doc)
+      ? doc
+      : (doc._docType === 'section' ? (ancestors || []).find((a: any) => a._docType === 'core' && hasCoords(a)) : null);
+    const point = src && toMapPoint({ ...src, _osuid: doc._osuid }, mapType(doc._docType));
+    return point ? [point] : [];
+  }, [doc, ancestors]);
+  // The cruise's ship track behind the markers (see pages/api/cruise-track),
+  // for a cruise or any record from one. Without it, a cruise's stations are
+  // joined in order instead, dashed.
+  const cruiseOsuid: string | undefined = doc._docType === 'cruise'
+    ? doc._osuid
+    : (ancestors || []).find((a: any) => a._docType === 'cruise')?._osuid;
+  const { data: cruiseTrack, isFetched: trackFetched } = useQuery({
+    queryKey: ['cruiseTrack', cruiseOsuid],
+    queryFn: async () => {
+      const response = await fetch(`/api/cruise-track/${encodeURIComponent(cruiseOsuid!)}`);
+      return response.ok ? response.json() : null;
+    },
+    enabled: Boolean(cruiseOsuid),
+    staleTime: Infinity,
+  });
+  const track = useMemo(() => {
+    if (cruiseTrack?.geometry) return { geometry: cruiseTrack.geometry, approximate: false };
+    const stations = doc._docType === 'cruise' && trackFetched ? stationLine(points) : null;
+    return stations ? { geometry: stations, approximate: true } : null;
+  }, [cruiseTrack, trackFetched, points, doc._docType]);
+  if (!points.length) return null;
+  return (
+    <div className="relative border border-base-300 rounded-lg overflow-hidden mb-4 h-[300px]">
+      <MapLibreMap mode="globe" points={points} onSelect={onNavigate} fit labelPoints track={track} />
+    </div>
+  );
+};
+
+// Start/end pairs collapse to one value when only one side exists or both are
+// the same: "Water Depth: 312 – 939 m", "Water Depth: 312 m", "Date: 1994-01-05".
+const present = (v: any) => !isPlaceholder(v);
+const rangeText = (a: any, b: any): string | null => {
+  const hasA = present(a), hasB = present(b);
+  if (hasA && hasB && String(a) !== String(b)) return `${a} – ${b}`;
+  if (hasA) return String(a);
+  if (hasB) return String(b);
+  return null;
+};
+const latLonText = (lat: any, lon: any): string | null =>
+  present(lat) && present(lon) ? `${lat}°, ${lon}°` : null;
+
+// Rows for the location, depth and date/time pairs of a record.
+const PairedRows: React.FC<{ doc: any }> = ({ doc }) => {
+  const start = latLonText(formatField('latitudeStart', doc.latitudeStart), formatField('longitudeStart', doc.longitudeStart));
+  const end = latLonText(formatField('latitudeEnd', doc.latitudeEnd), formatField('longitudeEnd', doc.longitudeEnd));
+  const depth = rangeText(formatField('waterDepthStart', doc.waterDepthStart), formatField('waterDepthEnd', doc.waterDepthEnd));
+  const date = rangeText(formatDate(doc.startDate) || formatDate(doc.date), formatDate(doc.endDate));
+  const time = rangeText(formatTime(doc.startTime) || formatTime(doc.time), formatTime(doc.endTime));
+  return (
+    <>
+      {date && <DetailRow label="Date" value={date} />}
+      {time && <DetailRow label="Time" value={time} />}
+      {start && end && start !== end ? (
+        <>
+          <DetailRow label="Lat/Lon Start" value={start} />
+          <DetailRow label="Lat/Lon End" value={end} />
+        </>
+      ) : (
+        <>
+          {(start || end) && <DetailRow label="Lat/Lon" value={start || end} />}
+          {/* A lone latitude or longitude without its partner, shown on its own. */}
+          {!start && !end && present(doc.latitudeStart) && <DetailRow label="Latitude" value={formatField('latitudeStart', doc.latitudeStart)} suffix="°" />}
+          {!start && !end && present(doc.longitudeStart) && <DetailRow label="Longitude" value={formatField('longitudeStart', doc.longitudeStart)} suffix="°" />}
+        </>
+      )}
+      {depth && <DetailRow label="Water Depth" value={depth} suffix=" m" />}
+    </>
+  );
+};
+
+const DetailsPanel: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid: string) => void; onFilter?: OnDetailFilter }> = ({ doc, ancestors, onNavigate, onFilter }) => {
+  const t = doc._docType;
+  const idLabel =
+    t === 'cruise' ? 'Cruise ID' :
+    t === 'core' ? 'Core ID' :
+    t === 'section' ? 'Section ID' :
+    t === 'sectionHalf' ? 'Section Half ID' :
+    t === 'dive' ? `${getDiveMethodLabel(doc.method)} ID` :
+    t === 'diveSample' ? 'Sample ID' :
+    t === 'diveSubsample' ? 'Subsample ID' :
+    t === 'coreSample' ? 'Sample ID' : 'ID';
+  const isRock = ['diveSample', 'diveSubsample', 'coreSample'].includes(t);
+  return (
+    <DetailFilterContext.Provider value={{ onFilter, docType: t }}>
+    <div className="p-4">
+      <DetailsGlobe doc={doc} ancestors={ancestors} onNavigate={onNavigate} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+        <DetailRow label={idLabel} value={doc.id} />
+        {(t === 'dive' || t === 'diveSample' || t === 'diveSubsample') && <DetailRow label="Title" field="title" value={doc.title} />}
+        {t === 'sectionHalf' && <DetailRow label="Half Type" field="halfType" value={doc.halfType} />}
+        {(t === 'cruise' || t === 'core' || t === 'dive') && <DetailRow label="Research Vessel" field="rvName" value={doc.rvName} filterBy="rvNames" />}
+        {(t === 'cruise' || t === 'core' || t === 'dive') && <DetailRow label="PI" field="pi" value={doc.pi} filterBy="institutions" />}
+        {t === 'cruise' && <DetailRow label="PI Institution" field="piInstitution" value={doc.piInstitution} />}
+        {t !== 'cruise' && <DetailRow label="Material" field="material" value={doc.material} filterBy="materialTypes" />}
+        {(t === 'core' || t === 'dive' || isRock) && <DetailRow label="Method" field="method" value={doc.method} filterBy="methods" />}
+        {isRock && doc.weight != null && <DetailRow label="Weight" value={formatField('weight', doc.weight)} suffix=" kg" />}
+        {(t === 'core' || t === 'section' || t === 'sectionHalf') && <DetailRow label="Diameter" value={formatField('diameter', doc.diameter)} suffix=" cm" />}
+        {(t === 'section' || t === 'sectionHalf' || t === 'coreSample') && doc.depthTop != null && doc.depthBottom != null && (
+          <p className="m-0"><strong>Depth Range:</strong> {formatField('depthTop', doc.depthTop)} - {formatField('depthBottom', doc.depthBottom)} cm</p>
+        )}
+        {(t === 'core' || t === 'section' || t === 'sectionHalf') && <DetailRow label="Length" value={formatField('length', doc.length)} suffix=" cm" />}
+        {t === 'sectionHalf' && <DetailRow label="Thickness" value={formatField('thickness', doc.thickness)} suffix=" cm" />}
+        {(t === 'section' || t === 'sectionHalf' || isRock) && <DetailRow label="Texture" field="texture" value={doc.texture} filterBy="textures" />}
+        {(t === 'sectionHalf' || isRock) && <DetailRow label="Color" field="color" value={doc.color} />}
+        {t === 'core' && <DetailRow label="Sections" field="nSections" value={doc.nSections} />}
+        {t === 'dive' && doc.nSections != null && <DetailRow label="Samples" field="nSections" value={doc.nSections} />}
+        {t !== 'section' && t !== 'sectionHalf' && <DetailRow label="Area" field="area" value={doc.area} />}
+        <PairedRows doc={doc} />
+        {t === 'cruise' && r2rCruiseLinks[doc._osuid] && (
+          <div className="md:col-span-2 mt-2">
+            <strong>External Links:</strong>
+            <ul className="m-0 mt-1 pl-5 text-sm">
+              {r2rCruiseLinks[doc._osuid].map((link: string, idx: number) => (
+                <li key={idx} className="m-0">
+                  <a href={link} target="_blank" rel="noopener noreferrer" className="no-underline font-normal hover:underline">
+                    {r2rPageTitle(link)}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {Array.isArray(doc._publications) && doc._publications.length > 0 && (
+          <div className="md:col-span-2 mt-2">
+            <strong>Publications:</strong>
+            <ul className="m-0 mt-1 pl-5 text-sm">
+              {doc._publications.map((pub: any, idx: number) => (
+                <li key={idx} className="m-0">
+                  {/* The whole citation is the link so it is easy to hit; the DOI itself sits in the tooltip. */}
+                  <a href={`https://doi.org/${pub.doi}`} target="_blank" rel="noopener noreferrer"
+                    title={`doi:${pub.doi}`} className="no-underline font-normal hover:underline"
+                    dangerouslySetInnerHTML={{ __html: isPlaceholder(pub.citation) ? `doi:${pub.doi}` : citationHtml(pub.citation) }} />
+                  {pub.confidence && pub.confidence !== 'high' && (
+                    <span className="badge badge-ghost badge-xs ml-1 align-middle" title="Link inferred from cruise folder, dataset metadata, or free text rather than a direct citation of this ID">inferred</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      {!isPlaceholder(doc.description) && <p className="text-sm mt-4">{doc.description}</p>}
+    </div>
+    </DetailFilterContext.Provider>
+  );
+};
+
+// `compact` drops the page gutters/margins for use inside the search modal.
+export const LandingPage: React.FC<{ data: any; osuId?: string; compact?: boolean; onDocumentLoaded?: (doc: any) => void; onNavigateToChild?: (osuid: string) => void; onFilter?: OnDetailFilter }> = ({
     data,
     osuId,
+    compact = false,
     onDocumentLoaded,
-    onNavigateToChild
+    onNavigateToChild,
+    onFilter
 }) => {
   const { asPath } = useRouter();
   
@@ -840,7 +1019,6 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
   const osuID = osuId || asPath.substring(1); // Remove leading slash from path if no osuId provided
 	
   const viewRawData = false;  //!process.env.VERCEL;
-  console.log("viewRawData", viewRawData);
 
   const {
     data: results,
@@ -871,346 +1049,99 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; onDocumentLoaded
     ? results.hits.hits[0]._source 
     : {};
 
+  // Section halves are not shown as records: a link to one (e.g.
+  // OSU-CASCADES-82-1DC-5R) opens its parent section instead. Done from the
+  // loaded record's type rather than by ID pattern, because cores, sections and
+  // rock samples can also have IDs ending in a digit plus a letter.
+  const redirectTo = doc._docType === 'sectionHalf' && doc._parentOSUID ? doc._parentOSUID : null;
+  useEffect(() => {
+    if (redirectTo && onNavigateToChild) onNavigateToChild(redirectTo);
+  }, [redirectTo, onNavigateToChild]);
+
   // Notify parent component when document is loaded
   useEffect(() => {
-    if (onDocumentLoaded && doc._osuid) {
+    if (onDocumentLoaded && doc._osuid && !redirectTo) {
       onDocumentLoaded(doc);
     }
-  }, [doc, onDocumentLoaded]);
+  }, [doc, onDocumentLoaded, redirectTo]);
+
+  // Active tab; back to Details whenever the modal navigates to another record.
+  const [activeTab, setActiveTab] = useState('details');
+  useEffect(() => { setActiveTab('details'); }, [osuID]);
+
+  // Counts for the tab badges. These share query keys with the panels, so the
+  // panel render never triggers a second fetch.
+  const { data: ancestors, isLoading: isAncestorsLoading } = useAncestors(doc);
+  const descendantTabs: DescendantTab[] = (DESCENDANT_TABS[doc._docType] || []).filter(t => !!doc[t.uuidField]);
+  const slot = (i: number) => {
+    const t = descendantTabs[i];
+    return useChildDocs(t ? `${doc._docType}:${t.key}` : 'unused', t?.types || [], t?.termField || '', t ? doc[t.uuidField] : undefined);
+  };
+  const descendantResults = [slot(0), slot(1), slot(2), slot(3), slot(4)];
+
+  const fileTabs = buildFileTabs(doc);
+  const issues = getDataIssues(doc);
+  const issueCount = issues.errors.length + issues.warnings.length;
+
+  // Tabs with nothing in them are hidden; a tab whose count is still loading
+  // stays visible with a spinner until the count is known.
+  const tabs: ModalTab[] = [];
+  const pushIfAny = (tab: ModalTab) => {
+    if (tab.isLoading || (tab.count ?? 0) > 0) tabs.push(tab);
+  };
+  if (doc._docType) {
+    tabs.push({ key: 'details', label: 'Details' });
+    // Parents first (Cruise, Core, …), then descendants, then file types.
+    if (doc._parentOSUID) {
+      if (isAncestorsLoading) {
+        tabs.push({ key: 'parents-loading', label: 'Parents', isLoading: true });
+      } else {
+        (ancestors || []).forEach((a: any) => {
+          tabs.push({ key: parentTabKey(a), label: getAncestorTypeLabel(a._docType, a.method) });
+        });
+      }
+    }
+    descendantTabs.slice(0, MAX_DESCENDANT_TABS).forEach((t, i) => {
+      pushIfAny({ key: t.key, label: t.label, count: hitsTotal(descendantResults[i].data?.pages?.[0]), isLoading: descendantResults[i].isLoading });
+    });
+    fileTabs.forEach(t => pushIfAny(t));
+    if (SHOW_DATA_ISSUES && issueCount > 0) {
+      tabs.push({ key: 'issues', label: 'Data Issues', count: issueCount });
+    }
+  }
+  const current = tabs.some(t => t.key === activeTab) ? activeTab : 'details';
 
   return (
-    <Section>
-      <Container className="my-4 prose" width="medium">
-      {isLoadingQuery &&
-        <div className="flex justify-center items-center min-h-[200px]">
+    <Section className={compact ? 'flex flex-col min-h-0' : ''}>
+      {/* Inside the modal the Section is a flex column, so the Container's mx-auto
+          would shrink-wrap it; w-full keeps it spanning the modal. */}
+      <Container className={`prose max-w-none ${compact ? '!px-0 my-0 w-full flex-1 min-h-0 flex flex-col' : 'my-4'}`} width="custom">
+      {(isLoadingQuery || redirectTo) &&
+        <div className="flex justify-center items-center min-h-[200px] p-4">
           <Icon name="TbLoader2" className="w-8 h-8 text-primary animate-spin" />
           <span className="ml-2">Loading...</span>
         </div>
       }
       {!isLoadingQuery && !doc._osuid &&
-        <div className="text-red-500">No data found for {osuID}.</div>
+        <div className="text-red-500 p-4">No data found for {osuID}.</div>
       }
-      {doc._docType == 'cruise' &&
-        <div>
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-4 text-primary">Cruise</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-              {doc.id && <p className="m-0"><strong>Cruise ID:</strong> {doc.id}</p>}
-              {doc.rvName && <p className="m-0"><strong>Research Vessel:</strong> {doc.rvName}</p>}
-              {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
-              {doc.piInstitution && <p className="m-0"><strong>PI Institution:</strong> {doc.piInstitution}</p>}
-              {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
-              {formatDate(doc.endDate) && <p className="m-0"><strong>End Date:</strong> {formatDate(doc.endDate)}</p>}
-              {!formatDate(doc.startDate) && formatDate(doc.date) && <p className="m-0"><strong>Date:</strong> {formatDate(doc.date)}</p>}
-              {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
-              {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
-              {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
-              {doc.longitudeEnd != null && <p className="m-0"><strong>Longitude End:</strong> {doc.longitudeEnd}°</p>}
-              {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth Start:</strong> {doc.waterDepthStart} m</p>}
-              {doc.waterDepthEnd != null && <p className="m-0"><strong>Water Depth End:</strong> {doc.waterDepthEnd} m</p>}
-              {r2rCruiseLinks[doc._osuid] && (
-                <div className="md:col-span-2 mt-2">
-                  <strong>R2R Links:</strong>
-                  <div className="flex flex-row flex-wrap gap-1 mt-1">
-                    {r2rCruiseLinks[doc._osuid].map((link: string, idx: number) => (
-                      <a key={idx} href={link} target="_blank" rel="noopener noreferrer"
-                        className="badge badge-primary badge-tag hover:badge-primary-focus no-underline flex items-center gap-1">
-                        <Icon name="BiLinkExternal" size="xxs" />
-                        R2R: {link.split('/').pop()}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
+      {doc._docType && !redirectTo && (
+        <div className={`w-full ${compact ? 'flex flex-col lg:flex-row flex-1 min-h-0 lg:items-stretch' : 'lg:flex lg:gap-6 lg:items-start'}`}>
+          <SectionTabs tabs={tabs} active={current} onSelect={setActiveTab} />
+          <div className={`flex-1 min-w-0 w-full ${compact ? 'min-h-0 overflow-y-auto' : 'lg:pl-0'}`}>
+            {current === 'details' && <DetailsPanel doc={doc} ancestors={ancestors} onNavigate={onNavigateToChild} onFilter={onFilter} />}
+            {descendantTabs.slice(0, MAX_DESCENDANT_TABS).map((t, i) => t.key === current && (
+              <DescendantsPanel key={t.key} tab={t} query={descendantResults[i]} onNavigate={onNavigateToChild} />
+            ))}
+            {fileTabs.filter(t => t.key === current).map(t => <FileTypePanel key={t.key} tab={t} />)}
+            {current === 'parents-loading' && <LoadingRows label="Loading parents..." />}
+            {(ancestors || []).filter((a: any) => parentTabKey(a) === current).map((a: any) => (
+              <RecordTable key={a._osuid} rows={[a]} docType={a._docType} onNavigate={onNavigateToChild} />
+            ))}
+            {current === 'issues' && <div className="p-4"><DataIssuesPanel doc={doc} /></div>}
           </div>
-
-          {hasVisibleFiles(doc) && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
-              <div className="flex flex-wrap gap-2">
-                {(doc._files || []).filter(isVisibleFile).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).filter(isVisibleFile).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
-              </div>
-            </div>
-          )}
-
-          <DataIssuesPanel doc={doc} />
-
-          <CruiseCoresPanel cruiseDoc={doc} onNavigateToChild={onNavigateToChild} />
-          <CruiseRocksPanel cruiseDoc={doc} onNavigateToChild={onNavigateToChild} />
         </div>
-      }
-      {doc._docType == 'core' &&
-        <div>
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-4 text-primary">Core</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-              {doc.id && <p className="m-0"><strong>Core ID:</strong> {doc.id}</p>}
-              {doc.rvName && <p className="m-0"><strong>Research Vessel:</strong> {doc.rvName}</p>}
-              {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
-              {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-              {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
-              {doc.diameter && <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>}
-              {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
-              {doc.nSections && <p className="m-0"><strong>Sections:</strong> {doc.nSections}</p>}
-              {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
-              {formatDate(doc.endDate) && <p className="m-0"><strong>End Date:</strong> {formatDate(doc.endDate)}</p>}
-              {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
-              {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
-              {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
-              {doc.longitudeEnd != null && <p className="m-0"><strong>Longitude End:</strong> {doc.longitudeEnd}°</p>}
-              {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth Start:</strong> {doc.waterDepthStart} m</p>}
-              {doc.waterDepthEnd != null && <p className="m-0"><strong>Water Depth End:</strong> {doc.waterDepthEnd} m</p>}
-            </div>
-          </div>
-
-          {hasVisibleFiles(doc) && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
-              <div className="flex flex-wrap gap-2">
-                {(doc._files || []).filter(isVisibleFile).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).filter(isVisibleFile).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
-              </div>
-            </div>
-          )}
-
-          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
-          <DataIssuesPanel doc={doc} />
-
-          <CoreSectionsPanel coreDoc={doc} onNavigateToChild={onNavigateToChild} />
-        </div>
-      }
-      {doc._docType == 'section' &&
-        <div>
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-4 text-primary">Section</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-              {doc.id && <p className="m-0"><strong>Section ID:</strong> {doc.id}</p>}
-              {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-              {doc.depthTop != null && doc.depthBottom != null && <p className="m-0"><strong>Depth Range:</strong> {doc.depthTop} - {doc.depthBottom} cm</p>}
-              {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
-              {doc.diameter && <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>}
-              {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
-              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
-              {formatTime(doc.startTime) && <p className="m-0"><strong>Start Time:</strong> {formatTime(doc.startTime)}</p>}
-              {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
-              {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
-              {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
-              {doc.longitudeEnd != null && <p className="m-0"><strong>Longitude End:</strong> {doc.longitudeEnd}°</p>}
-              {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth Start:</strong> {doc.waterDepthStart} m</p>}
-              {doc.waterDepthEnd != null && <p className="m-0"><strong>Water Depth End:</strong> {doc.waterDepthEnd} m</p>}
-            </div>
-          </div>
-
-          {hasVisibleFiles(doc) && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
-              <div className="flex flex-wrap gap-2">
-                {(doc._files || []).filter(isVisibleFile).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).filter(isVisibleFile).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
-              </div>
-            </div>
-          )}
-
-          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
-          <DataIssuesPanel doc={doc} />
-        </div>
-      }
-      {doc._docType == 'sectionHalf' &&
-        <div>
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-4 text-primary">Section Half</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-              {doc.id && <p className="m-0"><strong>Section Half ID:</strong> {doc.id}</p>}
-              {doc.halfType && <p className="m-0"><strong>Half Type:</strong> {doc.halfType}</p>}
-              {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-              {doc.depthTop != null && doc.depthBottom != null && <p className="m-0"><strong>Depth Range:</strong> {doc.depthTop} - {doc.depthBottom} cm</p>}
-              {doc.length && <p className="m-0"><strong>Length:</strong> {doc.length} cm</p>}
-              {doc.diameter && <p className="m-0"><strong>Diameter:</strong> {doc.diameter} cm</p>}
-              {doc.thickness && <p className="m-0"><strong>Thickness:</strong> {doc.thickness} cm</p>}
-              {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
-              {doc.color && <p className="m-0"><strong>Color:</strong> {doc.color}</p>}
-              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
-              {formatTime(doc.startTime) && <p className="m-0"><strong>Start Time:</strong> {formatTime(doc.startTime)}</p>}
-              {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
-              {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
-              {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
-              {doc.longitudeEnd != null && <p className="m-0"><strong>Longitude End:</strong> {doc.longitudeEnd}°</p>}
-              {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth Start:</strong> {doc.waterDepthStart} m</p>}
-              {doc.waterDepthEnd != null && <p className="m-0"><strong>Water Depth End:</strong> {doc.waterDepthEnd} m</p>}
-            </div>
-          </div>
-
-          {hasVisibleFiles(doc) && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
-              <div className="flex flex-wrap gap-2">
-                {(doc._files || []).filter(isVisibleFile).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).filter(isVisibleFile).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
-              </div>
-            </div>
-          )}
-
-          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
-          <DataIssuesPanel doc={doc} />
-
-          <CoreSamplesPanel sectionHalfDoc={doc} onNavigateToChild={onNavigateToChild} />
-        </div>
-      }
-      {doc._docType == 'dive' &&
-        <div>
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-4 text-primary">{getDiveMethodLabel(doc.method)}</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-              {doc.id && <p className="m-0"><strong>{getDiveMethodLabel(doc.method)} ID:</strong> {doc.id}</p>}
-              {doc.title && <p className="m-0"><strong>Title:</strong> {doc.title}</p>}
-              {doc.rvName && <p className="m-0"><strong>Research Vessel:</strong> {doc.rvName}</p>}
-              {doc.pi && <p className="m-0"><strong>PI:</strong> {doc.pi}</p>}
-              {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-              {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
-              {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-              {doc.nSections != null && <p className="m-0"><strong>Samples:</strong> {doc.nSections}</p>}
-              {formatDate(doc.startDate) && <p className="m-0"><strong>Start Date:</strong> {formatDate(doc.startDate)}</p>}
-              {!formatDate(doc.startDate) && formatDate(doc.date) && <p className="m-0"><strong>Date:</strong> {formatDate(doc.date)}</p>}
-              {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
-              {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
-              {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
-              {doc.longitudeEnd != null && <p className="m-0"><strong>Longitude End:</strong> {doc.longitudeEnd}°</p>}
-              {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth Start:</strong> {doc.waterDepthStart} m</p>}
-              {doc.waterDepthEnd != null && <p className="m-0"><strong>Water Depth End:</strong> {doc.waterDepthEnd} m</p>}
-            </div>
-            {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
-          </div>
-
-          {hasVisibleFiles(doc) && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
-              <div className="flex flex-wrap gap-2">
-                {(doc._files || []).filter(isVisibleFile).map((file, index) => <FileCard key={index} file={file} variant="button" />)}
-                {(doc._moratorium_files || []).filter(isVisibleFile).map((file, index) => <FileCard key={`m-${index}`} file={file} variant="button" moratorium />)}
-              </div>
-            </div>
-          )}
-
-          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
-          <DataIssuesPanel doc={doc} />
-
-          <RockSamplesPanel rockDoc={doc} onNavigateToChild={onNavigateToChild} />
-        </div>
-      }
-      {doc._docType == 'diveSample' &&
-        <div>
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-4 text-primary">Rock Sample</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-              {doc.id && <p className="m-0"><strong>Sample ID:</strong> {doc.id}</p>}
-              {doc.title && <p className="m-0"><strong>Title:</strong> {doc.title}</p>}
-              {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-              {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
-              {doc.weight != null && <p className="m-0"><strong>Weight:</strong> {doc.weight} kg</p>}
-              {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-              {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
-              {doc.color && <p className="m-0"><strong>Color:</strong> {doc.color}</p>}
-              {formatDate(doc.date) && <p className="m-0"><strong>Date:</strong> {formatDate(doc.date)}</p>}
-              {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
-              {doc.latitudeEnd != null && <p className="m-0"><strong>Latitude End:</strong> {doc.latitudeEnd}°</p>}
-              {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
-              {doc.longitudeEnd != null && <p className="m-0"><strong>Longitude End:</strong> {doc.longitudeEnd}°</p>}
-              {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth Start:</strong> {doc.waterDepthStart} m</p>}
-              {doc.waterDepthEnd != null && <p className="m-0"><strong>Water Depth End:</strong> {doc.waterDepthEnd} m</p>}
-            </div>
-            {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
-          </div>
-
-          {hasVisibleFiles(doc) && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {(doc._files || []).filter(isVisibleFile).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
-                {(doc._moratorium_files || []).filter(isVisibleFile).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
-              </div>
-            </div>
-          )}
-
-          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
-          <DataIssuesPanel doc={doc} />
-
-          <DiveSubsamplesPanel diveSampleDoc={doc} onNavigateToChild={onNavigateToChild} />
-        </div>
-      }
-      {doc._docType == 'diveSubsample' &&
-        <div>
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-4 text-primary">Rock Subsample</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-              {doc.id && <p className="m-0"><strong>Subsample ID:</strong> {doc.id}</p>}
-              {doc.title && <p className="m-0"><strong>Title:</strong> {doc.title}</p>}
-              {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-              {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
-              {doc.weight != null && <p className="m-0"><strong>Weight:</strong> {doc.weight} kg</p>}
-              {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-              {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
-              {doc.color && <p className="m-0"><strong>Color:</strong> {doc.color}</p>}
-              {formatDate(doc.date) && <p className="m-0"><strong>Date:</strong> {formatDate(doc.date)}</p>}
-              {doc.latitudeStart != null && <p className="m-0"><strong>Latitude Start:</strong> {doc.latitudeStart}°</p>}
-              {doc.longitudeStart != null && <p className="m-0"><strong>Longitude Start:</strong> {doc.longitudeStart}°</p>}
-              {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
-            </div>
-            {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
-          </div>
-
-          {hasVisibleFiles(doc) && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {(doc._files || []).filter(isVisibleFile).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
-                {(doc._moratorium_files || []).filter(isVisibleFile).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
-              </div>
-            </div>
-          )}
-
-          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
-          <DataIssuesPanel doc={doc} />
-        </div>
-      }
-      {doc._docType == 'coreSample' &&
-        <div>
-          <div className="mb-6">
-            <h3 className="text-xl font-bold mb-4 text-primary">Core Sample</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-              {doc.id && <p className="m-0"><strong>Sample ID:</strong> {doc.id}</p>}
-              {doc.material && <p className="m-0"><strong>Material:</strong> {doc.material}</p>}
-              {doc.method && <p className="m-0"><strong>Method:</strong> {doc.method}</p>}
-              {doc.weight != null && <p className="m-0"><strong>Weight:</strong> {doc.weight} kg</p>}
-              {doc.area && <p className="m-0"><strong>Area:</strong> {doc.area}</p>}
-              {doc.texture && <p className="m-0"><strong>Texture:</strong> {doc.texture}</p>}
-              {doc.color && <p className="m-0"><strong>Color:</strong> {doc.color}</p>}
-              {doc.depthTop != null && doc.depthBottom != null && <p className="m-0"><strong>Depth Range:</strong> {doc.depthTop} - {doc.depthBottom} cm</p>}
-              {doc.latitudeStart != null && <p className="m-0"><strong>Latitude:</strong> {doc.latitudeStart}°</p>}
-              {doc.longitudeStart != null && <p className="m-0"><strong>Longitude:</strong> {doc.longitudeStart}°</p>}
-              {doc.waterDepthStart != null && <p className="m-0"><strong>Water Depth:</strong> {doc.waterDepthStart} m</p>}
-            </div>
-            {doc.description && <p className="text-sm mt-4">{doc.description}</p>}
-          </div>
-
-          {hasVisibleFiles(doc) && (
-            <div className="mb-6">
-              <h3 className="text-xl font-bold mb-4 text-primary">Files</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-                {(doc._files || []).filter(isVisibleFile).map((file: any, index: any) => <FileCard key={index} file={file} variant="thumbnail" />)}
-                {(doc._moratorium_files || []).filter(isVisibleFile).map((file: any, index: any) => <FileCard key={`m-${index}`} file={file} variant="thumbnail" moratorium />)}
-              </div>
-            </div>
-          )}
-
-          <Ancestors doc={doc} onNavigate={onNavigateToChild} />
-          <DataIssuesPanel doc={doc} />
-        </div>
-      }
+      )}
       {viewRawData && (
         <pre><code className="flex flex-col gap-2">
           {JSON.stringify(doc, null, 2)}

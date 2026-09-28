@@ -39,7 +39,7 @@
         "subnav": [
           {
             "href": "collections",
-            "label": "About \n\nthe Collections\n"
+            "label": "About the Collections\n"
           },
           {
             "href": "search",
@@ -47,15 +47,7 @@
           },
           {
             "href": "map",
-            "label": "Search by Map:\n\nAll Collections\n"
-          },
-          {
-            "href": "antarctic-map",
-            "label": "Search by Map:\n\nAntarctic Cores\n"
-          },
-          {
-            "href": "oregon-drill-cores",
-            "label": "Search by Map:\n\nOregon Drill Cores\n"
+            "label": "Search by Map\n"
           },
           {
             "href": "repositories",

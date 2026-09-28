@@ -17,16 +17,20 @@ export const ItemsCount: React.FC<{
   filterLogic?: any;
   singularLabel?: string;
   pluralLabel?: string;
-}> = ({ types, terms, searchString, filters, filterLogic, singularLabel, pluralLabel }) => {
+  // Count only records with a lat/lon (what the Maps tab plots).
+  hasCoordinates?: boolean;
+}> = ({ types, terms, searchString, filters, filterLogic, singularLabel, pluralLabel, hasCoordinates }) => {
   const { data: countData, isLoading } = useQuery({
     // Key on the whole filter objects so any filter (including dev-only data
     // issues) invalidates the cached count.
-    queryKey: ['itemsCount', types, searchString, terms, filters, filterLogic],
+    // hasCoordinates is appended only when set, so plain counts keep the key the
+    // search tabs share with their auto-tab check.
+    queryKey: ['itemsCount', types, searchString, terms, filters, filterLogic, ...(hasCoordinates ? ['hasCoordinates'] : [])],
     queryFn: async (): Promise<CountData> => {
       const res = await fetch('/api/opensearch?count', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ types, searchString, terms, filters, filterLogic }),
+        body: JSON.stringify({ types, searchString, terms, filters, filterLogic, hasCoordinates }),
       });
       if (!res.ok) {
         const errorData = await res.json();
