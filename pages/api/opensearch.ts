@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Client } from '@opensearch-project/opensearch';
-import { r2rCruiseLinks } from '../../components/search/search-data';
 
 const client: Client = new Client({
   node: process.env.OS_NODE,
@@ -27,102 +26,6 @@ function dataIssuesFilter(search: any): any | null {
   if (issues.includes('warnings')) should.push({ exists: { field: '_warnings' } });
   if (should.length === 0) return null;
   return { bool: { should, minimum_should_match: 1 } };
-}
-
-// "Links" filter: records with a link to outside data. R2R links are keyed by
-// cruise OSU ID (see r2rCruiseLinks) and apply to every record from that cruise,
-// which children store without the "OSU-" prefix in `cruise`.
-const R2R_CRUISES = Object.keys(r2rCruiseLinks);
-const LINK_QUERIES: { [link: string]: any } = {
-  r2r: { bool: { should: [
-    { terms: { '_osuid.keyword': R2R_CRUISES } },
-    { terms: { 'cruise.keyword': R2R_CRUISES.map(id => id.replace(/^OSU-/, '')) } },
-  ], minimum_should_match: 1 } },
-  publication: { exists: { field: '_publications.doi' } },
-};
-
-// Links filter: r2r | publication, combined with the Links AND/OR logic.
-function linksFilter(search: any): any | null {
-  const links: string[] = (search?.filters?.links || []).filter((l: string) => LINK_QUERIES[l]);
-  if (links.length === 0) return null;
-  const queries = links.map(l => LINK_QUERIES[l]);
-  if (search.filterLogic?.links === 'AND') return { bool: { must: queries } };
-  return { bool: { should: queries, minimum_should_match: 1 } };
-}
-
-// Collection filter: records in any of the selected collections (MGG, ACC, ...).
-// A record belongs to one collection, so there is no AND logic.
-function collectionsFilter(search: any): any | null {
-  const collections: string[] = search?.filters?.collections || [];
-  if (collections.length === 0) return null;
-  return { terms: { 'collection.keyword': collections } };
-}
-
-// Maps tab: restrict to records the map can plot (a start or end lat/lon).
-function hasCoordinatesFilter(search: any): any | null {
-  if (!search?.hasCoordinates) return null;
-  return { bool: { must: [
-    { bool: { should: [{ exists: { field: 'latitudeStart' } }, { exists: { field: 'latitudeEnd' } }], minimum_should_match: 1 } },
-    { bool: { should: [{ exists: { field: 'longitudeStart' } }, { exists: { field: 'longitudeEnd' } }], minimum_should_match: 1 } },
-  ] } };
-}
-
-// Geospatial filter: filters.area is [west, south, east, north] in degrees,
-// with east past 180 when the area crosses the antimeridian. A record matches
-// when its Start or End position is inside. Coordinates are text in the index,
-// so a script parses them. A cruise's own coordinates span its whole voyage,
-// so a cruise matches when any of its cores or dives does (areaCruiseUUIDs).
-const AREA_SCRIPT = `
-boolean inArea(def lats, def lons, def area) {
-  if (lats.size() == 0 || lons.size() == 0) return false;
-  double lat;
-  double lon;
-  try {
-    lat = Double.parseDouble(lats.value.trim().replace(',', '.'));
-    lon = Double.parseDouble(lons.value.trim().replace(',', '.'));
-  } catch (NumberFormatException e) {
-    return false;
-  }
-  if (lon > 180) lon -= 360;
-  if (lat < area.south || lat > area.north) return false;
-  return (lon >= area.west && lon <= area.east) || (lon + 360 >= area.west && lon + 360 <= area.east);
-}
-return inArea(doc['latitudeStart.keyword'], doc['longitudeStart.keyword'], params)
-  || inArea(doc['latitudeEnd.keyword'], doc['longitudeEnd.keyword'], params);
-`;
-function areaOf(search: any): { west: number; south: number; east: number; north: number } | null {
-  const area = search?.filters?.area;
-  if (!Array.isArray(area) || area.length !== 4 || !area.every((v: any) => Number.isFinite(v))) return null;
-  const [west, south, east, north] = area;
-  return south <= north && west <= east ? { west, south, east, north } : null;
-}
-const areaScript = (area: object) => ({ script: { script: { source: AREA_SCRIPT, lang: 'painless', params: area } } });
-async function areaCruiseUUIDs(search: any): Promise<string[] | null> {
-  const area = areaOf(search);
-  if (!area || !search.types?.includes('cruise')) return null;
-  const response = await client.search({ index, body: {
-    size: 0,
-    query: guardQuery({ bool: { filter: [{ terms: { '_docType.keyword': ['core', 'dive'] } }, areaScript(area)] } }),
-    aggs: { cruises: { terms: { field: '_cruiseUUID.keyword', size: 10000 } } },
-  } } as any);
-  return ((response.body.aggregations?.cruises as any)?.buckets || []).map((b: any) => b.key);
-}
-function areaFilter(search: any): any | null {
-  const area = areaOf(search);
-  if (!area) return null;
-  const cruises: string[] | null = search._areaCruiseUUIDs;
-  if (!cruises) return areaScript(area);
-  return { bool: { should: [
-    { bool: { must_not: [{ term: { '_docType.keyword': 'cruise' } }], filter: [areaScript(area)] } },
-    { bool: { filter: [{ term: { '_docType.keyword': 'cruise' } }, { terms: { '_uuid.keyword': cruises } }] } },
-  ], minimum_should_match: 1 } };
-}
-
-// Position filters: the Maps tab's (hasCoordinates) and the geospatial one.
-function coordinatesFilter(search: any): any | null {
-  const filters = [hasCoordinatesFilter(search), areaFilter(search)].filter(Boolean);
-  if (filters.length === 0) return null;
-  return filters.length === 1 ? filters[0] : { bool: { must: filters } };
 }
 
 const cruisesFirst = {
@@ -173,30 +76,9 @@ const OSUID_LIST_FIELDS = [
   '_diveOSUID', '_diveSampleOSUID',
 ];
 
-// Strip DOI URL / "doi:" prefixes so https://doi.org/10.1016/x, doi:10.1016/x
-// and 10.1016/x all search the same stored value.
-function normalizeDoi(s: string): string {
-  return s.trim()
-    .replace(/^https?:\/\/(dx\.)?doi\.org\//i, '')
-    .replace(/^doi:\s*/i, '');
-}
-
-function buildPublicationShould(searchString: string) {
-  const doi = normalizeDoi(searchString);
-  return [
-    // Citation text: authors, year, title, journal, volume/pages (all terms must appear).
-    { match: { '_publications.citation': { query: searchString, operator: 'and' } } },
-    ...(/^10\.\S+$/.test(doi) ? [
-      { term: { '_publications.doi': { value: doi, case_insensitive: true } } },
-      { prefix: { '_publications.doi': { value: doi, case_insensitive: true } } },
-    ] : []),
-  ];
-}
-
 function buildShould(searchString: string) {
   const upper = searchString.toUpperCase();
   return [
-    ...buildPublicationShould(searchString),
     {
       multi_match: {
         query: searchString.toLowerCase(),
@@ -215,88 +97,10 @@ function buildShould(searchString: string) {
   ];
 }
 
-// Search-as-you-type suggestions for the search bar: matching OSU IDs, RV names
-// and publications (citation text or DOI). Publications are flattened out of the
-// matching docs and re-checked so only the publication that matched is suggested.
-async function suggest(q: string) {
-  const text = (q || '').trim();
-  if (text.length < 2) return { ids: [], rvNames: [], publications: [] };
-  const upper = text.toUpperCase();
-  const lower = text.toLowerCase();
-  const doi = normalizeDoi(text).toLowerCase();
-  const isDoi = /^10\.\S+$/.test(doi);
-
-  const [idResp, rvResp, pubResp] = await Promise.all([
-    client.search({ index, body: {
-      size: 6,
-      _source: ['_osuid', '_docType'],
-      // Any substring of the ID matches; IDs starting with the text (with or
-      // without the "OSU-" prefix) rank first.
-      query: guardQuery({ bool: { minimum_should_match: 1, should: [
-        { constant_score: { boost: 3, filter: { prefix: { '_osuid.keyword': { value: upper } } } } },
-        { constant_score: { boost: 2, filter: { prefix: { '_osuid.keyword': { value: `OSU-${upper}` } } } } },
-        { constant_score: { boost: 1, filter: { match: { '_osuid.substring': { query: lower, operator: 'and', analyzer: 'whitespace' } } } } },
-      ] } }),
-      sort: ['_score', cruisesFirst, { '_osuid.keyword': 'asc' }],
-    } } as any),
-    client.search({ index, body: {
-      size: 0,
-      query: guardQuery({ match: { 'rvName.substring': { query: lower, operator: 'and', analyzer: 'whitespace' } } }),
-      aggs: { rvNames: { terms: { field: 'rvName.keyword', size: 4 } } },
-    } } as any),
-    client.search({ index, body: {
-      size: 20,
-      _source: ['_publications'],
-      query: guardQuery({ bool: { minimum_should_match: 1, should: [
-        { match_bool_prefix: { '_publications.citation': { query: text, operator: 'and' } } },
-        ...(isDoi ? [{ prefix: { '_publications.doi': { value: doi, case_insensitive: true } } }] : []),
-      ] } }),
-    } } as any),
-  ]);
-
-  const ids = (idResp.body.hits.hits as any[]).map(h => ({ osuid: h._source._osuid, docType: h._source._docType }));
-  const rvNames = ((rvResp.body.aggregations?.rvNames as any)?.buckets || []).map((b: any) => ({ name: b.key, count: b.doc_count }));
-
-  const tokens = lower.split(/\s+/).filter(Boolean);
-  const seen = new Set<string>();
-  const publications: { doi: string; citation: string }[] = [];
-  for (const hit of pubResp.body.hits.hits as any[]) {
-    for (const pub of hit._source._publications || []) {
-      const key = (pub.doi || '').toLowerCase();
-      if (!key || seen.has(key)) continue;
-      const citation = (pub.citation || '').toLowerCase();
-      const matches = (isDoi && key.startsWith(doi)) || tokens.every(t => citation.includes(t));
-      if (!matches) continue;
-      seen.add(key);
-      publications.push({ doi: pub.doi, citation: pub.citation });
-      if (publications.length >= 5) break;
-    }
-    if (publications.length >= 5) break;
-  }
-  return { ids, rvNames, publications };
-}
-
 export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> => {
   if (req.method !== 'POST') return res.status(405).send({ message: 'Only POST requests allowed' });
   const search = req.body;
   if (!search) return res.status(500).send('Missing search query');
-
-  if (req.query.suggest !== undefined) {
-    try {
-      return res.status(200).send(await suggest(search.searchString));
-    } catch (error) {
-      console.error('Error fetching search suggestions:', error);
-      return res.status(200).send({ ids: [], rvNames: [], publications: [] });
-    }
-  }
-
-  // Cruises the geospatial filter matches, looked up once for every query below.
-  try {
-    search._areaCruiseUUIDs = await areaCruiseUUIDs(search);
-  } catch (error) {
-    console.error('Error finding cruises in the filter area:', error);
-    return res.status(500).send('Failed to apply the area filter');
-  }
 
   let query: any = {}
   if (search.terms !== undefined) {
@@ -467,12 +271,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
     // Handle data issues filter (dev only)
     const dataIssues = dataIssuesFilter(search);
     if (dataIssues) filters.push(dataIssues);
-    const dataIssues_links = linksFilter(search);
-    if (dataIssues_links) filters.push(dataIssues_links);
-    const dataIssues_collections = collectionsFilter(search);
-    if (dataIssues_collections) filters.push(dataIssues_collections);
-    const dataIssues_coordinates = coordinatesFilter(search);
-    if (dataIssues_coordinates) filters.push(dataIssues_coordinates);
 
     // Apply all filters
     if (filters.length > 0) {
@@ -502,23 +300,11 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
     // Add sort only if size > 0 (not for aggregation-only queries)
     if (search.size !== 0) {
       body.sort = sortOrders[search.sortOrder];
-    }
-    // Highlights are only used by the result tables, not field-limited requests.
-    if (search.size !== 0 && search._source === undefined) {
       body.highlight = {
         pre_tags: '',
         post_tags: '',
         fields: { '*.substring': {} },
       };
-    }
-
-    // Optional field list (e.g. the Maps tab asks only for IDs and coordinates).
-    if (Array.isArray(search._source) && search._source.every((f: unknown) => typeof f === 'string')) {
-      body._source = search._source;
-    }
-    // Deep paging past the 10,000-hit window (sort values of the previous page's last hit).
-    if (Array.isArray(search.search_after)) {
-      body.search_after = search.search_after;
     }
 
     // Add aggregations if provided
@@ -596,12 +382,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       // Apply non-file type filters to base query
       const dataIssues_nonFileTypeFilters = dataIssuesFilter(search);
       if (dataIssues_nonFileTypeFilters) nonFileTypeFilters.push(dataIssues_nonFileTypeFilters);
-      const dataIssues_nonFileTypeFilters_links = linksFilter(search);
-      if (dataIssues_nonFileTypeFilters_links) nonFileTypeFilters.push(dataIssues_nonFileTypeFilters_links);
-      const dataIssues_nonFileTypeFilters_collections = collectionsFilter(search);
-      if (dataIssues_nonFileTypeFilters_collections) nonFileTypeFilters.push(dataIssues_nonFileTypeFilters_collections);
-      const dataIssues_nonFileTypeFilters_coordinates = coordinatesFilter(search);
-      if (dataIssues_nonFileTypeFilters_coordinates) nonFileTypeFilters.push(dataIssues_nonFileTypeFilters_coordinates);
       if (nonFileTypeFilters.length > 0) {
         if (baseQuery.bool) {
           baseQuery.bool.must = baseQuery.bool.must || [];
@@ -767,12 +547,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       }
       const dataIssues_nonMethodFilters = dataIssuesFilter(search);
       if (dataIssues_nonMethodFilters) nonMethodFilters.push(dataIssues_nonMethodFilters);
-      const dataIssues_nonMethodFilters_links = linksFilter(search);
-      if (dataIssues_nonMethodFilters_links) nonMethodFilters.push(dataIssues_nonMethodFilters_links);
-      const dataIssues_nonMethodFilters_collections = collectionsFilter(search);
-      if (dataIssues_nonMethodFilters_collections) nonMethodFilters.push(dataIssues_nonMethodFilters_collections);
-      const dataIssues_nonMethodFilters_coordinates = coordinatesFilter(search);
-      if (dataIssues_nonMethodFilters_coordinates) nonMethodFilters.push(dataIssues_nonMethodFilters_coordinates);
 
       // Apply non-method filters to base query
       if (nonMethodFilters.length > 0) {
@@ -897,12 +671,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       }
       const dataIssues_nonMaterialFilters = dataIssuesFilter(search);
       if (dataIssues_nonMaterialFilters) nonMaterialFilters.push(dataIssues_nonMaterialFilters);
-      const dataIssues_nonMaterialFilters_links = linksFilter(search);
-      if (dataIssues_nonMaterialFilters_links) nonMaterialFilters.push(dataIssues_nonMaterialFilters_links);
-      const dataIssues_nonMaterialFilters_collections = collectionsFilter(search);
-      if (dataIssues_nonMaterialFilters_collections) nonMaterialFilters.push(dataIssues_nonMaterialFilters_collections);
-      const dataIssues_nonMaterialFilters_coordinates = coordinatesFilter(search);
-      if (dataIssues_nonMaterialFilters_coordinates) nonMaterialFilters.push(dataIssues_nonMaterialFilters_coordinates);
 
       if (nonMaterialFilters.length > 0) {
         if (!baseQuery.bool) {
@@ -1025,12 +793,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       }
       const dataIssues_nonRvFilters = dataIssuesFilter(search);
       if (dataIssues_nonRvFilters) nonRvFilters.push(dataIssues_nonRvFilters);
-      const dataIssues_nonRvFilters_links = linksFilter(search);
-      if (dataIssues_nonRvFilters_links) nonRvFilters.push(dataIssues_nonRvFilters_links);
-      const dataIssues_nonRvFilters_collections = collectionsFilter(search);
-      if (dataIssues_nonRvFilters_collections) nonRvFilters.push(dataIssues_nonRvFilters_collections);
-      const dataIssues_nonRvFilters_coordinates = coordinatesFilter(search);
-      if (dataIssues_nonRvFilters_coordinates) nonRvFilters.push(dataIssues_nonRvFilters_coordinates);
 
       if (nonRvFilters.length > 0) {
         if (!baseQuery.bool) {
@@ -1158,12 +920,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       }
       const dataIssues_nonInstitutionFilters = dataIssuesFilter(search);
       if (dataIssues_nonInstitutionFilters) nonInstitutionFilters.push(dataIssues_nonInstitutionFilters);
-      const dataIssues_nonInstitutionFilters_links = linksFilter(search);
-      if (dataIssues_nonInstitutionFilters_links) nonInstitutionFilters.push(dataIssues_nonInstitutionFilters_links);
-      const dataIssues_nonInstitutionFilters_collections = collectionsFilter(search);
-      if (dataIssues_nonInstitutionFilters_collections) nonInstitutionFilters.push(dataIssues_nonInstitutionFilters_collections);
-      const dataIssues_nonInstitutionFilters_coordinates = coordinatesFilter(search);
-      if (dataIssues_nonInstitutionFilters_coordinates) nonInstitutionFilters.push(dataIssues_nonInstitutionFilters_coordinates);
 
       // Do NOT apply PI/institution filters here - we're getting counts for ALL institutions
 
@@ -1311,12 +1067,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
 
       const dataIssues_nonTextureFilters = dataIssuesFilter(search);
       if (dataIssues_nonTextureFilters) nonTextureFilters.push(dataIssues_nonTextureFilters);
-      const dataIssues_nonTextureFilters_links = linksFilter(search);
-      if (dataIssues_nonTextureFilters_links) nonTextureFilters.push(dataIssues_nonTextureFilters_links);
-      const dataIssues_nonTextureFilters_collections = collectionsFilter(search);
-      if (dataIssues_nonTextureFilters_collections) nonTextureFilters.push(dataIssues_nonTextureFilters_collections);
-      const dataIssues_nonTextureFilters_coordinates = coordinatesFilter(search);
-      if (dataIssues_nonTextureFilters_coordinates) nonTextureFilters.push(dataIssues_nonTextureFilters_coordinates);
       if (nonTextureFilters.length > 0) {
         if (!baseQuery.bool) {
           baseQuery = {
@@ -1357,12 +1107,10 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
 
     return res.status(200).send(counts);
   }
-  else if ((req.query.dataIssueCounts !== undefined || req.query.linkCounts !== undefined || req.query.collectionCounts !== undefined) && search.types !== undefined) {
-    // Facet counts for the Data Issues (dev only), Links and Collection filters: how
-    // many records in the current search (all other filters applied) match each option.
-    const isLinkCounts = req.query.linkCounts !== undefined;
-    const isCollectionCounts = req.query.collectionCounts !== undefined;
-    if (!isLinkCounts && !isCollectionCounts && isProd) return res.status(200).send({ errors: 0, warnings: 0 });
+  else if (req.query.dataIssueCounts !== undefined && search.types !== undefined) {
+    // Dev-only facet counts for the Data Issues filter: how many records in the
+    // current search (all other filters applied) carry _errors / _warnings.
+    if (isProd) return res.status(200).send({ errors: 0, warnings: 0 });
 
     let baseQuery: any = {};
     if (search.searchString === '') {
@@ -1410,54 +1158,9 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       if (search.filters.textures?.length > 0) {
         otherFilters.push({ terms: { 'texture.keyword': search.filters.textures } });
       }
-      // Apply the other facets, leaving out the one being counted.
-      const otherFacets = [
-        isLinkCounts ? null : linksFilter(search),
-        isCollectionCounts ? null : collectionsFilter(search),
-        isLinkCounts || isCollectionCounts ? dataIssuesFilter(search) : null,
-        coordinatesFilter(search),
-      ].filter(Boolean);
-      otherFilters.push(...otherFacets);
       if (otherFilters.length > 0) {
         baseQuery = { bool: { must: [baseQuery], filter: otherFilters } };
       }
-    }
-
-    if (isCollectionCounts) {
-      const collectionCounts: { [collection: string]: number } = {};
-      try {
-        const aggResp = await client.search({
-          index,
-          body: {
-            size: 0,
-            query: guardQuery(baseQuery),
-            aggs: { collections: { terms: { field: 'collection.keyword', size: 50 } } },
-          }
-        } as any);
-        for (const b of (aggResp.body.aggregations?.collections as any)?.buckets || []) collectionCounts[b.key] = b.doc_count;
-      } catch (error) {
-        console.error('Error fetching collection counts:', error);
-      }
-      return res.status(200).send(collectionCounts);
-    }
-
-    if (isLinkCounts) {
-      const linkCounts: { [link: string]: number } = {};
-      try {
-        const aggResp = await client.search({
-          index,
-          body: {
-            size: 0,
-            query: guardQuery(baseQuery),
-            aggs: { links: { filters: { filters: LINK_QUERIES } } },
-          }
-        } as any);
-        const buckets = (aggResp.body.aggregations?.links as any)?.buckets || {};
-        for (const link of Object.keys(LINK_QUERIES)) linkCounts[link] = buckets[link]?.doc_count || 0;
-      } catch (error) {
-        console.error('Error fetching link counts:', error);
-      }
-      return res.status(200).send(linkCounts);
     }
 
     const counts = { errors: 0, warnings: 0 };
@@ -1590,12 +1293,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
       }
       const dataIssues = dataIssuesFilter(search);
       if (dataIssues) otherFilters.push(dataIssues);
-      const dataIssues_links = linksFilter(search);
-      if (dataIssues_links) otherFilters.push(dataIssues_links);
-      const dataIssues_collections = collectionsFilter(search);
-      if (dataIssues_collections) otherFilters.push(dataIssues_collections);
-      const dataIssues_coordinates = coordinatesFilter(search);
-      if (dataIssues_coordinates) otherFilters.push(dataIssues_coordinates);
 
       if (otherFilters.length > 0) {
         if (!baseQuery.bool) { baseQuery = { bool: { must: [baseQuery] } }; }

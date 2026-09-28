@@ -9,9 +9,7 @@ import JSZip from 'jszip';
 export const DownloadFilesButton: React.FC<{
   search: any;
   searchString: string;
-  // Open the menu above the button (e.g. in a footer at the bottom of a modal).
-  dropUp?: boolean;
-}> = ({ search, searchString, dropUp = false }) => {
+}> = ({ search, searchString }) => {
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFileTypes, setSelectedFileTypes] = useState<Set<string>>(new Set());
@@ -241,7 +239,7 @@ export const DownloadFilesButton: React.FC<{
       </div>
 
       {isOpen && (
-        <div className={`absolute right-0 ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'} w-80 bg-base-100 rounded-box shadow-lg border z-30 font-normal normal-case`}>
+        <div className="absolute right-0 top-full mt-1 w-80 bg-base-100 rounded-box shadow-lg border z-30 font-normal normal-case">
           {/* Header */}
           <div className="p-3 border-b border-gray-200">
             <div className="flex items-center justify-between mb-2">

@@ -1,6 +1,6 @@
 import numeral from 'numeral';
 import React, { useState } from "react";
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
 import { fileTypes, getFileTypeLabel } from './search-data';
 
@@ -27,7 +27,7 @@ export const FileTypesFilterDropdown: React.FC<{
 
   // Fetch counts for each file type
   const { data: fileTypeCounts, isLoading: countsLoading } = useQuery({
-    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
+    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?fileTypeCounts', {
         method: 'POST',
@@ -36,8 +36,7 @@ export const FileTypesFilterDropdown: React.FC<{
           types: search.types,
           searchString: search.searchString || '',
           filters: search.filters,
-          filterLogic: search.filterLogic,
-          hasCoordinates: search.hasCoordinates
+          filterLogic: search.filterLogic
         }),
       });
 
@@ -47,7 +46,6 @@ export const FileTypesFilterDropdown: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000, // 30 minutes
   });
 

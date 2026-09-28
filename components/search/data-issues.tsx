@@ -4,15 +4,14 @@ import { Icon } from "../util/icon";
 // Data-quality annotations written by the pipeline (osu_mgr_pipeline.py):
 //   _errors   – e.g. "Not in any metadata sheet (created from file …)",
 //               "Depth Top is missing or invalid"
-//   _warnings – suspect or incomplete data, e.g. "Water Depth is missing",
-//               "Start and End positions are 12,746 km apart; …"
+//   _warnings – reserved; not populated by the pipeline yet
 // Prod deployments never return records with _errors (see
 // pages/api/opensearch.ts guardQuery), so these mostly show on dev.
 
 // Curator-facing annotations are only rendered off prod. Prod never returns
 // records with _errors anyway (guardQuery); records with _warnings stay
 // visible there but without badges.
-export const SHOW_DATA_ISSUES = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
+const SHOW_DATA_ISSUES = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
 
 const asList = (v: any): string[] =>
   Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.length > 0) : [];

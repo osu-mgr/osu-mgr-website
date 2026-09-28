@@ -1,6 +1,6 @@
 import numeral from 'numeral';
 import React, { useState } from "react";
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
 
 // Institution Filter Dropdown Component
@@ -26,7 +26,7 @@ export const InstitutionFilterDropdown: React.FC<{
 
   // Fetch counts for each institution
   const { data: institutionData, isLoading: countsLoading } = useQuery({
-    queryKey: ['institutionCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
+    queryKey: ['institutionCounts', search.types, search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?institutionCounts', {
         method: 'POST',
@@ -35,8 +35,7 @@ export const InstitutionFilterDropdown: React.FC<{
           types: search.types,
           searchString: search.searchString || '',
           filters: search.filters,
-          filterLogic: search.filterLogic,
-          hasCoordinates: search.hasCoordinates
+          filterLogic: search.filterLogic
         }),
       });
 
@@ -46,7 +45,6 @@ export const InstitutionFilterDropdown: React.FC<{
       return { counts: {}, piInstitutions: {} };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('cruise')
   });

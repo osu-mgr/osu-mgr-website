@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { S3Client, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'us-west-2',
@@ -11,7 +11,7 @@ const s3Client = new S3Client({
 });
 
 export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> => {
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
+  if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
@@ -25,16 +25,6 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
   const bucketName = 'osu-corelab-storage';
 
   try {
-    // HEAD: size and type only, so the UI can label files without downloading them.
-    if (req.method === 'HEAD') {
-      const head = await s3Client.send(new HeadObjectCommand({ Bucket: bucketName, Key: filePath }));
-      res.setHeader('Content-Type', head.ContentType || getContentType(filePath));
-      res.setHeader('Cache-Control', 'public, max-age=3600');
-      if (head.ContentLength != null) res.setHeader('Content-Length', head.ContentLength.toString());
-      res.status(200).end();
-      return;
-    }
-
     console.log('Fetching file from S3:', bucketName, filePath);
 
     // Get the file from S3
