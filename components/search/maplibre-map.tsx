@@ -161,6 +161,9 @@ const mercatorLines = (geometry: GeoJSON.Geometry): [number, number][][] => {
 // Records outside the filters, shown for context: dark grey, which stands out
 // on both the ocean and the land.
 const CONTEXT_COLOR = '#374151';
+// Muted records (see MapPoint): a lighter grey, so they show on the track.
+const MUTED_COLOR = '#9ca3af';
+const markerColor = (p: MapPoint) => (p.muted ? MUTED_COLOR : layerFor(p.type).color);
 const AREA_HANDLE_STYLE = `width:12px;height:12px;background:#ffffff;border:2px solid ${AREA_COLOR};box-sizing:border-box`;
 const AREA_MIN_DEGREES = 0.01;
 // How near the outline (in pixels, either side) a drag moves the area: about
@@ -383,20 +386,20 @@ const labelsControl = (initial: boolean, onChange: (on: boolean) => void): mapli
   };
 };
 
-type Feature = GeoJSON.Feature<GeoJSON.Geometry, { key: string; color: string; name?: string }>;
+type Feature = GeoJSON.Feature<GeoJSON.Geometry, { key: string; color: string; name?: string; muted?: boolean }>;
 const collection = (features: GeoJSON.Feature[]): GeoJSON.FeatureCollection => ({ type: 'FeatureCollection', features });
 // Numbered, for the feature state that hides a marker inside its box.
 const pointFeature = (p: MapPoint, id: number): Feature => ({
   type: 'Feature',
   id,
-  properties: { key: pointKey(p), color: layerFor(p.type).color, name: p.name },
+  properties: { key: pointKey(p), color: markerColor(p), name: p.name, muted: Boolean(p.muted) },
   geometry: { type: 'Point', coordinates: [p.lon, p.lat] },
 });
 const boxFeature = (p: MapPoint): Feature => {
   const [west, south, east, north] = p.bounds!;
   return {
     type: 'Feature',
-    properties: { key: pointKey(p), color: layerFor(p.type).color },
+    properties: { key: pointKey(p), color: markerColor(p) },
     geometry: { type: 'Polygon', coordinates: [[[west, south], [east, south], [east, north], [west, north], [west, south]]] },
   };
 };
@@ -548,8 +551,10 @@ const MapLibreMap: React.FC<{
             id: 'points',
             type: 'circle',
             source: 'points',
+            // Muted records under the others.
+            layout: { 'circle-sort-key': ['case', ['get', 'muted'], 0, 1] },
             paint: {
-              'circle-radius': 3,
+              'circle-radius': ['case', ['get', 'muted'], 2.5, 3],
               'circle-color': ['get', 'color'],
               'circle-stroke-color': '#ffffff',
               'circle-stroke-width': 1,
@@ -634,6 +639,7 @@ const MapLibreMap: React.FC<{
           id: 'point-labels',
           type: 'symbol',
           source: 'points',
+          filter: ['!', ['get', 'muted']],
           layout: {
             'text-field': ['get', 'name'],
             'text-font': ['Noto Sans Regular'],
@@ -729,13 +735,13 @@ const MapLibreMap: React.FC<{
       if (globe) {
         // One marker per spot and type, as index groups them.
         index.forEach(members => {
-          const { lat, lon, type, name } = members[0];
+          const { lat, lon, name, muted } = members[0];
           if (!isPolar(members[0])) return;
           const element = document.createElement('div');
-          element.style.cssText = `${MARKER_STYLE};background:${layerFor(type).color}`;
+          element.style.cssText = `${MARKER_STYLE};background:${markerColor(members[0])}`;
           // Labelled as the others (see labelPoints), beside the marker
           // without changing its size (which places it).
-          if (labelPointsRef.current) {
+          if (labelPointsRef.current && !muted) {
             const label = document.createElement('div');
             label.style.cssText = POLAR_POINT_LABEL_STYLE;
             label.textContent = name;

@@ -7,6 +7,10 @@ const client: Client = new Client({
 });
 const isProd = process.env.NEXT_PUBLIC_TINA_BRANCH === 'prod';
 const index = isProd ? 'osu-mgr' : 'osu-mgr-dev';
+// Publications are non-prod only for now (see SHOW_PUBLICATIONS in
+// components/search/search-data.ts): prod neither filters, matches nor
+// suggests them.
+const showPublications = !isProd;
 
 // Records the pipeline flagged with data-quality errors (e.g. "Not in any
 // metadata sheet") are only surfaced on non-prod deployments, where the
@@ -38,7 +42,7 @@ const LINK_QUERIES: { [link: string]: any } = {
     { terms: { '_osuid.keyword': R2R_CRUISES } },
     { terms: { 'cruise.keyword': R2R_CRUISES.map(id => id.replace(/^OSU-/, '')) } },
   ], minimum_should_match: 1 } },
-  publication: { exists: { field: '_publications.doi' } },
+  ...(showPublications ? { publication: { exists: { field: '_publications.doi' } } } : {}),
 };
 
 // Links filter: r2r | publication, combined with the Links AND/OR logic.
@@ -196,7 +200,7 @@ function buildPublicationShould(searchString: string) {
 function buildShould(searchString: string) {
   const upper = searchString.toUpperCase();
   return [
-    ...buildPublicationShould(searchString),
+    ...(showPublications ? buildPublicationShould(searchString) : []),
     {
       multi_match: {
         query: searchString.toLowerCase(),
@@ -244,14 +248,14 @@ async function suggest(q: string) {
       query: guardQuery({ match: { 'rvName.substring': { query: lower, operator: 'and', analyzer: 'whitespace' } } }),
       aggs: { rvNames: { terms: { field: 'rvName.keyword', size: 4 } } },
     } } as any),
-    client.search({ index, body: {
+    showPublications ? client.search({ index, body: {
       size: 20,
       _source: ['_publications'],
       query: guardQuery({ bool: { minimum_should_match: 1, should: [
         { match_bool_prefix: { '_publications.citation': { query: text, operator: 'and' } } },
         ...(isDoi ? [{ prefix: { '_publications.doi': { value: doi, case_insensitive: true } } }] : []),
       ] } }),
-    } } as any),
+    } } as any) : Promise.resolve(null),
   ]);
 
   const ids = (idResp.body.hits.hits as any[]).map(h => ({ osuid: h._source._osuid, docType: h._source._docType }));
@@ -260,7 +264,7 @@ async function suggest(q: string) {
   const tokens = lower.split(/\s+/).filter(Boolean);
   const seen = new Set<string>();
   const publications: { doi: string; citation: string }[] = [];
-  for (const hit of pubResp.body.hits.hits as any[]) {
+  for (const hit of (pubResp?.body.hits.hits || []) as any[]) {
     for (const pub of hit._source._publications || []) {
       const key = (pub.doi || '').toLowerCase();
       if (!key || seen.has(key)) continue;

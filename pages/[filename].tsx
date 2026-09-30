@@ -26,7 +26,7 @@ export const getStaticProps = async ({ params }) => {
   const isLandingPage = (path) => path.match(/^OSU-[^/]+$/i);
   if (isLandingPage(params.filename)) {
     // Passed through as-is: the modal resolves the record type itself and
-    // shows a section half's parent section (IDs of cores, sections and rock
+    // shows a section half's or core sample's parent section (IDs of cores, sections and rock
     // samples can also end in a digit plus a letter, so no pattern is safe).
     const osuId = params.filename;
     // Client-side navigation to search with OSU ID

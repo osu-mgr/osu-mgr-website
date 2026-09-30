@@ -12,7 +12,7 @@ import { ItemsCount } from '../util/items-count';
 import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
 import { LandingPage } from "./landing-page";
-import { r2rCruiseLinks, getCollectionLabel, hasFileTypeLabel, getFileTypeLabel, getDiveMethodLabel, formatDate, formatTime, formatNumber, formatField, isPlaceholder, shown } from '../search/search-data';
+import { r2rCruiseLinks, getCollectionLabel, hasFileTypeLabel, getFileTypeLabel, getDiveMethodLabel, formatDate, formatTime, formatNumber, formatField, isPlaceholder, shown, SHOW_PUBLICATIONS } from '../search/search-data';
 import { FileTypesFilterDropdown } from '../search/file-types-filter';
 import { RelatedFileTypesFilterDropdown } from '../search/related-file-types-filter';
 import { RvNameFilterDropdown } from '../search/rv-name-filter';
@@ -546,7 +546,7 @@ export const Search: React.FC<{ data: any }> = ({
       else if (router.query.osu) {
         const osuParam = Array.isArray(router.query.osu) ? router.query.osu[0] : router.query.osu;
         if (osuParam) {
-          // Used as-is; LandingPage redirects a section half to its parent section.
+          // Used as-is; LandingPage redirects a section half or core sample to its parent section.
           const resolvedId = osuParam;
           console.log('Processing OSU URL parameter:', resolvedId);
           setOsuId(resolvedId);
@@ -1155,7 +1155,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
                         {match._source._coreOSUIDs?.length > 0 && <><br/><b>Cores:</b> {numeral(match._source._coreOSUIDs.length).format(0)}</>}
                         {match._source._diveOSUIDs?.length > 0 && <><br/><b>Dredges/Dives:</b> {numeral(match._source._diveOSUIDs.length).format(0)}</>}
-                        {match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
@@ -1341,7 +1341,7 @@ export const Search: React.FC<{ data: any }> = ({
                         <b>{match._source._osuid}</b>
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                        {match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
@@ -1515,7 +1515,7 @@ export const Search: React.FC<{ data: any }> = ({
                         <b>{match._source._osuid}</b>
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
                         {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                        {match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
@@ -1670,7 +1670,7 @@ export const Search: React.FC<{ data: any }> = ({
                             <b>{match._source._osuid}</b>
                             {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
                             {match._source.nSections != null && <><br /><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                            {match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                            {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
                             {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                           </td>
@@ -1810,7 +1810,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
-                        {match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
@@ -1934,7 +1934,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top overflow-hidden text-ellipsis max-w-0">
                         <b>{match._source._osuid}</b>
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
-                        {match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
@@ -2043,7 +2043,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
-                        {match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>

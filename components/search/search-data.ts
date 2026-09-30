@@ -1,3 +1,8 @@
+// Publications (the DOI links on records, the Links > Publication filter and
+// publication search suggestions) are only shown on non-prod deployments for
+// now, like the raw data view. pages/api/opensearch.ts applies the same rule.
+export const SHOW_PUBLICATIONS = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
+
 export const moratoriumCruises = [
   'OSU-KM2201',
   'OSU-NBP1808',

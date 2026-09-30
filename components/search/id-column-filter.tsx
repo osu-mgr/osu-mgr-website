@@ -2,13 +2,13 @@ import numeral from 'numeral';
 import React, { useState } from "react";
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
-import { collectionLabels, getCollectionLabel } from "./search-data";
+import { collectionLabels, getCollectionLabel, SHOW_PUBLICATIONS } from "./search-data";
 
 // Link types a record can have to outside data. Keys match LINK_QUERIES in
 // pages/api/opensearch.ts; add new ones (e.g. IGSN) in both places.
 export const LINK_OPTIONS: { key: string; label: string }[] = [
   { key: 'r2r', label: 'R2R' },
-  { key: 'publication', label: 'Publication' },
+  ...(SHOW_PUBLICATIONS ? [{ key: 'publication', label: 'Publication' }] : []),
 ];
 
 export const getLinkLabel = (key: string): string =>

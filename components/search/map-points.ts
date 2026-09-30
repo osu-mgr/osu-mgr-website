@@ -15,7 +15,10 @@ export type Mode = 'globe' | 'flat' | 'north' | 'south';
 // bounds: [west, south, east, north] of a record's start and end positions,
 // with east past 180 when the box crosses the antimeridian; lat/lon is then
 // the box's centre.
-export type MapPoint = { name: string; type: string; lat: number; lon: number; bounds?: [number, number, number, number] };
+// muted: drawn in grey under the others and not labelled (see labelPoints),
+// for records shown around the one of interest, like the rest of its cruise's
+// stations. Its tooltip still shows on hover.
+export type MapPoint = { name: string; type: string; lat: number; lon: number; bounds?: [number, number, number, number]; muted?: boolean };
 
 const toNumber = (v: unknown): number => (v == null || v === '' ? NaN : parseFloat(v as string));
 const toLat = (v: unknown) => {
@@ -65,7 +68,7 @@ export const sphericalCentroid = (points: MapPoint[]): [number, number] | null =
 };
 
 // Records of one type at one spot (to ~10 m), which share a marker.
-export const pointKey = (p: MapPoint) => `${p.type}|${p.lat.toFixed(4)}|${p.lon.toFixed(4)}`;
+export const pointKey = (p: MapPoint) => `${p.muted ? 'muted|' : ''}${p.type}|${p.lat.toFixed(4)}|${p.lon.toFixed(4)}`;
 export const colocatedIndex = (points: MapPoint[]) => {
   const index = new Map<string, MapPoint[]>();
   points.forEach(p => {

@@ -12,10 +12,10 @@ import { ItemsCount } from '../util/items-count';
 import { CollectionFileButton } from '../util/collection-file-button';
 import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { DateTimeCell } from '../search/date-time-cell';
-import { MapPoint, stationLine, toMapPoint } from '../search/map-points';
+import { MapPoint, pointKey, stationLine, toMapPoint } from '../search/map-points';
 import { DetailFilterButton, OnDetailFilter } from '../search/detail-filter-button';
 import { Icon } from "../util/icon";
-import { getDiveMethodLabel, formatDate, formatTime, formatField, getFileTypeLabel, isPlaceholder, isVisibleFileType, shown } from "../search/search-data";
+import { getDiveMethodLabel, formatDate, formatTime, formatField, getFileTypeLabel, isPlaceholder, isVisibleFileType, shown, SHOW_PUBLICATIONS } from "../search/search-data";
 
 const MapLibreMap = dynamic(() => import("../search/maplibre-map"), {
   ssr: false,
@@ -254,6 +254,9 @@ const DESCENDANT_TABS: { [docType: string]: DescendantTab[] } = {
     { key: 'subsamples', label: 'Subsamples', types: ['diveSubsample'], termField: '_parentOSUID', uuidField: '_osuid' },
   ],
 };
+// Tabs left out of the modal for now; the definitions stay above so they can be
+// switched back on.
+const HIDDEN_DESCENDANT_TABS = ['coreSamples', 'rockSamples'];
 // Hooks must run the same number of times on every render, so the descendant
 // queries use a fixed number of slots regardless of record type.
 const MAX_DESCENDANT_TABS = 5;
@@ -290,7 +293,7 @@ const idCell = (d: any) => (
     {d._docType === 'cruise' && d._coreOSUIDs?.length > 0 && <><br/><b>Cores:</b> {numeral(d._coreOSUIDs.length).format(0)}</>}
     {d._docType === 'cruise' && d._diveOSUIDs?.length > 0 && <><br/><b>Dredges/Dives:</b> {numeral(d._diveOSUIDs.length).format(0)}</>}
     {['core', 'section', 'sectionHalf'].includes(d._docType) && d.nSections != null && <><br/><b>Sections:</b> {numeral(d.nSections).format(0)}</>}
-    {Array.isArray(d._publications) && d._publications.length > 0 && <><br/><b>Publications:</b> {numeral(d._publications.length).format(0)}</>}
+    {SHOW_PUBLICATIONS && Array.isArray(d._publications) && d._publications.length > 0 && <><br/><b>Publications:</b> {numeral(d._publications.length).format(0)}</>}
     {d._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
     <DataIssueBadges doc={d} />
   </>
@@ -838,10 +841,11 @@ const DetailRow: React.FC<{ label: string; value: any; field?: string; suffix?: 
 };
 
 // Map at the top of the Details tab: a cruise's stations, or the record's own
-// position. Sections normally carry coordinates inherited from their core; the
-// rare one that doesn't falls back to the core from the parent chain the modal
-// already fetched. Rocks are plotted as their dredge/dive.
-const mapType = (docType: string) => (docType === 'dive' || docType === 'rock' ? 'dive' : 'core');
+// position among the rest of its cruise's stations (muted: grey, labelled only
+// in their tooltips). Sections normally carry coordinates inherited from their
+// core; the rare one that doesn't falls back to the core from the parent chain
+// the modal already fetched. Rocks are plotted as their dredge/dive.
+const mapType = (docType: string) => (['dive', 'diveSample', 'diveSubsample'].includes(docType) ? 'dive' : 'core');
 const DetailsGlobe: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid: string) => void }> = ({ doc, ancestors, onNavigate }) => {
   // Memoised: the map re-centres whenever its points change.
   const points = useMemo((): MapPoint[] => {
@@ -855,7 +859,15 @@ const DetailsGlobe: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid:
       ? doc
       : (doc._docType === 'section' ? (ancestors || []).find((a: any) => a._docType === 'core' && hasCoords(a)) : null);
     const point = src && toMapPoint({ ...src, _osuid: doc._osuid }, mapType(doc._docType));
-    return point ? [point] : [];
+    if (!point) return [];
+    // The record's own station (a section's or rock's is its core's or
+    // dredge/dive's) is left out of the muted ones.
+    const cruise = (ancestors || []).find((a: any) => a._docType === 'cruise');
+    const others = ((cruise?._locations || []) as any[])
+      .map(loc => toMapPoint(loc, mapType(loc._docType)))
+      .filter((p): p is MapPoint => p !== null && p.name !== point.name && pointKey(p) !== pointKey(point))
+      .map(p => ({ ...p, muted: true }));
+    return [...others, point];
   }, [doc, ancestors]);
   // The cruise's ship track behind the markers (see pages/api/cruise-track),
   // for a cruise or any record from one. Without it, a cruise's stations are
@@ -979,7 +991,7 @@ const DetailsPanel: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid:
             </ul>
           </div>
         )}
-        {Array.isArray(doc._publications) && doc._publications.length > 0 && (
+        {SHOW_PUBLICATIONS && Array.isArray(doc._publications) && doc._publications.length > 0 && (
           <div className="md:col-span-2 mt-2">
             <strong>Publications:</strong>
             <ul className="m-0 mt-1 pl-5 text-sm">
@@ -1049,11 +1061,13 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; compact?: boolea
     ? results.hits.hits[0]._source 
     : {};
 
-  // Section halves are not shown as records: a link to one (e.g.
-  // OSU-CASCADES-82-1DC-5R) opens its parent section instead. Done from the
-  // loaded record's type rather than by ID pattern, because cores, sections and
-  // rock samples can also have IDs ending in a digit plus a letter.
-  const redirectTo = doc._docType === 'sectionHalf' && doc._parentOSUID ? doc._parentOSUID : null;
+  // Section halves and core samples are not shown as records: a link to one
+  // (e.g. OSU-CASCADES-82-1DC-5R) opens its parent instead. A core sample's
+  // parent is usually a section half, which redirects again to its section.
+  // Done from the loaded record's type rather than by ID pattern, because
+  // cores, sections and rock samples can also have IDs ending in a digit plus
+  // a letter.
+  const redirectTo = ['sectionHalf', 'coreSample'].includes(doc._docType) && doc._parentOSUID ? doc._parentOSUID : null;
   useEffect(() => {
     if (redirectTo && onNavigateToChild) onNavigateToChild(redirectTo);
   }, [redirectTo, onNavigateToChild]);
@@ -1072,7 +1086,8 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; compact?: boolea
   // Counts for the tab badges. These share query keys with the panels, so the
   // panel render never triggers a second fetch.
   const { data: ancestors, isLoading: isAncestorsLoading } = useAncestors(doc);
-  const descendantTabs: DescendantTab[] = (DESCENDANT_TABS[doc._docType] || []).filter(t => !!doc[t.uuidField]);
+  const descendantTabs: DescendantTab[] = (DESCENDANT_TABS[doc._docType] || [])
+    .filter(t => !!doc[t.uuidField] && !HIDDEN_DESCENDANT_TABS.includes(t.key));
   const slot = (i: number) => {
     const t = descendantTabs[i];
     return useChildDocs(t ? `${doc._docType}:${t.key}` : 'unused', t?.types || [], t?.termField || '', t ? doc[t.uuidField] : undefined);
