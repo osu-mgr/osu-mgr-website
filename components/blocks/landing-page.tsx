@@ -12,7 +12,7 @@ import { ItemsCount } from '../util/items-count';
 import { CollectionFileButton } from '../util/collection-file-button';
 import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { DateTimeCell } from '../search/date-time-cell';
-import { MapPoint, pointKey, stationLine, toMapPoint } from '../search/map-points';
+import { MapPoint, TrackInfo, TrackStop, pointKey, stationLine, toMapPoint } from '../search/map-points';
 import { DetailFilterButton, OnDetailFilter } from '../search/detail-filter-button';
 import { Icon } from "../util/icon";
 import { getDiveMethodLabel, formatDate, formatTime, formatField, getFileTypeLabel, isPlaceholder, isVisibleFileType, shown, SHOW_PUBLICATIONS } from "../search/search-data";
@@ -846,14 +846,55 @@ const DetailRow: React.FC<{ label: string; value: any; field?: string; suffix?: 
 // core; the rare one that doesn't falls back to the core from the parent chain
 // the modal already fetched. Rocks are plotted as their dredge/dive.
 const mapType = (docType: string) => (['dive', 'diveSample', 'diveSubsample'].includes(docType) ? 'dive' : 'core');
+// A cruise's cores and dredges/dives as stations along its track, with the
+// R/V, PI and dates its tooltips show (the cruise's _locations carry only
+// positions).
+const STOP_FIELDS = ['_osuid', '_docType', 'latitudeStart', 'longitudeStart', 'latitudeEnd', 'longitudeEnd',
+  'startDate', 'startTime', 'endDate', 'endTime', 'date', 'time', 'rvName', 'pi'];
+const joinDateTime = (date: string | null, time: string | null) => [date, time].filter(Boolean).join(' ') || undefined;
+const toTrackStop = (d: any): TrackStop | null => {
+  const point = toMapPoint(d, mapType(d._docType));
+  if (!point) return null;
+  const startDate = formatDate(d.startDate) || formatDate(d.date);
+  const endDate = formatDate(d.endDate);
+  const endTime = formatTime(d.endTime);
+  const time = Date.parse(d.startDate || d.date);
+  return {
+    lon: point.lon,
+    lat: point.lat,
+    rv: shown(d.rvName) || undefined,
+    pi: shown(d.pi) || undefined,
+    start: joinDateTime(startDate, formatTime(d.startTime) || formatTime(d.time)),
+    end: endDate || endTime ? joinDateTime(endDate || startDate, endTime) : undefined,
+    time: isNaN(time) ? undefined : time,
+  };
+};
+const useTrackStops = (cruiseUUID?: string) => useQuery({
+  queryKey: ['trackStops', cruiseUUID],
+  enabled: Boolean(cruiseUUID),
+  staleTime: 5 * 60 * 1000,
+  queryFn: async (): Promise<TrackStop[]> => {
+    const res = await fetch('/api/opensearch?search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ types: ['core', 'dive'], terms: { '_cruiseUUID.keyword': [cruiseUUID] }, sortOrder: 'ids asc', size: 5000, _source: STOP_FIELDS }),
+    });
+    if (!res.ok) return [];
+    const results = await res.json();
+    return ((results?.hits?.hits || []) as any[]).map(h => toTrackStop(h._source)).filter((s): s is TrackStop => s !== null);
+  },
+});
+
 const DetailsGlobe: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid: string) => void }> = ({ doc, ancestors, onNavigate }) => {
+  // The cruise's stations: the record itself for a cruise, else its cruise
+  // from the parent chain.
+  const cruise = doc._docType === 'cruise' ? doc : (ancestors || []).find((a: any) => a._docType === 'cruise');
+  const stations = useMemo((): MapPoint[] => ((cruise?._locations || []) as any[])
+    .map(loc => toMapPoint(loc, mapType(loc._docType)))
+    .filter((p): p is MapPoint => p !== null), [cruise]);
   // Memoised: the map re-centres whenever its points change.
   const points = useMemo((): MapPoint[] => {
-    if (doc._docType === 'cruise') {
-      return ((doc._locations || []) as any[])
-        .map(loc => toMapPoint(loc, mapType(loc._docType)))
-        .filter((p): p is MapPoint => p !== null);
-    }
+    if (doc._docType === 'cruise') return stations;
     const hasCoords = (d: any) => d && (d.latitudeStart != null || d.latitudeEnd != null || d.longitudeStart != null || d.longitudeEnd != null);
     const src = hasCoords(doc)
       ? doc
@@ -862,19 +903,15 @@ const DetailsGlobe: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid:
     if (!point) return [];
     // The record's own station (a section's or rock's is its core's or
     // dredge/dive's) is left out of the muted ones.
-    const cruise = (ancestors || []).find((a: any) => a._docType === 'cruise');
-    const others = ((cruise?._locations || []) as any[])
-      .map(loc => toMapPoint(loc, mapType(loc._docType)))
-      .filter((p): p is MapPoint => p !== null && p.name !== point.name && pointKey(p) !== pointKey(point))
+    const others = stations
+      .filter(p => p.name !== point.name && pointKey(p) !== pointKey(point))
       .map(p => ({ ...p, muted: true }));
     return [...others, point];
-  }, [doc, ancestors]);
+  }, [doc, ancestors, stations]);
   // The cruise's ship track behind the markers (see pages/api/cruise-track),
-  // for a cruise or any record from one. Without it, a cruise's stations are
-  // joined in order instead, dashed.
-  const cruiseOsuid: string | undefined = doc._docType === 'cruise'
-    ? doc._osuid
-    : (ancestors || []).find((a: any) => a._docType === 'cruise')?._osuid;
+  // for a cruise or any record from one, for context. Without it, the
+  // cruise's stations are joined in order instead, dashed.
+  const cruiseOsuid: string | undefined = cruise?._osuid;
   const { data: cruiseTrack, isFetched: trackFetched } = useQuery({
     queryKey: ['cruiseTrack', cruiseOsuid],
     queryFn: async () => {
@@ -884,11 +921,15 @@ const DetailsGlobe: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid:
     enabled: Boolean(cruiseOsuid),
     staleTime: Infinity,
   });
+  // Hovering the track shows the cruise's R/V, PI and the dates between the
+  // stations either side.
+  const { data: stops } = useTrackStops(cruise?._uuid);
   const track = useMemo(() => {
-    if (cruiseTrack?.geometry) return { geometry: cruiseTrack.geometry, approximate: false };
-    const stations = doc._docType === 'cruise' && trackFetched ? stationLine(points) : null;
-    return stations ? { geometry: stations, approximate: true } : null;
-  }, [cruiseTrack, trackFetched, points, doc._docType]);
+    const info: TrackInfo = { name: cruise?._osuid, rv: shown(cruise?.rvName) || undefined, pi: shown(cruise?.pi) || undefined, stops };
+    if (cruiseTrack?.geometry) return { geometry: cruiseTrack.geometry, approximate: false, info };
+    const line = trackFetched ? stationLine(stations) : null;
+    return line ? { geometry: line, approximate: true, info } : null;
+  }, [cruiseTrack, trackFetched, stations, cruise, stops]);
   if (!points.length) return null;
   return (
     <div className="relative border border-base-300 rounded-lg overflow-hidden mb-4 h-[300px]">

@@ -83,15 +83,45 @@ export const colocatedIndex = (points: MapPoint[]) => {
 const MAX_TOOLTIP_IDS = 12;
 const escapeHtml = (text: string) => text.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 
+// Field names in the tooltips, lighter than their values.
+const TOOLTIP_LABEL_STYLE = 'color:#6b7280';
+
 // Tooltip HTML for the records at one spot (their type is the marker's
 // colour). With several, their IDs are links (data-osuid) that the map opens
 // on click.
 export const markerTooltip = (members: MapPoint[]) => {
-  if (members.length === 1) return `<b>${escapeHtml(members[0].name)}</b>`;
+  if (members.length === 1) return escapeHtml(members[0].name);
   const link = (m: MapPoint) =>
     `<a data-osuid="${escapeHtml(m.name)}" style="cursor:pointer;color:#D73F09;text-decoration:underline">${escapeHtml(m.name)}</a>`;
   const more = members.length > MAX_TOOLTIP_IDS ? `<br/>and ${members.length - MAX_TOOLTIP_IDS} more` : '';
-  return `<b>${numeral(members.length).format('0,0')} at one location:</b><br/>${members.slice(0, MAX_TOOLTIP_IDS).map(link).join('<br/>')}${more}`;
+  return `<span style="${TOOLTIP_LABEL_STYLE}">${numeral(members.length).format('0,0')} at one location:</span><br/>${members.slice(0, MAX_TOOLTIP_IDS).map(link).join('<br/>')}${more}`;
+};
+
+// A cruise's track, for its tooltips: the cruise's ID, R/V and PI, and its
+// stations (the cores and dredges/dives along it) with their R/V, PI and
+// start and end dates as shown, and time (ms) to put them in order.
+export type TrackStop = { lon: number; lat: number; rv?: string; pi?: string; start?: string; end?: string; time?: number };
+export type TrackInfo = { name?: string; rv?: string; pi?: string; stops?: TrackStop[] };
+const INFERRED_BADGE = '<span style="margin-left:6px;padding:0 4px;border-radius:3px;border:1px solid #d1d5db;background:#f3f4f6;'
+  + 'color:#6b7280;font-size:9px;font-weight:600;letter-spacing:0.04em;vertical-align:1px">INFERRED</span>';
+
+// Tooltip HTML for the stretch of track between two stations (either missing
+// before the first or after the last): the cruise, the stations' R/V and PI
+// (else the cruise's), and the dates from leaving one to reaching the other.
+// Inferred tracks (the stations joined in order) are badged.
+export const trackTooltip = (info: TrackInfo, approximate: boolean, a?: TrackStop, b?: TrackStop) => {
+  const [first, second] = a?.time != null && b?.time != null && a.time > b.time ? [b, a] : [a, b];
+  const values = (key: 'rv' | 'pi', fallback?: string) => {
+    const found = [...new Set([first?.[key], second?.[key]].filter((v): v is string => Boolean(v)))];
+    return found.length ? found.join(', ') : fallback;
+  };
+  const from = first ? first.end || first.start : undefined;
+  const to = second ? second.start || second.end : undefined;
+  const dates = from && to && from !== to ? `${from} – ${to}` : from || to;
+  const rows = ([['R/V', values('rv', info.rv)], ['PI', values('pi', info.pi)], ['Date', dates]] as const)
+    .filter(([, value]) => value)
+    .map(([label, value]) => `<br/><span style="${TOOLTIP_LABEL_STYLE}">${label}:</span> ${escapeHtml(value!)}`);
+  return `${escapeHtml(info.name || 'Cruise track')}${approximate ? INFERRED_BADGE : ''}${rows.join('')}`;
 };
 
 // Geospatial filter area: [west, south, east, north] in degrees, with east

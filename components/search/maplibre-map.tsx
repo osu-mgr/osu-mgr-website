@@ -5,7 +5,7 @@ import {
   BASEMAP_ATTRIBUTION, BASEMAP_MAXZOOM, BASEMAP_TILES, MERCATOR_LAT, PLACE_LABEL_STYLE, POLAR_CAPS, UNDERSEA_ATTRIBUTION,
   UNDERSEA_FEATURES,
 } from './basemap';
-import { Area, MapPoint, Mode, colocatedIndex, layerFor, markerTooltip, pointKey, sphericalCentroid } from './map-points';
+import { Area, MapPoint, Mode, TrackInfo, TrackStop, colocatedIndex, layerFor, markerTooltip, pointKey, sphericalCentroid, trackTooltip } from './map-points';
 import { createPolarCapsLayer } from './polar-caps';
 
 // MapLibre has only Web Mercator and globe projections, so the flat view is
@@ -93,6 +93,7 @@ const MAX_FLAT_CENTER_LAT = 70;
 // Hit tolerance around the pointer, in pixels.
 const HIT_PX = 4;
 const HIT_LAYERS = ['points', 'boxes'];
+const TRACK_LAYERS = ['track', 'track-approximate'];
 // A record's box replaces its marker once both its sides are this long on
 // screen (the marker's width); smaller, the marker shows where it is.
 const BOX_MIN_PX = 8;
@@ -101,7 +102,12 @@ const BOX_MIN_PX = 8;
 // circles; the flat map has nowhere else to put them.
 const isPolar = (p: MapPoint) => Math.abs(p.lat) > MERCATOR_LAT;
 const MARKER_STYLE = 'width:8px;height:8px;border-radius:50%;border:1px solid #ffffff;box-sizing:border-box;cursor:pointer';
-const TOOLTIP_CLASS = 'absolute z-10 hidden whitespace-nowrap bg-white rounded border border-base-300 shadow px-2.5 py-1.5 text-sm text-gray-700 leading-snug';
+const TOOLTIP_CLASS = 'absolute z-10 hidden whitespace-nowrap';
+// Styled as the records' labels (labelBox, POLAR_POINT_LABEL_STYLE).
+const TOOLTIP_STYLE: React.CSSProperties = {
+  font: "11px 'Noto Sans',sans-serif", color: '#374151', background: '#ffffff', border: '1px solid #d1d5db', borderRadius: 3,
+  padding: '1px 5px', lineHeight: '17px', boxShadow: '0 1px 1px rgba(0,0,0,0.12)',
+};
 const wrap180 = (degrees: number) => ((degrees % 360) + 540) % 360 - 180;
 
 // Where a view looks to show the points' centre of mass: in the globe and
@@ -145,6 +151,33 @@ const polarLines = (geometry: GeoJSON.Geometry): [number, number][][] => {
     });
     return parts.filter(p => p.length > 1);
   });
+};
+// Where along a track a point is nearest: the index of the line segment
+// (counting on through each line of a MultiLineString) plus how far along it
+// (0 to 1), so that positions along the track compare as numbers. Distances
+// are in degrees with longitude scaled by latitude, which is plenty to tell
+// the segments apart; the track's longitudes run on continuously, so the
+// point's is taken near each segment's.
+const trackLines = (geometry: GeoJSON.Geometry): [number, number][][] =>
+  (geometry.type === 'LineString' ? [geometry.coordinates]
+    : geometry.type === 'MultiLineString' ? geometry.coordinates : []) as [number, number][][];
+const alongTrack = (lines: [number, number][][], lon: number, lat: number): number => {
+  let [best, along, offset] = [Infinity, 0, 0];
+  const scale = Math.cos(lat * Math.PI / 180);
+  lines.forEach(line => {
+    for (let i = 0; i + 1 < line.length; i++) {
+      const [[x0, y0], [x1, y1]] = [line[i], line[i + 1]];
+      const px = (lon + 360 * Math.round((x0 - lon) / 360) - x0) * scale;
+      const py = lat - y0;
+      const [dx, dy] = [(x1 - x0) * scale, y1 - y0];
+      const length = dx * dx + dy * dy;
+      const t = length ? Math.min(Math.max((px * dx + py * dy) / length, 0), 1) : 0;
+      const distance = (px - t * dx) ** 2 + (py - t * dy) ** 2;
+      if (distance < best) [best, along] = [distance, offset + i + t];
+    }
+    offset += Math.max(line.length - 1, 0);
+  });
+  return along;
 };
 const mercatorLines = (geometry: GeoJSON.Geometry): [number, number][][] => {
   const lines = geometry.type === 'LineString' ? [geometry.coordinates]
@@ -439,8 +472,9 @@ const MapLibreMap: React.FC<{
   // leaves out. They can't be hovered or clicked.
   context?: MapPoint[];
   // A cruise's track, behind its records: dashed when approximate (its
-  // stations joined in order, where the real one isn't known).
-  track?: { geometry: GeoJSON.Geometry; approximate: boolean } | null;
+  // stations joined in order, where the real one isn't known). With info,
+  // hovering it shows the cruise and the stretch between two stations.
+  track?: { geometry: GeoJSON.Geometry; approximate: boolean; info?: TrackInfo } | null;
 }> = ({ mode, points, onSelect, zoom, fit, labelPoints, area, onAreaChange, requestViewArea, zoomTo, focusKey, context, track }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -812,8 +846,19 @@ const MapLibreMap: React.FC<{
       trackPath.setAttribute('d', d);
     };
     if (globe) map.on('render', drawPolarTrack);
+    // The track's lines and its stations in order along them, for its tooltip.
+    let hoverTrack: { lines: [number, number][][]; stops: { along: number; stop: TrackStop }[] } | null = null;
     const setTrack = () => {
       const current = trackRef.current;
+      if (current?.info) {
+        const lines = trackLines(current.geometry);
+        const stops = (current.info.stops || [])
+          .map(stop => ({ along: alongTrack(lines, stop.lon, stop.lat), stop }))
+          .sort((a, b) => a.along - b.along);
+        hoverTrack = { lines, stops };
+      } else {
+        hoverTrack = null;
+      }
       const lines = current ? mercatorLines(current.geometry) : [];
       (map.getSource('track') as maplibregl.GeoJSONSource).setData(collection(lines.length ? [{
         type: 'Feature',
@@ -1108,11 +1153,25 @@ const MapLibreMap: React.FC<{
       const key = features[0]?.properties?.key;
       return key ? pointsRef.current.index.get(key) : undefined;
     };
+    // The track's tooltip under the pointer, if it's over the track: the
+    // stretch between the stations either side of that point along it.
+    const trackTooltipAt = (e: maplibregl.MapMouseEvent) => {
+      const current = trackRef.current;
+      if (!hoverTrack || !current?.info) return null;
+      const { x, y } = e.point;
+      if (!map.queryRenderedFeatures([[x - HIT_PX, y - HIT_PX], [x + HIT_PX, y + HIT_PX]], { layers: TRACK_LAYERS }).length) return null;
+      const along = alongTrack(hoverTrack.lines, e.lngLat.lng, e.lngLat.lat);
+      const next = hoverTrack.stops.findIndex(s => s.along > along);
+      const after = next < 0 ? hoverTrack.stops.length : next;
+      return trackTooltip(current.info, current.approximate, hoverTrack.stops[after - 1]?.stop, hoverTrack.stops[after]?.stop);
+    };
     map.on('mousemove', e => {
       if (overMarker) return;
       const members = hitTest(e);
+      const trackHtml = members ? null : trackTooltipAt(e);
       canvas.style.cursor = members ? 'pointer' : onOutline(e.point.x, e.point.y) ? 'move' : '';
       if (members) tooltip.show(markerTooltip(members), e.point.x, e.point.y);
+      else if (trackHtml) tooltip.show(trackHtml, e.point.x, e.point.y);
       else tooltip.scheduleHide();
     });
     map.on('movestart', tooltip.hide);
@@ -1174,6 +1233,7 @@ const MapLibreMap: React.FC<{
       <div
         ref={tooltipRef}
         className={TOOLTIP_CLASS}
+        style={TOOLTIP_STYLE}
         // Record links in the tooltip.
         onClick={e => {
           const osuid = (e.target as HTMLElement).closest('[data-osuid]')?.getAttribute('data-osuid');
