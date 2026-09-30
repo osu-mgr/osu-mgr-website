@@ -1,3 +1,8 @@
+// Publications (the DOI links on records, the Links > Publication filter and
+// publication search suggestions) are only shown on non-prod deployments for
+// now, like the raw data view. pages/api/opensearch.ts applies the same rule.
+export const SHOW_PUBLICATIONS = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
+
 export const moratoriumCruises = [
   'OSU-KM2201',
   'OSU-NBP1808',
@@ -46,6 +51,18 @@ export const moratoriumCruises = [
   'OSU-TN426',
   'OSU-TN435'
 ];
+
+// Collection codes stored in each record's `collection` field (names per the
+// Collections policy page).
+export const collectionLabels: { [code: string]: string } = {
+  MGG: 'Marine Geology & Geophysics Collection',
+  ACC: 'Antarctic Core Collection',
+  NOAA: 'NOAA hosted Marine Rock Collection',
+  ODC: 'Oregon Drill Core Collection',
+};
+
+export const getCollectionLabel = (code?: string): string =>
+  (code && collectionLabels[code]) || code || '';
 
 export const r2rCruiseLinks: { [key: string]: string[] } = {
   'OSU-AT0003': ['https://www.rvdata.us/search/cruise/AT3-49'],
@@ -139,11 +156,16 @@ export const fileTypes = [
   'xrf-data'
 ];
 
-// File types that exist in the index but are never offered as a filter or in
-// the bulk download: IGSN registration sheets and IMLGS export files are
-// internal bookkeeping, not collection data. (They are also absent from
-// `fileTypes` above, which drives the filter dropdowns and the API counts.)
-export const hiddenFileTypes = ['igsn-sheet', 'imlgs-file'];
+// File types that exist in the index but are never shown anywhere: not as a
+// filter, in the bulk download, or in the landing page / modal file lists.
+// IGSN registration sheets and IMLGS export files are internal bookkeeping,
+// not collection data; ITRAX X-ray images are not published. (They are also
+// absent from `fileTypes` above, which drives the filter dropdowns and the API
+// counts.) The pipeline skips thumbnails for these types, so keep it in sync.
+export const hiddenFileTypes = ['igsn-sheet', 'imlgs-file', 'itrax-xray-image'];
+
+export const isVisibleFileType = (fileType?: string): boolean =>
+  !fileType || !hiddenFileTypes.includes(fileType);
 
 export const isDownloadableFileType = (fileType?: string): boolean =>
   !!fileType && !fileType.startsWith('itrax-') && !hiddenFileTypes.includes(fileType);
@@ -216,6 +238,65 @@ const localDate = (y: number, m: number, d: number): string | null => {
   const dt = new Date(y, m - 1, d);
   if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
   return dt.toLocaleDateString();
+};
+
+// Measurements come out of spreadsheets through floating point, so values like
+// 1097.2799999999988 or 0.30000000000000004 reach the index. A long decimal tail
+// (9+ digits) that ends in a run of five or more 0s or 9s plus a few stray digits
+// is an artifact, not precision, so it is rounded off at the start of the run.
+// Short tails and everything that is not a plain number pass through untouched,
+// so real values like -30.117338 or 0.000012 are never altered.
+const FLOAT_ARTIFACT_RE = /^(-?\d+)\.(\d*?)(0{5,}|9{5,})\d{0,3}$/;
+// Source spreadsheets use placeholders for "no value" in text fields ("none",
+// "NA", "N/A", "null", "unknown", "?", "-"). Fields holding one are hidden
+// rather than shown. Numbers (including 0) are never treated as placeholders.
+const PLACEHOLDER_RE = /^(none|n\/?a|null|nan|unknown|undefined|\?+|-+|\.+)$/i;
+export const isPlaceholder = (value: any): boolean =>
+  value === null || value === undefined ||
+  (typeof value === 'string' && (value.trim() === '' || PLACEHOLDER_RE.test(value.trim())));
+// The value itself, or null when it is a placeholder.
+export const shown = (value: any): any => (isPlaceholder(value) ? null : value);
+
+export const formatNumber = (value: any): any => {
+  if (value === null || value === undefined || typeof value === 'boolean') return value;
+  const str = String(value).trim();
+  const m = FLOAT_ARTIFACT_RE.exec(str);
+  if (!m || str.length - str.indexOf('.') - 1 < 9) return value;
+  const n = Number(parseFloat(str).toFixed(m[2].length));
+  return Number.isFinite(n) ? String(n) : value;
+};
+
+// Nominal display precision (decimal places) per numeric field. Adjust here to
+// change how a field renders everywhere (modal details, record cards, results
+// table): 45.000001 shows as "45.0" with 1, "45.000" with 3, "45" with 0.
+// Fields not listed keep their stored value (after artifact cleanup above).
+export const FIELD_PRECISION: { [field: string]: number } = {
+  length: 1,          // cm
+  diameter: 1,        // cm
+  thickness: 1,       // cm
+  depthTop: 1,        // cm
+  depthBottom: 1,     // cm
+  weight: 2,          // kg
+  latitudeStart: 4,   // degrees (~10 m)
+  latitudeEnd: 4,
+  longitudeStart: 4,
+  longitudeEnd: 4,
+  waterDepthStart: 0, // m
+  waterDepthEnd: 0,
+};
+
+const PLAIN_NUMBER_RE = /^-?\d+(\.\d+)?$/;
+
+// Format a field's value for display: strip float artifacts, then round to the
+// field's nominal precision. Non-numeric values pass through verbatim.
+export const formatField = (field: string, value: any): any => {
+  const cleaned = formatNumber(value);
+  const precision = FIELD_PRECISION[field];
+  if (precision === undefined || cleaned === null || cleaned === undefined) return cleaned;
+  const str = String(cleaned).trim();
+  if (!PLAIN_NUMBER_RE.test(str)) return cleaned;
+  const n = parseFloat(str);
+  return Number.isFinite(n) ? n.toFixed(precision) : cleaned;
 };
 
 export const formatDate = (value: any): string | null => {

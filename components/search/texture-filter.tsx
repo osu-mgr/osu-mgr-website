@@ -1,6 +1,6 @@
 import numeral from 'numeral';
 import React, { useState } from "react";
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
 
 // Texture Filter Dropdown Component
@@ -13,7 +13,7 @@ export const TextureFilterDropdown: React.FC<{
 
   // Fetch counts for each texture
   const { data: textureCounts, isLoading: countsLoading } = useQuery({
-    queryKey: ['textureCountsDropdown', search.types, search.searchString, search.filters, search.filterLogic],
+    queryKey: ['textureCountsDropdown', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?textureCounts', {
         method: 'POST',
@@ -22,7 +22,8 @@ export const TextureFilterDropdown: React.FC<{
           types: search.types,
           searchString: search.searchString || '',
           filters: search.filters,
-          filterLogic: search.filterLogic
+          filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
         }),
       });
 
@@ -32,6 +33,7 @@ export const TextureFilterDropdown: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.some((type: string) => ['dive', 'diveSample'].includes(type))
   });

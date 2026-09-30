@@ -1,6 +1,14 @@
 {
   "redirects": [
     {
+      "source": "/antarctic-map",
+      "destination": "/map#antarctic-cores"
+    },
+    {
+      "source": "/oregon-drill-cores",
+      "destination": "/map#oregon-drill-cores"
+    },
+    {
       "source": "/monitor",
       "destination": "https://grafana.marfik.earthref.org/d/mCyHRA_nk/ararmonitor?orgId=1&from=now-4d&to=now&refresh=1m&kiosk"
     },
@@ -14,7 +22,7 @@
       "src": "package.json",
       "use": "@vercel/next",
       "config": {
-        "nodeVersion": "20.x"
+        "nodeVersion": "24.x"
       }
     }
   ]

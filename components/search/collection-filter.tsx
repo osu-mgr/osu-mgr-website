@@ -1,6 +1,6 @@
 import numeral from 'numeral';
 import React, { useState } from "react";
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
 
 // Collection Filter Dropdown Component (Material Types + Methods)
@@ -27,7 +27,7 @@ export const CollectionFilterDropdown: React.FC<{
 
   // Fetch counts for each method
   const { data: methodCounts, isLoading: methodCountsLoading } = useQuery({
-    queryKey: ['methodCounts', search.types, search.searchString, search.filters, search.filterLogic],
+    queryKey: ['methodCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?methodCounts', {
         method: 'POST',
@@ -36,7 +36,8 @@ export const CollectionFilterDropdown: React.FC<{
           types: search.types,
           searchString: search.searchString || '',
           filters: search.filters,
-          filterLogic: search.filterLogic
+          filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
         }),
       });
 
@@ -46,13 +47,14 @@ export const CollectionFilterDropdown: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('core') || search.types.includes('dive') || search.types.includes('cruise')
   });
 
   // Fetch counts for each material type
   const { data: materialCounts, isLoading: materialCountsLoading } = useQuery({
-    queryKey: ['materialCounts', search.types, search.searchString, search.filters, search.filterLogic],
+    queryKey: ['materialCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?materialCounts', {
         method: 'POST',
@@ -61,7 +63,8 @@ export const CollectionFilterDropdown: React.FC<{
           types: search.types,
           searchString: search.searchString || '',
           filters: search.filters,
-          filterLogic: search.filterLogic
+          filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
         }),
       });
 
@@ -71,6 +74,7 @@ export const CollectionFilterDropdown: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('core') || search.types.includes('dive')
   });
