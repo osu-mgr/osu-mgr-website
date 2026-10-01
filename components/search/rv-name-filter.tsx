@@ -1,6 +1,6 @@
 import numeral from 'numeral';
 import React, { useState } from "react";
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
 
 // RV Name Filter Dropdown Component
@@ -26,7 +26,7 @@ export const RvNameFilterDropdown: React.FC<{
 
   // Fetch counts for each RV name
   const { data: rvNameCounts, isLoading: countsLoading } = useQuery({
-    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?rvNameCounts', {
         method: 'POST',
@@ -35,7 +35,8 @@ export const RvNameFilterDropdown: React.FC<{
           types: search.types,
           searchString: search.searchString || '',
           filters: search.filters,
-          filterLogic: search.filterLogic
+          filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
         }),
       });
 
@@ -45,6 +46,7 @@ export const RvNameFilterDropdown: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000, // 30 minutes
     enabled: search.types.includes('cruise')
   });

@@ -1,8 +1,10 @@
 import numeral from 'numeral';
 import React, { useState } from "react";
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { LinksFilterOptions, LinksLogicToggle, clearLinks, CollectionsFilterOptions, clearCollections } from "./id-column-filter";
+import { Area, formatArea } from './map-points';
 import { Icon } from "../util/icon";
-import { fileTypes, getFileTypeLabel } from './search-data';
+import { fileTypes, hiddenFileTypes, getFileTypeLabel } from './search-data';
 
 const RELATED_FILE_TYPES = [
   'core-description', 'core-image', 'coring-data-sheet', 'cruise-report',
@@ -19,12 +21,20 @@ export const FilterPanel: React.FC<{
   search: any;
   setSearch: (search: any) => void;
   onToggle: () => void;
-}> = ({ search, setSearch, onToggle }) => {
+  // Opens the Maps tab to edit the area filter, adding an area if create.
+  onEditArea: (create: boolean) => void;
+}> = ({ search, setSearch, onToggle, onEditArea }) => {
+  const area: Area | null = search.filters?.area || null;
+  const clearArea = () => setSearch({ ...search, filters: { ...search.filters, area: undefined } });
   const selectedMethods = search.filters?.methods || [];
   const selectedMaterialTypes = search.filters?.materialTypes || [];
   const selectedRvNames = search.filters?.rvNames || [];
   const selectedFileTypes = search.filters?.fileTypes || [];
   const selectedRelatedFileTypes = search.filters?.relatedFileTypes || [];
+  // Data-quality filter is only offered on non-prod deployments; prod hides
+  // flagged records entirely (see pages/api/opensearch.ts guardQuery).
+  const showDataIssues = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
+  const selectedDataIssues: string[] = search.filters?.dataIssues || [];
 
   // Collapse state for each filter section
   const [collapsedSections, setCollapsedSections] = useState<{[key: string]: boolean}>({
@@ -35,6 +45,10 @@ export const FilterPanel: React.FC<{
     textures: false,
     fileTypes: false,
     relatedFileTypes: false,
+    dataIssues: false,
+    links: false,
+    collections: false,
+    area: false,
   });
 
   const toggleSection = (section: string) => {
@@ -51,7 +65,11 @@ export const FilterPanel: React.FC<{
     selectedMethods.length > 0,
     selectedMaterialTypes.length > 0,
     selectedRvNames.length > 0,
-    (search.filters?.institutions || []).length > 0
+    (search.filters?.institutions || []).length > 0,
+    selectedDataIssues.length > 0,
+    (search.filters?.links || []).length > 0,
+    (search.filters?.collections || []).length > 0,
+    Boolean(area),
   ].filter(Boolean).length;
 
   const toggleFilterLogic = (filterType: string) => {
@@ -68,7 +86,7 @@ export const FilterPanel: React.FC<{
   };
 
   const { data: methodCounts, isLoading: methodsLoading } = useQuery({
-    queryKey: ['methodCounts', search.types, search.searchString, search.filters?.methods, search.filterLogic?.methods, search.filters?.fileTypes, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
+    queryKey: ['methodCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?methodCounts', {
         method: 'POST',
@@ -77,17 +95,19 @@ export const FilterPanel: React.FC<{
           types: search.types,
           searchString: search.searchString || '',
           filters: search.filters,
-          filterLogic: search.filterLogic
+          filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
         }),
       });
       return res.ok ? res.json() : {};
     },
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000,
   });
 
   const { data: materialCounts, isLoading: materialsLoading } = useQuery({
-    queryKey: ['materialCounts', search.types, search.searchString, search.filters?.materialTypes, search.filterLogic?.materialTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
+    queryKey: ['materialCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?materialCounts', {
         method: 'POST',
@@ -96,17 +116,19 @@ export const FilterPanel: React.FC<{
           types: search.types,
           searchString: search.searchString || '',
           filters: search.filters,
-          filterLogic: search.filterLogic
+          filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
         }),
       });
       return res.ok ? res.json() : {};
     },
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000,
   });
 
   const { data: rvNameCounts, isLoading: rvNamesLoading } = useQuery({
-    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters?.rvNames, search.filterLogic?.rvNames, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.institutions, search.filters?.textures],
+    queryKey: ['rvNameCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?rvNameCounts', {
         method: 'POST',
@@ -115,18 +137,20 @@ export const FilterPanel: React.FC<{
           types: search.types,
           searchString: search.searchString || '',
           filters: search.filters,
-          filterLogic: search.filterLogic
+          filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
         }),
       });
       return res.ok ? res.json() : {};
     },
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000,
   });
 
   // Fetch counts for each file type - reuse the same query as FileTypesFilterDropdown
   const { data: fileTypeCounts, isLoading: fileTypesLoading } = useQuery({
-    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
+    queryKey: ['fileTypeCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?fileTypeCounts', {
         method: 'POST',
@@ -135,7 +159,8 @@ export const FilterPanel: React.FC<{
           types: search.types,
           searchString: search.searchString || '',
           filters: search.filters,
-          filterLogic: search.filterLogic
+          filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
         }),
       });
 
@@ -145,11 +170,12 @@ export const FilterPanel: React.FC<{
       return {};
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000, // 30 minutes
   });
 
   const { data: relatedFileTypeCounts, isLoading: relatedFileTypesLoading } = useQuery({
-    queryKey: ['relatedFileTypeCounts', search.types, search.searchString, search.filters?.relatedFileTypes, search.filterLogic?.relatedFileTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
+    queryKey: ['relatedFileTypeCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?relatedFileTypeCounts', {
         method: 'POST',
@@ -159,13 +185,50 @@ export const FilterPanel: React.FC<{
           searchString: search.searchString || '',
           filters: search.filters,
           filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
         }),
       });
       return res.ok ? res.json() : {};
     },
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000,
   });
+
+  const { data: dataIssueCounts, isLoading: dataIssuesLoading } = useQuery({
+    queryKey: ['dataIssueCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
+    queryFn: async () => {
+      const res = await fetch('/api/opensearch?dataIssueCounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          types: search.types,
+          searchString: search.searchString || '',
+          filters: search.filters,
+          filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
+        }),
+      });
+      return res.ok ? res.json() : { errors: 0, warnings: 0 };
+    },
+    staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
+    gcTime: 30 * 60 * 1000,
+    enabled: showDataIssues,
+  });
+
+  const handleDataIssueChange = (issue: string, checked: boolean) => {
+    const next = checked
+      ? Array.from(new Set([...selectedDataIssues, issue]))
+      : selectedDataIssues.filter((i: string) => i !== issue);
+    setSearch({
+      ...search,
+      filters: {
+        ...search.filters,
+        dataIssues: next
+      }
+    });
+  };
 
   const handleMethodChange = (method: string, checked: boolean) => {
     const currentMethods = search.filters?.methods || [];
@@ -430,7 +493,7 @@ export const FilterPanel: React.FC<{
     : [];
 
   const { data: institutionData, isLoading: institutionsLoading } = useQuery({
-    queryKey: ['institutionCounts', search.types, search.searchString, search.filters?.institutions, search.filterLogic?.institutions, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.textures],
+    queryKey: ['institutionCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?institutionCounts', {
         method: 'POST',
@@ -439,12 +502,14 @@ export const FilterPanel: React.FC<{
           types: search.types,
           searchString: search.searchString || '',
           filters: search.filters,
-          filterLogic: search.filterLogic
+          filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
         }),
       });
       return res.ok ? res.json() : { counts: {}, piInstitutions: {} };
     },
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000,
   });
 
@@ -513,7 +578,7 @@ export const FilterPanel: React.FC<{
     : [];
 
   const { data: textureCounts, isLoading: texturesLoading } = useQuery({
-    queryKey: ['textureCounts', search.types, search.searchString, search.filters?.textures, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions],
+    queryKey: ['textureCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?textureCounts', {
         method: 'POST',
@@ -522,12 +587,14 @@ export const FilterPanel: React.FC<{
           types: search.types,
           searchString: search.searchString || '',
           filters: search.filters,
-          filterLogic: search.filterLogic
+          filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
         }),
       });
       return res.ok ? res.json() : {};
     },
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000,
   });
 
@@ -593,10 +660,10 @@ export const FilterPanel: React.FC<{
     : [];
 
   // Filter out file types with 0 counts, but keep selected ones visible
-  // Sort selected items to the top, and filter out imgs-file
+  // Sort selected items to the top, and drop hidden (bookkeeping) file types
   const availableFileTypes = fileTypeCounts
     ? fileTypes.filter(fileType =>
-        fileType !== 'imgs-file' && // Hide imgs-file from the left panel too
+        !hiddenFileTypes.includes(fileType) &&
         ((fileTypeCounts[fileType] || 0) > 0 || selectedFileTypes.includes(fileType))
       ).sort((a, b) => {
         const aSelected = selectedFileTypes.includes(a);
@@ -605,11 +672,12 @@ export const FilterPanel: React.FC<{
         if (!aSelected && bSelected) return 1;
         return 0;
       })
-    : fileTypes.filter(fileType => fileType !== 'imgs-file');
+    : fileTypes.filter(fileType => !hiddenFileTypes.includes(fileType));
 
   return (
-    <div className="pr-4 w-[320px] flex-shrink-0 border-r-2">
-      <div className="sticky top-0 bg-white pb-2">
+    // Fills the sidebar, which is 320px including any vertical scrollbar.
+    <div className="pr-3 w-full border-r-2">
+      <div className="sticky top-0 z-10 bg-white pb-2">
         <div className="flex items-center justify-between">
           <div className="tabs min-w-full px-0">
             <div className="tab tab-lg tab-bordered text-primary flex-grow justify-start px-0"
@@ -631,7 +699,10 @@ export const FilterPanel: React.FC<{
                         materialTypes: [],
                         rvNames: [],
                         institutions: [],
-                        textures: []
+                        textures: [],
+                        dataIssues: [],
+                        links: [],
+                        collections: []
                       }
                     });
                   }}
@@ -654,6 +725,98 @@ export const FilterPanel: React.FC<{
       </div>
 
 
+      <div className="form-control mb-4">
+        <div className="label">
+          <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('area')}>
+            <Icon name={collapsedSections.area ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+            Geospatial
+          </span>
+          <div className="flex gap-1 flex-shrink-0">
+            <button className="btn btn-xs btn-outline" onClick={clearArea}>
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {!collapsedSections.area && (
+        <div className="border rounded bg-base-100">
+          <div className="p-2">
+            {/* Checking it opens the map, where the area is added and edited. */}
+            <div className="flex items-center gap-2">
+              <label className="label cursor-pointer justify-start gap-2 py-1 flex-1">
+                <input
+                  type="checkbox"
+                  className="checkbox checkbox-sm flex-shrink-0"
+                  checked={Boolean(area)}
+                  onChange={e => (e.target.checked ? onEditArea(true) : clearArea())}
+                />
+                <span className="label-text text-sm flex-1">Within an area on the map</span>
+              </label>
+              {/* Where the other filters' counts go. */}
+              {area && (
+                <button className="btn btn-xs btn-outline flex-shrink-0" onClick={() => onEditArea(false)} title="Edit the area on the map">
+                  Edit
+                </button>
+              )}
+            </div>
+            {area && (
+              <div className="pl-8 pb-1 text-sm leading-snug">
+                <div>Latitude: {formatArea(area).latitude}</div>
+                <div>Longitude: {formatArea(area).longitude}</div>
+              </div>
+            )}
+          </div>
+        </div>
+        )}
+      </div>
+
+      <div className="form-control mb-4">
+        <div className="label">
+          <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('collections')}>
+            <Icon name={collapsedSections.collections ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+            Collection
+          </span>
+          <div className="flex gap-1 flex-shrink-0">
+            <button className="btn btn-xs btn-outline" onClick={() => clearCollections(search, setSearch)}>
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {!collapsedSections.collections && (
+        <div className="border rounded bg-base-100">
+          <div className="p-2">
+            <CollectionsFilterOptions search={search} setSearch={setSearch} />
+          </div>
+        </div>
+        )}
+      </div>
+
+      <div className="form-control mb-4">
+        <div className="label">
+          <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('links')}>
+            <Icon name={collapsedSections.links ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+            Links
+          </span>
+          <div className="flex gap-1 flex-shrink-0">
+            <button className="btn btn-xs btn-outline" onClick={() => clearLinks(search, setSearch)}>
+              Clear
+            </button>
+          </div>
+        </div>
+
+        {!collapsedSections.links && (
+        <div className="border rounded bg-base-100">
+          <div className="p-2 border-b border-gray-200 bg-gray-50">
+            <LinksLogicToggle search={search} setSearch={setSearch} />
+          </div>
+          <div className="p-2">
+            <LinksFilterOptions search={search} setSearch={setSearch} />
+          </div>
+        </div>
+        )}
+      </div>
+
       {availableRvNames.some(rvName => (rvNameCounts?.[rvName] || 0) > 0) && (
         <div className="form-control mb-4">
           <div className="label">
@@ -661,7 +824,7 @@ export const FilterPanel: React.FC<{
               <Icon name={collapsedSections.rvNames ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
               RV Name
             </span>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-shrink-0">
               <button
                 className="btn btn-xs btn-ghost"
                 onClick={toggleAllRvNames}
@@ -740,6 +903,71 @@ export const FilterPanel: React.FC<{
       </div>
       )}
 
+      {showDataIssues && (
+        <div className="form-control mb-4">
+          <div className="label">
+            <span className="label-text font-semibold flex items-center gap-2 cursor-pointer" onClick={() => toggleSection('dataIssues')}>
+              <Icon name={collapsedSections.dataIssues ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
+              Data Issues
+              <span className="badge badge-warning badge-tag">dev</span>
+            </span>
+            <div className="flex gap-1 flex-shrink-0">
+              <button
+                className="btn btn-xs btn-outline"
+                onClick={() => {
+                  setSearch({
+                    ...search,
+                    filters: {
+                      ...search.filters,
+                      dataIssues: []
+                    }
+                  });
+                }}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {!collapsedSections.dataIssues && (
+          <div className="border rounded bg-base-100">
+            <div className="p-2">
+              {dataIssuesLoading ? (
+                <div className="flex justify-center items-center py-4">
+                  <Icon name="TbLoader2" className="w-4 h-4 animate-spin" />
+                  <span className="ml-2 text-sm">Loading data issues...</span>
+                </div>
+              ) : (
+                [
+                  { key: 'errors', label: 'Has errors', count: dataIssueCounts?.errors || 0 },
+                  { key: 'warnings', label: 'Has warnings', count: dataIssueCounts?.warnings || 0 },
+                ].map(({ key, label, count }) => {
+                  const isSelected = selectedDataIssues.includes(key);
+                  const hasResults = count > 0;
+                  return (
+                    <div key={key} className="form-control">
+                      <label className={`label cursor-pointer justify-start gap-2 py-1 ${!hasResults && !isSelected ? 'opacity-60' : ''}`}>
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm flex-shrink-0"
+                          checked={isSelected}
+                          onChange={(e) => handleDataIssueChange(key, e.target.checked)}
+                        />
+                        <span className="label-text text-sm flex-1 break-words">{label}</span>
+                        <span className={`badge badge-sm flex-shrink-0 ${hasResults ? 'badge-outline' : 'badge-ghost'}`}>
+                          {numeral(count).format('0,0')}
+                        </span>
+                      </label>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          )}
+        </div>
+      )}
+
       {availableInstitutions.some(institution => (institutionCounts?.[institution] || 0) > 0) && (
         <div className="form-control mb-4">
           <div className="label">
@@ -747,7 +975,7 @@ export const FilterPanel: React.FC<{
               <Icon name={collapsedSections.institutions ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
               Cruise PI
             </span>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-shrink-0">
               <button
                 className="btn btn-xs btn-ghost"
                 onClick={toggleAllInstitutions}
@@ -837,7 +1065,7 @@ export const FilterPanel: React.FC<{
               <Icon name={collapsedSections.materialTypes ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
               Material Type
             </span>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-shrink-0">
               <button
                 className="btn btn-xs btn-ghost"
                 onClick={toggleAllMaterialTypes}
@@ -923,7 +1151,7 @@ export const FilterPanel: React.FC<{
               <Icon name={collapsedSections.textures ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
               Texture
             </span>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-shrink-0">
               <button
                 className="btn btn-xs btn-ghost"
                 onClick={toggleAllTextures}
@@ -1009,7 +1237,7 @@ export const FilterPanel: React.FC<{
               <Icon name={collapsedSections.methods ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
               Collection Method
             </span>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-shrink-0">
               <button
                 className="btn btn-xs btn-ghost"
                 onClick={toggleAllMethods}
@@ -1096,7 +1324,7 @@ export const FilterPanel: React.FC<{
               <Icon name={collapsedSections.fileTypes ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
               File Types
             </span>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-shrink-0">
               <button
                 className="btn btn-xs btn-ghost"
                 onClick={toggleAllFileTypes}
@@ -1206,7 +1434,7 @@ export const FilterPanel: React.FC<{
               <Icon name={collapsedSections.relatedFileTypes ? "LuChevronRight" : "LuChevronDown"} size="xxs" />
               Related File Types
             </span>
-            <div className="flex gap-1">
+            <div className="flex gap-1 flex-shrink-0">
               <button
                 className="btn btn-xs btn-ghost"
                 onClick={toggleAllRelatedFileTypes}

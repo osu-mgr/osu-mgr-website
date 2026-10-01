@@ -24,8 +24,10 @@ export const getStaticProps = async ({ params }) => {
 
   // LDCR-* IDs are landing pages: open the search modal for that ID.
   if (/^LDCR-[^/]+$/i.test(filename)) {
-    // Strip section half suffix (e.g. LDCR-7004Y-1PC-1A -> LDCR-7004Y-1PC-1)
-    const osuId = filename.replace(/^(LDCR-[^-]+-[^-]+-\d+)[A-Za-z]$/i, '$1');
+    // Passed through as-is: the modal resolves the record type itself and
+    // shows a section half's or core sample's parent section (IDs of cores, sections and rock
+    // samples can also end in a digit plus a letter, so no pattern is safe).
+    const osuId = filename;
     return {
       redirect: {
         destination: `/search?osu=${osuId}`,

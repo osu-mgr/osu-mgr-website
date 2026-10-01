@@ -1,6 +1,6 @@
 import numeral from 'numeral';
 import React, { useState } from "react";
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
 import { fileTypes, getFileTypeLabel } from './search-data';
 
@@ -20,7 +20,7 @@ export const RelatedFileTypesFilterDropdown: React.FC<{
   };
 
   const { data: relatedFileTypeCounts, isLoading: countsLoading } = useQuery({
-    queryKey: ['relatedFileTypeCounts', search.types, search.searchString, search.filters?.relatedFileTypes, search.filterLogic?.relatedFileTypes, search.filters?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames, search.filters?.institutions, search.filters?.textures],
+    queryKey: ['relatedFileTypeCounts', search.types, search.searchString, search.filters, search.filterLogic, search.hasCoordinates],
     queryFn: async () => {
       const res = await fetch('/api/opensearch?relatedFileTypeCounts', {
         method: 'POST',
@@ -30,11 +30,13 @@ export const RelatedFileTypesFilterDropdown: React.FC<{
           searchString: search.searchString || '',
           filters: search.filters,
           filterLogic: search.filterLogic,
+          hasCoordinates: search.hasCoordinates
         }),
       });
       return res.ok ? res.json() : {};
     },
     staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
     gcTime: 30 * 60 * 1000,
   });
 

@@ -1,3 +1,8 @@
+// Publications (the DOI links on records, the Links > Publication filter and
+// publication search suggestions) are only shown on non-prod deployments for
+// now, like the raw data view. pages/api/opensearch.ts applies the same rule.
+export const SHOW_PUBLICATIONS = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
+
 export const moratoriumCruises = [
   'OSU-KM2201',
   'OSU-NBP1808',
@@ -46,6 +51,18 @@ export const moratoriumCruises = [
   'OSU-TN426',
   'OSU-TN435'
 ];
+
+// Collection codes stored in each record's `collection` field (names per the
+// Collections policy page).
+export const collectionLabels: { [code: string]: string } = {
+  MGG: 'Marine Geology & Geophysics Collection',
+  ACC: 'Antarctic Core Collection',
+  NOAA: 'NOAA hosted Marine Rock Collection',
+  ODC: 'Oregon Drill Core Collection',
+};
+
+export const getCollectionLabel = (code?: string): string =>
+  (code && collectionLabels[code]) || code || '';
 
 export const r2rCruiseLinks: { [key: string]: string[] } = {
   'OSU-AT0003': ['https://www.rvdata.us/search/cruise/AT3-49'],
@@ -139,6 +156,20 @@ export const fileTypes = [
   'xrf-data'
 ];
 
+// File types that exist in the index but are never shown anywhere: not as a
+// filter, in the bulk download, or in the landing page / modal file lists.
+// IGSN registration sheets and IMLGS export files are internal bookkeeping,
+// not collection data; ITRAX X-ray images are not published. (They are also
+// absent from `fileTypes` above, which drives the filter dropdowns and the API
+// counts.) The pipeline skips thumbnails for these types, so keep it in sync.
+export const hiddenFileTypes = ['igsn-sheet', 'imlgs-file', 'itrax-xray-image'];
+
+export const isVisibleFileType = (fileType?: string): boolean =>
+  !fileType || !hiddenFileTypes.includes(fileType);
+
+export const isDownloadableFileType = (fileType?: string): boolean =>
+  !!fileType && !fileType.startsWith('itrax-') && !hiddenFileTypes.includes(fileType);
+
 export const fileTypeLabelMap: { [key: string]: string } = {
   'core-description': 'Core Description',
   'core-image': 'Core Image',
@@ -172,4 +203,171 @@ export const hasFileTypeLabel = (fileType: string): boolean => {
 
 export const getFileTypeLabel = (fileType: string): string => {
   return fileTypeLabelMap[fileType] || fileType;
+};
+
+// A `dive` docType is a catch-all bucket for the rock-recovery methods that share
+// the "-D" OSU-ID hierarchy (Dredge, Grab, Sediment Grab, ROV). Use the actual
+// collection method for display so e.g. a dredge doesn't get labelled "Dive".
+// ROV deployments (and an unknown/missing method) fall back to the generic "Dive".
+export const getDiveMethodLabel = (method?: string): string => {
+  const m = (method || '').trim();
+  if (!m || m.toLowerCase() === 'rov') return 'Dive';
+  return m;
+};
+
+// Collection dates/times come straight from the source spreadsheets and are far from
+// uniform. Dates arrive as ISO ("2004-08-28"), sloppy ISO ("1995-6-06"), compact
+// ("19960204"), US slash ("5/16/1995"), SAS-style ("10MAR2019"), full timestamps
+// ("2012-03-25 00:00:00"), bare years ("2007"), year-months ("1989-07") and year
+// spans ("1980-1981"). Times arrive as "HH:MM", "HH:MM:SS", "11:05:00 AM", compact
+// digits ("223653", "1730"), Excel day fractions ("0.4791666666666667"), full
+// timestamps, and stray formulas. Both helpers return null when there is nothing
+// worth showing (callers hide the row), reformat anything they can pin down to a real
+// calendar date or clock time, and pass everything else through verbatim — they never
+// emit "Invalid Date", and they never turn a value into something it doesn't say.
+const MONTH_ABBREVS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+// Placeholders the sources use for "no value": "0", "NA", "??", "-".
+const isBlankValue = (raw: string) => !raw || raw === '0' || /^(n\/?a|none|null|unknown|\?+|-+)$/i.test(raw);
+
+// Render y/m/d in local time, rejecting impossible combinations like 2019-02-31.
+// (Built from parts deliberately: new Date('2004-08-28') is UTC midnight, which
+// renders as the previous day for anyone west of Greenwich.)
+const localDate = (y: number, m: number, d: number): string | null => {
+  if (!(m >= 1 && m <= 12) || !(d >= 1 && d <= 31)) return null;
+  const dt = new Date(y, m - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+  return dt.toLocaleDateString();
+};
+
+// Measurements come out of spreadsheets through floating point, so values like
+// 1097.2799999999988 or 0.30000000000000004 reach the index. A long decimal tail
+// (9+ digits) that ends in a run of five or more 0s or 9s plus a few stray digits
+// is an artifact, not precision, so it is rounded off at the start of the run.
+// Short tails and everything that is not a plain number pass through untouched,
+// so real values like -30.117338 or 0.000012 are never altered.
+const FLOAT_ARTIFACT_RE = /^(-?\d+)\.(\d*?)(0{5,}|9{5,})\d{0,3}$/;
+// Source spreadsheets use placeholders for "no value" in text fields ("none",
+// "NA", "N/A", "null", "unknown", "?", "-"). Fields holding one are hidden
+// rather than shown. Numbers (including 0) are never treated as placeholders.
+const PLACEHOLDER_RE = /^(none|n\/?a|null|nan|unknown|undefined|\?+|-+|\.+)$/i;
+export const isPlaceholder = (value: any): boolean =>
+  value === null || value === undefined ||
+  (typeof value === 'string' && (value.trim() === '' || PLACEHOLDER_RE.test(value.trim())));
+// The value itself, or null when it is a placeholder.
+export const shown = (value: any): any => (isPlaceholder(value) ? null : value);
+
+export const formatNumber = (value: any): any => {
+  if (value === null || value === undefined || typeof value === 'boolean') return value;
+  const str = String(value).trim();
+  const m = FLOAT_ARTIFACT_RE.exec(str);
+  if (!m || str.length - str.indexOf('.') - 1 < 9) return value;
+  const n = Number(parseFloat(str).toFixed(m[2].length));
+  return Number.isFinite(n) ? String(n) : value;
+};
+
+// Nominal display precision (decimal places) per numeric field. Adjust here to
+// change how a field renders everywhere (modal details, record cards, results
+// table): 45.000001 shows as "45.0" with 1, "45.000" with 3, "45" with 0.
+// Fields not listed keep their stored value (after artifact cleanup above).
+export const FIELD_PRECISION: { [field: string]: number } = {
+  length: 1,          // cm
+  diameter: 1,        // cm
+  thickness: 1,       // cm
+  depthTop: 1,        // cm
+  depthBottom: 1,     // cm
+  weight: 2,          // kg
+  latitudeStart: 4,   // degrees (~10 m)
+  latitudeEnd: 4,
+  longitudeStart: 4,
+  longitudeEnd: 4,
+  waterDepthStart: 0, // m
+  waterDepthEnd: 0,
+};
+
+const PLAIN_NUMBER_RE = /^-?\d+(\.\d+)?$/;
+
+// Format a field's value for display: strip float artifacts, then round to the
+// field's nominal precision. Non-numeric values pass through verbatim.
+export const formatField = (field: string, value: any): any => {
+  const cleaned = formatNumber(value);
+  const precision = FIELD_PRECISION[field];
+  if (precision === undefined || cleaned === null || cleaned === undefined) return cleaned;
+  const str = String(cleaned).trim();
+  if (!PLAIN_NUMBER_RE.test(str)) return cleaned;
+  const n = parseFloat(str);
+  return Number.isFinite(n) ? n.toFixed(precision) : cleaned;
+};
+
+export const formatDate = (value: any): string | null => {
+  if (value == null) return null;
+  const raw = String(value).trim();
+  if (isBlankValue(raw)) return null;
+
+  // "2004-08-28", "1995-6-06", and the date half of "2012-03-25 00:00:00".
+  let m = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ]|$)/);
+  if (m) return localDate(Number(m[1]), Number(m[2]), Number(m[3])) ?? raw;
+
+  // "19960204"
+  m = raw.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (m) return localDate(Number(m[1]), Number(m[2]), Number(m[3])) ?? raw;
+
+  // "10MAR2019"
+  m = raw.match(/^(\d{1,2})([A-Za-z]{3})(\d{4})$/);
+  if (m) {
+    const month = MONTH_ABBREVS.indexOf(m[2].toUpperCase()) + 1;
+    if (month) return localDate(Number(m[3]), month, Number(m[1])) ?? raw;
+  }
+
+  // "5/16/1995" — US month/day order, four-digit year only. Two-digit years
+  // ("3/16/25") stay untouched because the century is a guess.
+  m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return localDate(Number(m[3]), Number(m[1]), Number(m[2])) ?? raw;
+
+  // Bare years, year-months, year spans, two-digit years and typos ("6/603/1995")
+  // are shown as stored — they aren't a single calendar day.
+  return raw;
+};
+
+export const formatTime = (value: any): string | null => {
+  if (value == null) return null;
+  const raw = String(value).trim();
+  // A handful of rows carry an unevaluated spreadsheet formula, e.g. "=RIGHT(I2,6)".
+  if (isBlankValue(raw) || raw.startsWith('=')) return null;
+
+  const to12Hour = (h: number, m: number) => {
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    return `${hour12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+  };
+  const clock = (h: number, m: number) => (h <= 23 && m <= 59 ? to12Hour(h, m) : null);
+
+  // "16:22", "00:00:00", "11:05:00 AM", or the time half of "2024-08-15 07:17:00".
+  let m = raw.match(/(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?\s*(AM|PM)?/i);
+  if (m) {
+    let hours = Number(m[1]);
+    const meridiem = m[3]?.toUpperCase();
+    if (meridiem === 'PM' && hours < 12) hours += 12;
+    if (meridiem === 'AM' && hours === 12) hours = 0;
+    return clock(hours, Number(m[2])) ?? raw;
+  }
+
+  // Compact clock times: "223653" (HHMMSS), "10128" (HMMSS), "1730" (HHMM), "724" (HMM).
+  m = raw.match(/^(\d{1,2})(\d{2})(?:\d{2})?$/);
+  if (m) return clock(Number(m[1]), Number(m[2])) ?? raw;
+
+  // Excel stores a time of day as a fraction of a day: 0.4791666… is 11:30 AM.
+  if (/^0?\.\d+$/.test(raw)) {
+    const minutes = Math.round(Number(raw) * 1440);
+    return clock(Math.floor(minutes / 60) % 24, minutes % 60) ?? raw;
+  }
+
+  return raw;
+};
+
+// Local date and time, filename-safe (e.g. 2026-09-02_14-07-33), so repeated
+// downloads on the same day don't collide.
+export const fileTimestamp = (): string => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
 };

@@ -2,14 +2,16 @@ import numeral from 'numeral';
 import React, { useState, useEffect } from "react";
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from "../util/icon";
-import { getFileTypeLabel } from './search-data';
+import { getFileTypeLabel, isDownloadableFileType, fileTimestamp } from './search-data';
 import JSZip from 'jszip';
 
 // Download Files Button Component
 export const DownloadFilesButton: React.FC<{
   search: any;
   searchString: string;
-}> = ({ search, searchString }) => {
+  // Open the menu above the button (e.g. in a footer at the bottom of a modal).
+  dropUp?: boolean;
+}> = ({ search, searchString, dropUp = false }) => {
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFileTypes, setSelectedFileTypes] = useState<Set<string>>(new Set());
@@ -19,10 +21,10 @@ export const DownloadFilesButton: React.FC<{
   // Fetch file counts from ALL result types (not just current)
   // Count unique file names/paths instead of counting duplicates
   const { data: fileTypeCounts, isLoading: countsLoading } = useQuery({
-    queryKey: ['fileTypeCountsAll', search.searchString, search.filters?.fileTypes, search.filterLogic?.fileTypes, search.filters?.methods, search.filters?.materialTypes, search.filters?.rvNames],
+    queryKey: ['fileTypeCountsAll', search.searchString, search.filters, search.filterLogic],
     queryFn: async () => {
       // Fetch all documents from all document types
-      const allTypes = ['cruise', 'core', 'section', 'section-half', 'dive', 'rock'];
+      const allTypes = ['cruise', 'core', 'section', 'sectionHalf', 'dive', 'diveSample'];
       let allMatches: any[] = [];
 
       for (const docType of allTypes) {
@@ -66,8 +68,7 @@ export const DownloadFilesButton: React.FC<{
 
         const files = match._source._files || [];
         for (const file of files) {
-          // Skip itrax file types
-          if (file.type && file.type.startsWith('itrax-')) continue;
+          if (!isDownloadableFileType(file.type)) continue;
 
           if (!uniqueFilesByType[file.type]) {
             uniqueFilesByType[file.type] = new Set();
@@ -89,7 +90,7 @@ export const DownloadFilesButton: React.FC<{
   });
 
   const availableFileTypes = Object.keys(fileTypeCounts || {})
-    .filter(fileType => !fileType.startsWith('itrax-'))
+    .filter(isDownloadableFileType)
     .sort();
 
   // Initialize selected file types when available types change
@@ -117,7 +118,7 @@ export const DownloadFilesButton: React.FC<{
 
       // Fetch all results from ALL document types by scrolling through pages
       let allMatches: any[] = [];
-      const allTypes = ['cruise', 'core', 'section', 'section-half', 'dive', 'rock'];
+      const allTypes = ['cruise', 'core', 'section', 'sectionHalf', 'dive', 'diveSample'];
 
       for (const docType of allTypes) {
         let pageNum = 0;
@@ -159,8 +160,7 @@ export const DownloadFilesButton: React.FC<{
 
         const files = match._source._files || [];
         for (const file of files) {
-          // Skip itrax file types
-          if (file.type && file.type.startsWith('itrax-')) continue;
+          if (!isDownloadableFileType(file.type)) continue;
 
           if (selectedFileTypes.has(file.type)) {
             filesToDownload.push(file);
@@ -193,7 +193,7 @@ export const DownloadFilesButton: React.FC<{
       const url = URL.createObjectURL(content);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `ldcr-files-${new Date().toISOString().split('T')[0]}.zip`;
+      a.download = `ldcr-files-${fileTimestamp()}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -241,7 +241,7 @@ export const DownloadFilesButton: React.FC<{
       </div>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-80 bg-base-100 rounded-box shadow-lg border z-30 font-normal normal-case">
+        <div className={`absolute right-0 ${dropUp ? 'bottom-full mb-1' : 'top-full mt-1'} w-80 bg-base-100 rounded-box shadow-lg border z-30 font-normal normal-case`}>
           {/* Header */}
           <div className="p-3 border-b border-gray-200">
             <div className="flex items-center justify-between mb-2">

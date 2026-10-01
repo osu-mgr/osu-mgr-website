@@ -77,7 +77,7 @@ This is a Next.js website for the OSU Marine & Geology Repository with TinaCMS i
 - ESLint errors are ignored during builds (configured in next.config.js)
 - SVG files processed through @svgr/webpack for React components
 - Image optimization configured for Tina.io remote patterns
-- Node.js 20.x required (specified in package.json engines)
+- Node.js 24.x required (specified in package.json engines)
 
 ### Content Structure
 
