@@ -43,11 +43,7 @@
           },
           {
             "href": "search",
-            "label": "Search By Name\n"
-          },
-          {
-            "href": "map",
-            "label": "Search by Map\n"
+            "label": "Search the Collections\n"
           },
           {
             "href": "repositories",
