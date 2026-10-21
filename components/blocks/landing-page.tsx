@@ -910,7 +910,7 @@ const DetailsGlobe: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid:
   }, [doc, ancestors, stations]);
   // The cruise's ship track behind the markers (see pages/api/cruise-track),
   // for a cruise or any record from one, for context. Without it, the
-  // cruise's stations are joined in order instead, dashed.
+  // cruise's stations are joined in order instead, dashed, when switched on.
   const cruiseOsuid: string | undefined = cruise?._osuid;
   const { data: cruiseTrack, isFetched: trackFetched } = useQuery({
     queryKey: ['cruiseTrack', cruiseOsuid],
@@ -930,10 +930,25 @@ const DetailsGlobe: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid:
     const line = trackFetched ? stationLine(stations) : null;
     return line ? { geometry: line, approximate: true, info } : null;
   }, [cruiseTrack, trackFetched, stations, cruise, stops]);
+  const [showInferredTrack, setShowInferredTrack] = useState(false);
   if (!points.length) return null;
   return (
     <div className="relative border border-base-300 rounded-lg overflow-hidden mb-4 h-[300px]">
-      <MapLibreMap mode="globe" points={points} onSelect={onNavigate} fit labelPoints track={track} />
+      <MapLibreMap mode="globe" points={points} onSelect={onNavigate} fit labelPoints track={track?.approximate && !showInferredTrack ? null : track} />
+      {track?.approximate && (
+        <label
+          className="absolute top-2.5 left-2.5 z-10 flex items-center gap-1.5 px-2 py-1 rounded bg-base-100/90 shadow text-xs cursor-pointer"
+          title="No ship track is known for this cruise: join its stations in ID order instead"
+        >
+          <input
+            type="checkbox"
+            className="checkbox checkbox-xs"
+            checked={showInferredTrack}
+            onChange={e => setShowInferredTrack(e.target.checked)}
+          />
+          Inferred track
+        </label>
+      )}
     </div>
   );
 };

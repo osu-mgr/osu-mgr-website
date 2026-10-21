@@ -103,7 +103,7 @@ export const DetailFilterButton: React.FC<{ filter: DetailFilter; docType: strin
       </button>
       {isOpen && createPortal(
         <div
-          className="fixed z-[60] bg-base-100 rounded-box shadow-lg border text-sm font-normal"
+          className="fixed z-[80] bg-base-100 rounded-box shadow-lg border text-sm font-normal"
           style={{ ...position, width: POPOVER_WIDTH }}
           onMouseEnter={open}
           onMouseLeave={close}

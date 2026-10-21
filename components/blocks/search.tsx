@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import numeral from 'numeral';
 import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from 'next/router';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import useLocalStorage from '../hooks/useLocalStorage';
@@ -21,7 +22,7 @@ import { TextureFilterDropdown } from '../search/texture-filter';
 import { CollectionFilterDropdown } from '../search/collection-filter';
 import { DownloadFilesButton } from '../search/download-files-button';
 import { DownloadRowsButton } from '../search/download-rows-button';
-import { FilterPanel } from '../search/filter-panel';
+import { FilterPanel, countActiveFilters } from '../search/filter-panel';
 import type { Area } from '../search/map-points';
 import type { AreaRequest } from '../search/search-map';
 import { DataIssueBadges } from '../search/data-issues';
@@ -115,6 +116,12 @@ export const Search: React.FC<{ data: any }> = ({
   const [searchString, setSearchString] = useState(search.searchString || '');
   const [expandedRawData, setExpandedRawData] = useState<Set<string>>(new Set());
   const [showFilters, setShowFilters] = useState(true);
+  // Collapsed to start with below Tailwind's lg breakpoint (where the header
+  // switches to its mobile layout), in the page and the full screen map alike.
+  // Set after hydration, as the server can't know the width, but before paint.
+  useLayoutEffect(() => {
+    if (window.matchMedia('(max-width: 1023px)').matches) setShowFilters(false);
+  }, []);
   const [hasProcessedUrlParam, setHasProcessedUrlParam] = useState(false);
   const [showLandingModal, setShowLandingModal] = useState(false);
   const [osuId, setOsuId] = useState<string>('');
@@ -148,6 +155,12 @@ export const Search: React.FC<{ data: any }> = ({
   }, []);
   // Maps tab: plots the current search instead of listing one record type.
   const [showMap, setShowMap] = useLocalStorage('search-show-map', false);
+  // The Maps tab opened in a full screen modal with the filter panel beside it.
+  // The map is only mounted in one place at a time, so the tab holds a
+  // placeholder while the modal is open. Leaving the Maps tab (e.g. from a
+  // filter icon in a landing page) closes it.
+  const [mapFullscreen, setMapFullscreen] = useState(false);
+  useEffect(() => { if (!showMap) setMapFullscreen(false); }, [showMap]);
   // On the Maps tab the filter panel counts what the map plots: its enabled layers,
   // only records with coordinates. Panel edits write back filters only, so the
   // list tab's types are kept for when the user leaves the map.
@@ -262,6 +275,14 @@ export const Search: React.FC<{ data: any }> = ({
     // Update URL with osu parameter
     router.push(`/search?osu=${encodeURIComponent(osuid)}`, undefined, { shallow: true });
   };
+
+  // Escape closes the full screen map, unless a landing page modal is over it.
+  useEffect(() => {
+    if (!mapFullscreen || showLandingModal) return;
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') setMapFullscreen(false); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [mapFullscreen, showLandingModal]);
 
   const closeLandingModal = () => {
     setShowLandingModal(false);
@@ -695,32 +716,72 @@ export const Search: React.FC<{ data: any }> = ({
     }
   });
 
+  // The filter panel, in the sidebar or beside the full screen map. Collapsed,
+  // it's a tab before the Maps tab instead.
+  const filterPanel = (
+    <FilterPanel
+      search={filterSearch}
+      setSearch={setFilterSearch}
+      onToggle={() => setShowFilters(false)}
+      onEditArea={editArea}
+    />
+  );
+  const filtersTab = !showFilters && (<>
+    <div
+      className="tab tab-lg tab-bordered text-primary px-0"
+      onClick={() => setShowFilters(true)}
+      title="Show filters panel"
+    >
+      <Icon name="LuFilter" size="xs" className="mr-1" />
+      <b>Filters</b>
+      <span className="badge bg-white text-primary ml-1 font-bold">{countActiveFilters(search.filters)}</span>
+    </div>
+    <div className="tab tab-lg tab-bordered px-2"></div>
+  </>);
+  // The text search and its clear button: above the results, and beside the
+  // Maps tab in the full screen map.
+  const searchField = (<>
+    <SearchInputWithSuggestions
+      placeholder="Search OSU-MGR Collections by ID, text, DOI or citation..." className="flex-grow"
+      value={searchString}
+      onChange={(value) => {
+        setSearchString(value);
+        debouncedSetSearch(value);
+      }}
+      onCommit={(value) => {
+        debouncedSetSearch(value);
+        debouncedSetSearch.flush();
+      }}
+    />
+    <button className="btn btn-secondary btn-square"
+      onClick={() => {
+        setSearchString('');
+        setSearch(prevSearch => ({ ...prevSearch, searchString: '' }));
+      }}
+    >
+      <Icon name="BiX" />
+    </button>
+  </>);
+  const searchMap = (
+    <SearchMap
+      search={search}
+      onSelect={openLandingModal}
+      onLayersChange={setMapLayers}
+      onAreaChange={setArea}
+      areaRequest={areaRequest}
+      onRequestArea={() => setAreaRequest({})}
+      fullscreen={mapFullscreen}
+      onToggleFullscreen={() => setMapFullscreen(!mapFullscreen)}
+    />
+  );
+
   return (
     <Section>
       <Container className="my-4 prose max-w-none" width="custom">
         <h3>Search OSU-MGR Collections</h3>
         <div className="form-control">
           <div className="input-group flex">
-            <SearchInputWithSuggestions
-              placeholder="Search OSU-MGR Collections by ID, text, DOI or citation..." className="flex-grow"
-              value={searchString}
-              onChange={(value) => {
-                setSearchString(value);
-                debouncedSetSearch(value);
-              }}
-              onCommit={(value) => {
-                debouncedSetSearch(value);
-                debouncedSetSearch.flush();
-              }}
-            />
-            <button className="btn btn-secondary btn-square"
-              onClick={() => {
-                setSearchString('');
-                setSearch(prevSearch => ({ ...prevSearch, searchString: '' }));
-              }}
-            >
-              <Icon name="BiX" />
-            </button>
+            {searchField}
             <DownloadRowsButton
               search={search}
               searchString={searchString}
@@ -733,37 +794,11 @@ export const Search: React.FC<{ data: any }> = ({
         </div>
         <div className="flex gap-4 mt-4">
           {/* Left Sidebar - Filters and Active Filters */}
-          <div className={`${showFilters ? 'w-[320px]' : 'w-auto'} flex-shrink-0 flex flex-col gap-4 overflow-y-auto h-[calc(100vh-25rem)]`}>
-            {/* Filter Panel - conditionally shown */}
-            {showFilters && (
-              <FilterPanel
-                search={filterSearch}
-                setSearch={setFilterSearch}
-                onToggle={() => setShowFilters(false)}
-                onEditArea={editArea}
-              />
-            )}
-
-            {/* Show Filters Button - shown when filters are hidden */}
-            {!showFilters && (
-              <button
-                className="btn btn-primary btn-sm flex flex-col gap-1 h-auto py-2 px-2"
-                onClick={() => setShowFilters(true)}
-                title="Show filters panel"
-              >
-                <Icon name="LuFilter" size="xs" />
-                <span className="badge bg-white text-primary font-bold min-h-0 h-auto">
-                  {[
-                    (search.filters?.fileTypes || []).length > 0,
-                    (search.filters?.methods || []).length > 0,
-                    (search.filters?.materialTypes || []).length > 0,
-                    (search.filters?.rvNames || []).length > 0,
-                    (search.filters?.dataIssues || []).length > 0
-                  ].filter(Boolean).length}
-                </span>
-              </button>
-            )}
-          </div>
+          {showFilters && (
+            <div className="w-[320px] flex-shrink-0 flex flex-col gap-4 overflow-y-auto h-[calc(100vh-25rem)]">
+              {filterPanel}
+            </div>
+          )}
 
           {/* Main Content Area */}
           <div className="flex-1 overflow-hidden flex flex-col h-[calc(100vh-25rem)]">
@@ -776,6 +811,7 @@ export const Search: React.FC<{ data: any }> = ({
             aria-hidden={tabsOverflow}
             className={`tabs flex-nowrap overflow-hidden whitespace-nowrap [&>*]:shrink-0 min-w-full px-0 ${tabsOverflow ? 'h-0 invisible' : ''}`}
           >
+            {filtersTab}
             <div
               className={`tab tab-lg tab-bordered px-0 ${showMap ? 'tab-active text-primary' : ''}`}
               onClick={() => setShowMap(true)}
@@ -865,7 +901,8 @@ export const Search: React.FC<{ data: any }> = ({
           </div>
 
           {/* Menu - shown when the tabs don't fit */}
-          <div className={`${tabsOverflow ? '' : 'hidden'} relative tabs min-w-full px-0`}>
+          <div className={`${tabsOverflow ? '' : 'hidden'} relative tabs flex-nowrap min-w-full px-0`}>
+            {filtersTab}
             <button
               className="tab tab-lg tab-bordered tab-active text-primary justify-between no-animation px-0"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -1075,16 +1112,15 @@ export const Search: React.FC<{ data: any }> = ({
           </div>
         </div>
           <div className="flex-1 overflow-auto">
-          {showMap ? (
-            <SearchMap
-              search={search}
-              onSelect={openLandingModal}
-              onLayersChange={setMapLayers}
-              onAreaChange={setArea}
-              areaRequest={areaRequest}
-              onRequestArea={() => setAreaRequest({})}
-            />
-          ) : (<>
+          {showMap ? (mapFullscreen ? (
+            <div className="h-full flex flex-col items-center justify-center gap-2 rounded border border-base-300 bg-base-200 text-sm text-gray-500 not-prose">
+              The map is open full screen
+              <button className="btn btn-xs btn-outline gap-1" onClick={() => setMapFullscreen(false)}>
+                <Icon name="LuMinimize2" size="xxs" />
+                Exit full screen
+              </button>
+            </div>
+          ) : searchMap) : (<>
           {search.types.includes('cruise') &&
             <table className="table table-compact w-full mt-0">
               <thead className="sticky top-0 z-10 bg-base-100">
@@ -2490,9 +2526,46 @@ export const Search: React.FC<{ data: any }> = ({
         </div>
       </Container>
 
+      {/* Full screen map: over the site header; a record clicked on it opens
+          the landing page modal above it. No click-outside close, since a map
+          drag that ends outside the map would trigger it. Both modals are
+          portalled to the body: the layout's .drawer-content (z-index: 0) is a
+          stacking context below .drawer-side, which holds the mobile header. */}
+      {showMap && mapFullscreen && createPortal(
+        <div className="fixed inset-0 z-[60] p-2 sm:p-4 bg-black/40 backdrop-blur-sm prose max-w-none">
+          <div className="w-full h-full flex gap-4 p-4 rounded-2xl shadow-2xl bg-base-100 overflow-hidden">
+            {showFilters && (
+              <div className="w-[320px] flex-shrink-0 flex flex-col gap-4 overflow-y-auto overscroll-contain">
+                {filterPanel}
+              </div>
+            )}
+            <div className="flex-1 min-w-0 flex flex-col">
+              {/* The search beside the tabs, its bottom edge level with their
+                  underline; on its own row below them when that's too narrow. */}
+              <div className="flex flex-wrap items-end gap-x-4 gap-y-2 mb-2">
+                <div className="tabs flex-nowrap whitespace-nowrap flex-shrink-0 px-0">
+                  {filtersTab}
+                  <div className="tab tab-lg tab-bordered tab-active text-primary px-0">
+                    <Icon name="LuMap" size="xs" className="mr-1" />
+                    <b>Maps</b>
+                  </div>
+                </div>
+                <div className="input-group flex flex-1 min-w-[16rem]">
+                  {searchField}
+                </div>
+              </div>
+              <div className="flex-1 min-h-0">
+                {searchMap}
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
+
       {/* Landing Page Modal - Redesigned */}
-      {showLandingModal && (
-        <div className="fixed inset-0 z-50 overflow-hidden" onClick={closeLandingModal}>
+      {showLandingModal && createPortal(
+        <div className="fixed inset-0 z-[70] overflow-hidden text-gray-800" onClick={closeLandingModal}>
           {/* Backdrop with blur */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"></div>
 
@@ -2578,7 +2651,8 @@ export const Search: React.FC<{ data: any }> = ({
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </Section>
   );

@@ -794,7 +794,7 @@ const MapLibreMap: React.FC<{
             tooltip.scheduleHide();
           });
           element.addEventListener('click', () => {
-            if (!hidden() && members.length === 1) onSelectRef.current?.(name);
+            if (!hidden()) onSelectRef.current?.(name);
           });
           markers.push(new maplibregl.Marker({ element, opacityWhenCovered: '0' }).setLngLat([lon, lat]).addTo(map));
         });
@@ -1176,10 +1176,11 @@ const MapLibreMap: React.FC<{
     });
     map.on('movestart', tooltip.hide);
     map.on('moveend', showBoxes);
-    // Several records at one spot are opened from the tooltip's links.
+    // Opens the first of several records at one spot; the others are opened
+    // from the tooltip's links.
     map.on('click', e => {
       const members = hitTest(e);
-      if (members?.length === 1) onSelectRef.current?.(members[0].name);
+      if (members?.length) onSelectRef.current?.(members[0].name);
     });
 
     const observer = typeof ResizeObserver !== 'undefined'

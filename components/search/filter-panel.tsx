@@ -17,6 +17,13 @@ const RELATED_FILE_TYPES = [
   'whole-rock-image', 'xray-image', 'xrf-data'
 ];
 
+// The number of filter types in use, shown on the panel and on the tab that
+// replaces it when it's collapsed.
+export const countActiveFilters = (filters: any) => [
+  'fileTypes', 'relatedFileTypes', 'methods', 'materialTypes', 'rvNames',
+  'institutions', 'dataIssues', 'links', 'collections',
+].filter(key => (filters?.[key] || []).length > 0).length + (filters?.area ? 1 : 0);
+
 export const FilterPanel: React.FC<{
   search: any;
   setSearch: (search: any) => void;
@@ -58,19 +65,7 @@ export const FilterPanel: React.FC<{
     }));
   };
 
-  // Count active filter types
-  const activeFilterCount = [
-    selectedFileTypes.length > 0,
-    selectedRelatedFileTypes.length > 0,
-    selectedMethods.length > 0,
-    selectedMaterialTypes.length > 0,
-    selectedRvNames.length > 0,
-    (search.filters?.institutions || []).length > 0,
-    selectedDataIssues.length > 0,
-    (search.filters?.links || []).length > 0,
-    (search.filters?.collections || []).length > 0,
-    Boolean(area),
-  ].filter(Boolean).length;
+  const activeFilterCount = countActiveFilters(search.filters);
 
   const toggleFilterLogic = (filterType: string) => {
     const currentLogic = search.filterLogic?.[filterType] || 'OR';

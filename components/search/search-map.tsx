@@ -66,7 +66,10 @@ export const SearchMap: React.FC<{
   onAreaChange: (area: Area | null) => void;
   areaRequest: AreaRequest | null;
   onRequestArea: () => void;
-}> = ({ search, onSelect, onLayersChange, onAreaChange, areaRequest, onRequestArea }) => {
+  // Shows a button that opens or closes the full screen map.
+  fullscreen?: boolean;
+  onToggleFullscreen?: () => void;
+}> = ({ search, onSelect, onLayersChange, onAreaChange, areaRequest, onRequestArea, fullscreen, onToggleFullscreen }) => {
   const area: Area | null = search.filters?.area || null;
   // An area the map zooms to (see AreaRequest).
   const [zoomTo, setZoomTo] = useState<Area | null>(null);
@@ -202,6 +205,16 @@ export const SearchMap: React.FC<{
             </label>
           ))}
         </div>
+        {onToggleFullscreen && (
+          <button
+            className="btn btn-xs btn-outline gap-1 ml-auto"
+            onClick={onToggleFullscreen}
+            title={fullscreen ? 'Close the full screen map (Esc)' : 'Open the map full screen with the filters beside it'}
+          >
+            <Icon name={fullscreen ? 'LuMinimize2' : 'LuMaximize2'} size="xxs" />
+            {fullscreen ? 'Exit full screen' : 'Full screen'}
+          </button>
+        )}
       </div>
       <div className="relative flex-1 min-h-[300px] rounded overflow-hidden border border-base-300">
         <MapLibreMap
