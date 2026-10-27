@@ -673,7 +673,7 @@ const ROTATED_IMAGE_TYPES = ['core-image'];
 // is known: a tall image (height > width) is rotated -90° inside a box with the
 // inverse aspect ratio, so it becomes wide without dead space; an image that is
 // already wide is rotated 180° (its box is unchanged).
-const RotatedImage: React.FC<{ src: string; alt: string; onLoaded?: (w: number, h: number) => void }> = ({ src, alt, onLoaded }) => {
+const RotatedImage: React.FC<{ src: string; alt: string; onLoaded?: (w: number, h: number) => void; onError?: () => void }> = ({ src, alt, onLoaded, onError }) => {
   const [ratio, setRatio] = useState<number | null>(null); // naturalWidth / naturalHeight
   const tall = ratio != null && ratio < 1;
   const onLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
@@ -684,7 +684,7 @@ const RotatedImage: React.FC<{ src: string; alt: string; onLoaded?: (w: number, 
     }
   };
   if (ratio != null && !tall) {
-    return <img src={src} alt={alt} onLoad={onLoad} className="block w-full h-auto m-0" style={{ transform: 'rotate(180deg)' }} />;
+    return <img src={src} alt={alt} onLoad={onLoad} onError={onError} className="block w-full h-auto m-0" style={{ transform: 'rotate(180deg)' }} />;
   }
   return (
     <div
@@ -695,6 +695,7 @@ const RotatedImage: React.FC<{ src: string; alt: string; onLoaded?: (w: number, 
         src={src}
         alt={alt}
         onLoad={onLoad}
+        onError={onError}
         className={`absolute left-1/2 top-1/2 max-w-none m-0 ${ratio ? '' : 'opacity-0'}`}
         style={{
           width: ratio ? `${ratio * 100}%` : 'auto',
@@ -720,6 +721,26 @@ const fileIconName = (type: string, path: string) => {
 const isImagePath = (path: string) =>
   ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes((path || '').split('.').pop()?.toLowerCase() || '');
 
+// File types the pipeline renders a JPEG thumbnail for (osu-mgr-pipeline
+// _THUMBNAIL_IMAGE_TYPES / _THUMBNAIL_PDF_TYPES), so keep them in sync. Images
+// get one unless they are camera raw; the document types only for PDFs.
+const THUMBNAIL_IMAGE_TYPES = [
+  'core-image', 'itrax-image', 'ct-image', 'ct-gray-image', 'ct-color-image', 'xray-image', 'field-image',
+  'thin-section-plane-polarized-image', 'thin-section-plane-polarized-foi-image',
+  'thin-section-cross-polarized-image', 'thin-section-cross-polarized-foi-image',
+  'whole-rock-image', 'whole-rock-foi-image',
+];
+const THUMBNAIL_PDF_TYPES = ['core-description', 'coring-data-sheet', 'cruise-report', 'dredge-log'];
+
+// The pipeline's thumbnail of a file the browser can't show (TIF, HEIC, PDF),
+// stored at Collection/Thumbnails/<path minus "Collection/">.jpg, or null.
+const thumbnailUrl = (type: string, path: string) => {
+  const ext = (path || '').split('.').pop()?.toLowerCase() || '';
+  const has = (THUMBNAIL_IMAGE_TYPES.includes(type) && !['cr2', 'raw'].includes(ext)) ||
+    (THUMBNAIL_PDF_TYPES.includes(type) && ext === 'pdf');
+  return has && !isImagePath(path) ? `/api/file/Collection/Thumbnails/${path.replace(/^Collection\//, '')}.jpg` : null;
+};
+
 // File size from a HEAD request to the file proxy (the index stores no sizes).
 const useFileSize = (path: string) =>
   useQuery({
@@ -740,6 +761,10 @@ const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean }> = (
   const url = `/api/file/${file.path}`;
   const ext = ((file.path || '').split('.').pop() || 'file').toUpperCase();
   const image = !moratorium && isImagePath(file.path);
+  // A thumbnail stands in for the file but links to the original; it is not
+  // generated for every file yet, so a missing one falls back to the button.
+  const thumbnail = moratorium ? null : thumbnailUrl(file.type, file.path);
+  const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const { data: size } = useFileSize(moratorium ? '' : file.path);
   const [dims, setDims] = useState<string | null>(null);
   const onLoaded = (w: number, h: number) => setDims(`${w} × ${h}`);
@@ -766,6 +791,13 @@ const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean }> = (
               : <img src={url} alt={id} className="block w-full h-auto m-0" loading="lazy"
                   onLoad={(e) => onLoaded(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)} />}
           </a>
+        ) : thumbnail && !thumbnailFailed ? (
+          <a href={url} target="_blank" rel="noopener noreferrer" className="block w-full no-underline">
+            {rotate
+              ? <RotatedImage src={thumbnail} alt={id} onError={() => setThumbnailFailed(true)} />
+              : <img src={thumbnail} alt={id} loading="lazy" onError={() => setThumbnailFailed(true)}
+                  className={`block h-auto m-0 ${THUMBNAIL_IMAGE_TYPES.includes(file.type) ? 'w-full' : 'w-full max-w-xs border border-base-300'}`} />}
+          </a>
         ) : (
           <a href={url} target="_blank" rel="noopener noreferrer" className="btn btn-outline h-auto min-h-0 py-3 px-4 gap-3 no-underline hover:bg-primary hover:text-white">
             <Icon name={fileIconName(file.type, file.path)} className="w-6 h-6" />{ext}
@@ -778,9 +810,10 @@ const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean }> = (
 
 // Every file tab is a two-column grid: record ID (with file size and, for
 // images, pixel dimensions underneath), then the file. Image files show the
-// image itself (core images rotated); anything else, or an image type stored in
-// a format the browser can't show, gets a button with a PDF / data / image /
-// document icon and the file extension. Same table markup as the record tables
+// image itself (core images rotated); TIF images and PDF documents show the
+// pipeline's JPEG thumbnail instead, linking to the original; anything else,
+// or a file whose thumbnail is missing, gets a button with a PDF / data /
+// image / document icon and the file extension. Same table markup as the record tables
 // so headers match; the ID column is pinned to its content width (1px + nowrap)
 // and the file column takes all remaining width.
 const FileTable: React.FC<{ tab: FileTab }> = ({ tab }) => {
@@ -789,7 +822,7 @@ const FileTable: React.FC<{ tab: FileTab }> = ({ tab }) => {
     ...tab.files.map((f: any) => ({ file: f, moratorium: false })),
     ...tab.moratoriumFiles.map((f: any) => ({ file: f, moratorium: true })),
   ];
-  const anyImages = rows.some(({ file }) => isImagePath(file.path));
+  const anyImages = rows.some(({ file }) => isImagePath(file.path) || THUMBNAIL_IMAGE_TYPES.includes(file.type));
   // Files are already in memory, but each row loads an image or a HEAD request,
   // so rows are revealed a page at a time as the list is scrolled.
   const [limit, setLimit] = useState(PAGE_SIZE);
