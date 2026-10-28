@@ -732,13 +732,15 @@ const THUMBNAIL_IMAGE_TYPES = [
 ];
 const THUMBNAIL_PDF_TYPES = ['core-description', 'coring-data-sheet', 'cruise-report', 'dredge-log'];
 
-// The pipeline's thumbnail of a file the browser can't show (TIF, HEIC, PDF),
-// stored at Collection/Thumbnails/<path minus "Collection/">.jpg, or null.
+// The pipeline's thumbnail of an image or PDF (a JPEG at most 1600 px on its
+// longer side), stored at Collection/Thumbnails/<path minus "Collection/">.jpg,
+// or null. Used for every format: TIF and HEIC can't be shown at all, and BMP
+// and JPEG originals run to tens of megabytes.
 const thumbnailUrl = (type: string, path: string) => {
   const ext = (path || '').split('.').pop()?.toLowerCase() || '';
   const has = (THUMBNAIL_IMAGE_TYPES.includes(type) && !['cr2', 'raw'].includes(ext)) ||
     (THUMBNAIL_PDF_TYPES.includes(type) && ext === 'pdf');
-  return has && !isImagePath(path) ? `/api/file/Collection/Thumbnails/${path.replace(/^Collection\//, '')}.jpg` : null;
+  return has ? `/api/file/Collection/Thumbnails/${path.replace(/^Collection\//, '')}.jpg` : null;
 };
 
 // File size from a HEAD request to the file proxy (the index stores no sizes).
@@ -761,8 +763,8 @@ const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean }> = (
   const url = `/api/file/${file.path}`;
   const ext = ((file.path || '').split('.').pop() || 'file').toUpperCase();
   const image = !moratorium && isImagePath(file.path);
-  // A thumbnail stands in for the file but links to the original; it is not
-  // generated for every file yet, so a missing one falls back to the button.
+  // A thumbnail stands in for the file but links to the original; a missing
+  // one falls back to the original if the browser can show it, else the button.
   const thumbnail = moratorium ? null : thumbnailUrl(file.type, file.path);
   const [thumbnailFailed, setThumbnailFailed] = useState(false);
   const { data: size } = useFileSize(moratorium ? '' : file.path);
@@ -784,19 +786,19 @@ const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean }> = (
           <span className="btn btn-outline no-animation h-auto min-h-0 py-3 px-4 gap-3 opacity-60 cursor-not-allowed">
             <Icon name="TbLock" className="w-6 h-6 text-warning" />{ext}
           </span>
-        ) : image ? (
-          <a href={url} target="_blank" rel="noopener noreferrer" className="block w-full no-underline">
-            {rotate
-              ? <RotatedImage src={url} alt={id} onLoaded={onLoaded} />
-              : <img src={url} alt={id} className="block w-full h-auto m-0" loading="lazy"
-                  onLoad={(e) => onLoaded(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)} />}
-          </a>
         ) : thumbnail && !thumbnailFailed ? (
           <a href={url} target="_blank" rel="noopener noreferrer" className="block w-full no-underline">
             {rotate
               ? <RotatedImage src={thumbnail} alt={id} onError={() => setThumbnailFailed(true)} />
               : <img src={thumbnail} alt={id} loading="lazy" onError={() => setThumbnailFailed(true)}
                   className={`block h-auto m-0 ${THUMBNAIL_IMAGE_TYPES.includes(file.type) ? 'w-full' : 'w-full max-w-xs border border-base-300'}`} />}
+          </a>
+        ) : image ? (
+          <a href={url} target="_blank" rel="noopener noreferrer" className="block w-full no-underline">
+            {rotate
+              ? <RotatedImage src={url} alt={id} onLoaded={onLoaded} />
+              : <img src={url} alt={id} className="block w-full h-auto m-0" loading="lazy"
+                  onLoad={(e) => onLoaded(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)} />}
           </a>
         ) : (
           <a href={url} target="_blank" rel="noopener noreferrer" className="btn btn-outline h-auto min-h-0 py-3 px-4 gap-3 no-underline hover:bg-primary hover:text-white">
@@ -809,10 +811,10 @@ const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean }> = (
 };
 
 // Every file tab is a two-column grid: record ID (with file size and, for
-// images, pixel dimensions underneath), then the file. Image files show the
-// image itself (core images rotated); TIF images and PDF documents show the
-// pipeline's JPEG thumbnail instead, linking to the original; anything else,
-// or a file whose thumbnail is missing, gets a button with a PDF / data /
+// images shown in full, pixel dimensions underneath), then the file. Images and
+// PDF documents show the pipeline's JPEG thumbnail (core images rotated),
+// linking to the original; with no thumbnail, an image the browser can show is
+// displayed itself, and anything else gets a button with a PDF / data /
 // image / document icon and the file extension. Same table markup as the record tables
 // so headers match; the ID column is pinned to its content width (1px + nowrap)
 // and the file column takes all remaining width.
