@@ -13,7 +13,7 @@ import { ItemsCount } from '../util/items-count';
 import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
 import { LandingPage } from "./landing-page";
-import { r2rCruiseLinks, getCollectionLabel, hasFileTypeLabel, getFileTypeLabel, getDiveMethodLabel, formatDate, formatTime, formatNumber, formatField, isPlaceholder, shown, SHOW_PUBLICATIONS } from '../search/search-data';
+import { r2rCruiseLinks, getCollectionLabel, getFileTypeLabel, getDiveMethodLabel, formatDate, formatTime, formatNumber, formatField, isPlaceholder, shown, SHOW_PUBLICATIONS } from '../search/search-data';
 import { FileTypesFilterDropdown } from '../search/file-types-filter';
 import { RelatedFileTypesFilterDropdown } from '../search/related-file-types-filter';
 import { RvNameFilterDropdown } from '../search/rv-name-filter';
@@ -26,6 +26,7 @@ import { FilterPanel, countActiveFilters } from '../search/filter-panel';
 import type { Area } from '../search/map-points';
 import type { AreaRequest } from '../search/search-map';
 import { DataIssueBadges } from '../search/data-issues';
+import { CountLink, FileCounts, RelatedFileCounts } from '../search/file-counts';
 import { DateTimeCell } from '../search/date-time-cell';
 import { IdColumnFilterDropdown, getLinkLabel } from '../search/id-column-filter';
 import { AreaColumnFilter } from '../search/area-column-filter';
@@ -125,6 +126,8 @@ export const Search: React.FC<{ data: any }> = ({
   const [hasProcessedUrlParam, setHasProcessedUrlParam] = useState(false);
   const [showLandingModal, setShowLandingModal] = useState(false);
   const [osuId, setOsuId] = useState<string>('');
+  // Modal tab to open the record on (a count in a results row); Details if unset.
+  const [osuTab, setOsuTab] = useState<string | undefined>();
   const [currentDoc, setCurrentDoc] = useState<any>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   // The type tabs give way to a menu when they don't fit on one line. They
@@ -268,8 +271,9 @@ export const Search: React.FC<{ data: any }> = ({
     });
   };
 
-  const openLandingModal = (osuid: string) => {
+  const openLandingModal = (osuid: string, tab?: string) => {
     setOsuId(osuid);
+    setOsuTab(tab);
     setShowLandingModal(true);
     setHasProcessedUrlParam(true);
     // Update URL with osu parameter
@@ -287,6 +291,7 @@ export const Search: React.FC<{ data: any }> = ({
   const closeLandingModal = () => {
     setShowLandingModal(false);
     setOsuId('');
+    setOsuTab(undefined);
     // Remove osu parameter from URL
     router.push('/search', undefined, { shallow: true });
   };
@@ -628,32 +633,6 @@ export const Search: React.FC<{ data: any }> = ({
     );
   };
 
-  const renderRelatedFileCounts = (source: any) => {
-    const allRelated = [
-      ...(source._parentFiles || []),
-      ...(source._childFiles || []),
-    ].filter((f: any) => hasFileTypeLabel(f.type));
-
-    if (allRelated.length === 0) {
-      return <span className="text-gray-500 text-sm">No files</span>;
-    }
-
-    const counts: { [key: string]: number } = {};
-    allRelated.forEach((f: any) => {
-      counts[f.type] = (counts[f.type] || 0) + 1;
-    });
-
-    return (
-      <div className="flex flex-col gap-1">
-        {Object.entries(counts).map(([fileType, count]) => (
-          <div key={fileType} className="text-sm">
-            <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   // After a text search, if the current tab has no results, jump to the first tab
   // that does (e.g. a citation search from Cores lands on Cruises). Counts share ItemsCount's query keys, so the tab badges
   // and this check fetch once. Runs once per search string so the user can still
@@ -765,7 +744,7 @@ export const Search: React.FC<{ data: any }> = ({
   const searchMap = (
     <SearchMap
       search={search}
-      onSelect={openLandingModal}
+      onSelect={(osuid) => openLandingModal(osuid)}
       onLayersChange={setMapLayers}
       onAreaChange={setArea}
       areaRequest={areaRequest}
@@ -1189,9 +1168,9 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
-                        {match._source._coreOSUIDs?.length > 0 && <><br/><b>Cores:</b> {numeral(match._source._coreOSUIDs.length).format(0)}</>}
-                        {match._source._diveOSUIDs?.length > 0 && <><br/><b>Dredges/Dives:</b> {numeral(match._source._diveOSUIDs.length).format(0)}</>}
-                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                        {match._source._coreOSUIDs?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'cores')}><b>Cores:</b> {numeral(match._source._coreOSUIDs.length).format(0)}</CountLink></>}
+                        {match._source._diveOSUIDs?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'dives')}><b>Dredges/Dives:</b> {numeral(match._source._diveOSUIDs.length).format(0)}</CountLink></>}
+                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
@@ -1224,58 +1203,10 @@ export const Search: React.FC<{ data: any }> = ({
                         <CollectionMapThumbnail locations={match._source._locations} />
                       </td>
                       <td className="align-top">
-                        {(() => {
-                          const files = match._source._files || [];
-                          const moratoriumFiles = match._source._moratorium_files || [];
-
-                          if (files.length === 0 && moratoriumFiles.length === 0) {
-                            return <span className="text-gray-500 text-sm">No files</span>;
-                          }
-
-                          // Group files by type and count them
-                          const fileTypeCounts: { [key: string]: number } = {};
-                          const moratoriumFileCounts: { [key: string]: number } = {};
-
-                          files.forEach((file: any) => {
-                            if (hasFileTypeLabel(file.type)) {
-                              fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                            }
-                          });
-
-                          moratoriumFiles.forEach((file: any) => {
-                            if (hasFileTypeLabel(file.type)) {
-                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
-                            }
-                          });
-
-                          const displayableFiles = Object.entries(fileTypeCounts);
-
-                          if (displayableFiles.length === 0 && Object.keys(moratoriumFileCounts).length === 0) {
-                            return <span className="text-gray-500 text-sm">No files</span>;
-                          }
-
-                          return (
-                            <div className="flex flex-col gap-1">
-                              {displayableFiles.map(([fileType, count]) => {
-                                const moratoriumCount = moratoriumFileCounts[fileType] || 0;
-                                return (
-                                  <div key={fileType} className="text-sm">
-                                    <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
-                                    {moratoriumCount > 0 && <span className="text-gray-500"> ({moratoriumCount})</span>}
-                                  </div>
-                                );
-                              })}
-                              {Object.entries(moratoriumFileCounts).filter(([type]) => !fileTypeCounts[type]).map(([fileType, count]) => (
-                                <div key={fileType} className="text-sm">
-                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> <span className="text-gray-500">({count})</span>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })()}
+                        <FileCounts source={match._source} onOpenTab={(tab) => openLandingModal(match._source._osuid, tab)} />
                       </td>
                       <td className="align-top">
-                        {renderRelatedFileCounts(match._source)}
+                        <RelatedFileCounts source={match._source} onOpenTab={(tab) => openLandingModal(match._source._osuid, tab)} />
                       </td>
                     </tr>
                     {viewRawData &&
@@ -1376,8 +1307,8 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
-                        {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                        {match._source.nSections != null && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'sections')}><b>Sections:</b> {numeral(match._source.nSections).format(0)}</CountLink></>}
+                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
@@ -1405,58 +1336,10 @@ export const Search: React.FC<{ data: any }> = ({
                         />
                       </td>
                       <td className="align-top">
-                        {(() => {
-                          const files = match._source._files || [];
-                          const moratoriumFiles = match._source._moratorium_files || [];
-
-                          if (files.length === 0 && moratoriumFiles.length === 0) {
-                            return <span className="text-gray-500 text-sm">No files</span>;
-                          }
-
-                          // Group files by type and count them
-                          const fileTypeCounts: { [key: string]: number } = {};
-                          const moratoriumFileCounts: { [key: string]: number } = {};
-
-                          files.forEach((file: any) => {
-                            if (hasFileTypeLabel(file.type)) {
-                              fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                            }
-                          });
-
-                          moratoriumFiles.forEach((file: any) => {
-                            if (hasFileTypeLabel(file.type)) {
-                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
-                            }
-                          });
-
-                          const displayableFiles = Object.entries(fileTypeCounts);
-
-                          if (displayableFiles.length === 0 && Object.keys(moratoriumFileCounts).length === 0) {
-                            return <span className="text-gray-500 text-sm">No files</span>;
-                          }
-
-                          return (
-                            <div className="flex flex-col gap-1">
-                              {displayableFiles.map(([fileType, count]) => {
-                                const moratoriumCount = moratoriumFileCounts[fileType] || 0;
-                                return (
-                                  <div key={fileType} className="text-sm">
-                                    <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
-                                    {moratoriumCount > 0 && <span className="text-gray-500"> ({moratoriumCount})</span>}
-                                  </div>
-                                );
-                              })}
-                              {Object.entries(moratoriumFileCounts).filter(([type]) => !fileTypeCounts[type]).map(([fileType, count]) => (
-                                <div key={fileType} className="text-sm">
-                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> <span className="text-gray-500">({count})</span>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })()}
+                        <FileCounts source={match._source} onOpenTab={(tab) => openLandingModal(match._source._osuid, tab)} />
                       </td>
                       <td className="align-top">
-                        {renderRelatedFileCounts(match._source)}
+                        <RelatedFileCounts source={match._source} onOpenTab={(tab) => openLandingModal(match._source._osuid, tab)} />
                       </td>
                     </tr>
                     { viewRawData &&
@@ -1550,8 +1433,8 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
-                        {match._source.nSections != null && <><br/><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                        {match._source.nSections != null && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'sections')}><b>Sections:</b> {numeral(match._source.nSections).format(0)}</CountLink></>}
+                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
@@ -1578,58 +1461,10 @@ export const Search: React.FC<{ data: any }> = ({
                         />
                       </td>
                       <td className="align-top">
-                        {(() => {
-                          const files = match._source._files || [];
-                          const moratoriumFiles = match._source._moratorium_files || [];
-
-                          if (files.length === 0 && moratoriumFiles.length === 0) {
-                            return <span className="text-gray-500 text-sm">No files</span>;
-                          }
-
-                          // Group files by type and count them
-                          const fileTypeCounts: { [key: string]: number } = {};
-                          const moratoriumFileCounts: { [key: string]: number } = {};
-
-                          files.forEach((file: any) => {
-                            if (hasFileTypeLabel(file.type)) {
-                              fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                            }
-                          });
-
-                          moratoriumFiles.forEach((file: any) => {
-                            if (hasFileTypeLabel(file.type)) {
-                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
-                            }
-                          });
-
-                          const displayableFiles = Object.entries(fileTypeCounts);
-
-                          if (displayableFiles.length === 0 && Object.keys(moratoriumFileCounts).length === 0) {
-                            return <span className="text-gray-500 text-sm">No files</span>;
-                          }
-
-                          return (
-                            <div className="flex flex-col gap-1">
-                              {displayableFiles.map(([fileType, count]) => {
-                                const moratoriumCount = moratoriumFileCounts[fileType] || 0;
-                                return (
-                                  <div key={fileType} className="text-sm">
-                                    <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
-                                    {moratoriumCount > 0 && <span className="text-gray-500"> ({moratoriumCount})</span>}
-                                  </div>
-                                );
-                              })}
-                              {Object.entries(moratoriumFileCounts).filter(([type]) => !fileTypeCounts[type]).map(([fileType, count]) => (
-                                <div key={fileType} className="text-sm">
-                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> <span className="text-gray-500">({count})</span>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })()}
+                        <FileCounts source={match._source} onOpenTab={(tab) => openLandingModal(match._source._osuid, tab)} />
                       </td>
                       <td className="align-top">
-                        {renderRelatedFileCounts(match._source)}
+                        <RelatedFileCounts source={match._source} onOpenTab={(tab) => openLandingModal(match._source._osuid, tab)} />
                       </td>
                     </tr>
                     { viewRawData &&
@@ -1705,64 +1540,16 @@ export const Search: React.FC<{ data: any }> = ({
                           <td className="align-top">
                             <b>{match._source._osuid}</b>
                             {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
-                            {match._source.nSections != null && <><br /><b>Sections:</b> {numeral(match._source.nSections).format(0)}</>}
-                            {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                            {match._source.nSections != null && <><br /><CountLink onClick={() => openLandingModal(match._source._osuid, 'sections')}><b>Sections:</b> {numeral(match._source.nSections).format(0)}</CountLink></>}
+                            {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                             {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                           </td>
                           <td className="align-top">
-                            {(() => {
-                              const files = match._source._files || [];
-                              const moratoriumFiles = match._source._moratorium_files || [];
-
-                              if (files.length === 0 && moratoriumFiles.length === 0) {
-                                return <span className="text-gray-500 text-sm">No files</span>;
-                              }
-
-                              // Group files by type and count them
-                              const fileTypeCounts: { [key: string]: number } = {};
-                              const moratoriumFileCounts: { [key: string]: number } = {};
-
-                              files.forEach((file: any) => {
-                                if (hasFileTypeLabel(file.type)) {
-                                  fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                                }
-                              });
-
-                              moratoriumFiles.forEach((file: any) => {
-                                if (hasFileTypeLabel(file.type)) {
-                                  moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
-                                }
-                              });
-
-                              const displayableFiles = Object.entries(fileTypeCounts);
-
-                              if (displayableFiles.length === 0 && Object.keys(moratoriumFileCounts).length === 0) {
-                                return <span className="text-gray-500 text-sm">No files</span>;
-                              }
-
-                              return (
-                                <div className="flex flex-col gap-1">
-                                  {displayableFiles.map(([fileType, count]) => {
-                                    const moratoriumCount = moratoriumFileCounts[fileType] || 0;
-                                    return (
-                                      <div key={fileType} className="text-sm">
-                                        <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
-                                        {moratoriumCount > 0 && <span className="text-gray-500"> ({moratoriumCount})</span>}
-                                      </div>
-                                    );
-                                  })}
-                                  {Object.entries(moratoriumFileCounts).filter(([type]) => !fileTypeCounts[type]).map(([fileType, count]) => (
-                                    <div key={fileType} className="text-sm">
-                                      <span className="font-bold">{getFileTypeLabel(fileType)}:</span> <span className="text-gray-500">({count})</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              );
-                            })()}
+                            <FileCounts source={match._source} onOpenTab={(tab) => openLandingModal(match._source._osuid, tab)} />
                           </td>
                           <td className="align-top">
-                            {renderRelatedFileCounts(match._source)}
+                            <RelatedFileCounts source={match._source} onOpenTab={(tab) => openLandingModal(match._source._osuid, tab)} />
                           </td>
                         </tr>
                         {viewRawData &&
@@ -1846,7 +1633,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
-                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
@@ -1858,58 +1645,10 @@ export const Search: React.FC<{ data: any }> = ({
                         <CollectionMapThumbnail locations={match._source._locations} lat={match._source.latitudeStart || match._source.latitudeEnd} lon={match._source.longitudeStart || match._source.longitudeEnd} />
                       </td>
                       <td className="align-top">
-                        {(() => {
-                          const files = match._source._files || [];
-                          const moratoriumFiles = match._source._moratorium_files || [];
-
-                          if (files.length === 0 && moratoriumFiles.length === 0) {
-                            return <span className="text-gray-500 text-sm">No files</span>;
-                          }
-
-                          // Group files by type and count them
-                          const fileTypeCounts: { [key: string]: number } = {};
-                          const moratoriumFileCounts: { [key: string]: number } = {};
-
-                          files.forEach((file: any) => {
-                            if (hasFileTypeLabel(file.type)) {
-                              fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                            }
-                          });
-
-                          moratoriumFiles.forEach((file: any) => {
-                            if (hasFileTypeLabel(file.type)) {
-                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
-                            }
-                          });
-
-                          const displayableFiles = Object.entries(fileTypeCounts);
-
-                          if (displayableFiles.length === 0 && Object.keys(moratoriumFileCounts).length === 0) {
-                            return <span className="text-gray-500 text-sm">No files</span>;
-                          }
-
-                          return (
-                            <div className="flex flex-col gap-1">
-                              {displayableFiles.map(([fileType, count]) => {
-                                const moratoriumCount = moratoriumFileCounts[fileType] || 0;
-                                return (
-                                  <div key={fileType} className="text-sm">
-                                    <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
-                                    {moratoriumCount > 0 && <span className="text-gray-500"> ({moratoriumCount})</span>}
-                                  </div>
-                                );
-                              })}
-                              {Object.entries(moratoriumFileCounts).filter(([type]) => !fileTypeCounts[type]).map(([fileType, count]) => (
-                                <div key={fileType} className="text-sm">
-                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> <span className="text-gray-500">({count})</span>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })()}
+                        <FileCounts source={match._source} onOpenTab={(tab) => openLandingModal(match._source._osuid, tab)} />
                       </td>
                       <td className="align-top">
-                        {renderRelatedFileCounts(match._source)}
+                        <RelatedFileCounts source={match._source} onOpenTab={(tab) => openLandingModal(match._source._osuid, tab)} />
                       </td>
                     </tr>
                     { viewRawData &&
@@ -2079,7 +1818,7 @@ export const Search: React.FC<{ data: any }> = ({
                       <td className="align-top">
                         <b>{match._source._osuid}</b>
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
-                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
+                        {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
                         <DataIssueBadges doc={match._source} />
                       </td>
@@ -2104,58 +1843,10 @@ export const Search: React.FC<{ data: any }> = ({
                         />
                       </td>
                       <td className="align-top">
-                        {(() => {
-                          const files = match._source._files || [];
-                          const moratoriumFiles = match._source._moratorium_files || [];
-
-                          if (files.length === 0 && moratoriumFiles.length === 0) {
-                            return <span className="text-gray-500 text-sm">No files</span>;
-                          }
-
-                          // Group files by type and count them
-                          const fileTypeCounts: { [key: string]: number } = {};
-                          const moratoriumFileCounts: { [key: string]: number } = {};
-
-                          files.forEach((file: any) => {
-                            if (hasFileTypeLabel(file.type)) {
-                              fileTypeCounts[file.type] = (fileTypeCounts[file.type] || 0) + 1;
-                            }
-                          });
-
-                          moratoriumFiles.forEach((file: any) => {
-                            if (hasFileTypeLabel(file.type)) {
-                              moratoriumFileCounts[file.type] = (moratoriumFileCounts[file.type] || 0) + 1;
-                            }
-                          });
-
-                          const displayableFiles = Object.entries(fileTypeCounts);
-
-                          if (displayableFiles.length === 0 && Object.keys(moratoriumFileCounts).length === 0) {
-                            return <span className="text-gray-500 text-sm">No files</span>;
-                          }
-
-                          return (
-                            <div className="flex flex-col gap-1">
-                              {displayableFiles.map(([fileType, count]) => {
-                                const moratoriumCount = moratoriumFileCounts[fileType] || 0;
-                                return (
-                                  <div key={fileType} className="text-sm">
-                                    <span className="font-bold">{getFileTypeLabel(fileType)}:</span> {count}
-                                    {moratoriumCount > 0 && <span className="text-gray-500"> ({moratoriumCount})</span>}
-                                  </div>
-                                );
-                              })}
-                              {Object.entries(moratoriumFileCounts).filter(([type]) => !fileTypeCounts[type]).map(([fileType, count]) => (
-                                <div key={fileType} className="text-sm">
-                                  <span className="font-bold">{getFileTypeLabel(fileType)}:</span> <span className="text-gray-500">({count})</span>
-                                </div>
-                              ))}
-                            </div>
-                          );
-                        })()}
+                        <FileCounts source={match._source} onOpenTab={(tab) => openLandingModal(match._source._osuid, tab)} />
                       </td>
                       <td className="align-top">
-                        {renderRelatedFileCounts(match._source)}
+                        <RelatedFileCounts source={match._source} onOpenTab={(tab) => openLandingModal(match._source._osuid, tab)} />
                       </td>
                     </tr>
                     { viewRawData &&
@@ -2614,10 +2305,12 @@ export const Search: React.FC<{ data: any }> = ({
                   <LandingPage
                     data={{}}
                     osuId={osuId}
+                    tab={osuTab}
                     compact
                     onDocumentLoaded={(doc) => setCurrentDoc(doc)}
-                    onNavigateToChild={(childOsuId) => {
+                    onNavigateToChild={(childOsuId, tab) => {
                       setOsuId(childOsuId);
+                      setOsuTab(tab);
                     }}
                     onFilter={applyDetailFilter}
                   />
