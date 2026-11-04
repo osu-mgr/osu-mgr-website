@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import { useRouter } from 'next/router';
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useInView } from 'react-hook-inview';
 import { DataIssueBadges, DataIssuesPanel, SHOW_DATA_ISSUES, getDataIssues } from '../search/data-issues';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -14,6 +14,7 @@ import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { DateTimeCell } from '../search/date-time-cell';
 import { MapPoint, TrackInfo, TrackStop, pointKey, stationLine, toMapPoint } from '../search/map-points';
 import { DetailFilterButton, OnDetailFilter } from '../search/detail-filter-button';
+import { CountLink, FileCounts, RelatedFileCounts, fileTabKey } from '../search/file-counts';
 import { Icon } from "../util/icon";
 import { getDiveMethodLabel, formatDate, formatTime, formatField, getFileTypeLabel, isPlaceholder, isVisibleFileType, shown, SHOW_PUBLICATIONS } from "../search/search-data";
 
@@ -65,6 +66,37 @@ const hitsTotal = (results: any): number | undefined => {
   if (t == null) return undefined;
   return typeof t === 'number' ? t : t.value;
 };
+
+// One record by OSU ID, as the modal loads it. File rows look up the record a
+// file belongs to with the same query, so opening it reuses the result.
+const recordQuery = (osuID: string) => ({
+  queryKey: ['osuID', osuID],
+  queryFn: async () => {
+    const payload = {
+      types: ['cruise', 'core', 'dive', 'section', 'sectionHalf', 'diveSample', 'diveSubsample', 'coreSample'],
+      terms: {
+        "_osuid.keyword": [osuID.toUpperCase()],
+      },
+    };
+    const res = await fetch('/api/opensearch?search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errorresults = await res.json();
+      throw new Error(errorresults.message || 'Failed to fetch search results');
+    }
+    return res.json();
+  },
+});
+
+const recordFromResults = (results: any) =>
+  (hitsTotal(results) ?? 0) > 0 && results?.hits?.hits?.[0]?._source ? results.hits.hits[0]._source : {};
+
+// Section halves and core samples are not shown as records: opening one opens
+// its parent instead.
+const REDIRECT_TYPES = ['sectionHalf', 'coreSample'];
 
 // External links are labelled "Site: Title", e.g. "R2R: EW0408".
 const r2rPageTitle = (link: string) => `R2R: ${link.split('/').pop()}`;
@@ -284,16 +316,17 @@ const Deferred: React.FC<{ label?: string; children: React.ReactNode }> = ({ lab
 };
 
 // Parent and child records render as tables laid out like the search results
-// tables for the same record type, minus the Files / Related Files columns.
-type Column = { header: string; render: (d: any) => React.ReactNode };
+// tables for the same record type. `open` opens a row's record on one of its tabs
+// (a count such as "Cores: 9" or "Core Image: 13").
+type Column = { header: string; render: (d: any, open?: (tab: string) => void) => React.ReactNode };
 
-const idCell = (d: any) => (
+const idCell = (d: any, open?: (tab: string) => void) => (
   <>
     <b>{d._osuid}</b>
-    {d._docType === 'cruise' && d._coreOSUIDs?.length > 0 && <><br/><b>Cores:</b> {numeral(d._coreOSUIDs.length).format(0)}</>}
-    {d._docType === 'cruise' && d._diveOSUIDs?.length > 0 && <><br/><b>Dredges/Dives:</b> {numeral(d._diveOSUIDs.length).format(0)}</>}
-    {['core', 'section', 'sectionHalf'].includes(d._docType) && d.nSections != null && <><br/><b>Sections:</b> {numeral(d.nSections).format(0)}</>}
-    {SHOW_PUBLICATIONS && Array.isArray(d._publications) && d._publications.length > 0 && <><br/><b>Publications:</b> {numeral(d._publications.length).format(0)}</>}
+    {d._docType === 'cruise' && d._coreOSUIDs?.length > 0 && <><br/><CountLink onClick={open && (() => open('cores'))}><b>Cores:</b> {numeral(d._coreOSUIDs.length).format(0)}</CountLink></>}
+    {d._docType === 'cruise' && d._diveOSUIDs?.length > 0 && <><br/><CountLink onClick={open && (() => open('dives'))}><b>Dredges/Dives:</b> {numeral(d._diveOSUIDs.length).format(0)}</CountLink></>}
+    {['core', 'section', 'sectionHalf'].includes(d._docType) && d.nSections != null && <><br/><CountLink onClick={open && (() => open('sections'))}><b>Sections:</b> {numeral(d.nSections).format(0)}</CountLink></>}
+    {SHOW_PUBLICATIONS && Array.isArray(d._publications) && d._publications.length > 0 && <><br/><CountLink onClick={open && (() => open('details'))}><b>Publications:</b> {numeral(d._publications.length).format(0)}</CountLink></>}
     {d._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
     <DataIssueBadges doc={d} />
   </>
@@ -322,6 +355,9 @@ const locationCell = (d: any) => (
     lon={d.longitudeStart || d.longitudeEnd}
   />
 );
+
+// Opens another record in the modal, optionally on one of its tabs.
+type Navigate = (osuid: string, tab?: string) => void;
 
 const dateTimeColumn: Column = { header: 'Date Time', render: () => null }; // rendered via DateTimeCell
 
@@ -410,8 +446,14 @@ const DEFAULT_COLUMNS: Column[] = [
   { header: 'Location', render: locationCell },
 ];
 
-const RecordTable: React.FC<{ rows: any[]; docType: string; onNavigate?: (osuid: string) => void }> = ({ rows, docType, onNavigate }) => {
-  const cols = TABLE_COLUMNS[docType] || DEFAULT_COLUMNS;
+// Same Files / Related Files columns as the search results, on every record type.
+const FILE_COLUMNS: Column[] = [
+  { header: 'Files', render: (d, open) => <FileCounts source={d} onOpenTab={open} /> },
+  { header: 'Related Files', render: (d, open) => <RelatedFileCounts source={d} onOpenTab={open} /> },
+];
+
+const RecordTable: React.FC<{ rows: any[]; docType: string; onNavigate?: Navigate }> = ({ rows, docType, onNavigate }) => {
+  const cols = [...(TABLE_COLUMNS[docType] || DEFAULT_COLUMNS), ...FILE_COLUMNS];
   return (
     <div className="overflow-x-auto w-full">
       <table className="table table-compact w-full min-w-full mt-0">
@@ -423,7 +465,7 @@ const RecordTable: React.FC<{ rows: any[]; docType: string; onNavigate?: (osuid:
             <tr key={d._osuid} className="hover cursor-pointer" onClick={() => onNavigate?.(d._osuid)}>
               {cols.map((c, i) => c === dateTimeColumn
                 ? <DateTimeCell key={c.header} source={d} />
-                : <td key={c.header} className={`align-top ${i === 0 ? '!whitespace-nowrap w-px' : ''}`}>{c.render(d)}</td>)}
+                : <td key={c.header} className={`align-top ${i === 0 ? '!whitespace-nowrap w-px' : ''}`}>{c.render(d, onNavigate && ((tab) => onNavigate(d._osuid, tab)))}</td>)}
             </tr>
           ))}
         </tbody>
@@ -460,7 +502,7 @@ const LoadMore: React.FC<{ onMore: () => void }> = ({ onMore }) => {
   );
 };
 
-const DescendantsPanel: React.FC<{ tab: DescendantTab; query: any; onNavigate?: (osuid: string) => void }> = ({ tab, query, onNavigate }) => {
+const DescendantsPanel: React.FC<{ tab: DescendantTab; query: any; onNavigate?: Navigate }> = ({ tab, query, onNavigate }) => {
   const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = query;
   const hits = (data?.pages || []).flatMap((p: any) => p?.hits?.hits || []);
   const loadMore = () => { if (hasNextPage && !isFetchingNextPage) fetchNextPage(); };
@@ -611,9 +653,13 @@ const SectionTabs: React.FC<{ tabs: ModalTab[]; active: string; onSelect: (key: 
 // The OSU ID a file belongs to is embedded in its file name (the same pattern
 // the pipeline uses to attach files to records). Falls back to the file name.
 const FILE_OSUID_RE = /OSU-([^/~]+?)(?:-(?:coredescription|coringdatasheet|cruisereport|dredgelog|image|itraximage|itraxxray|xray|field\d*|field\.wr|ts\.(?:ppl|xpl)(?:\.foi)?|wr(?:\.foi)?|mst|ptmag|xrfdata|igsnsheet|ctscan|publications|imlgsfile))/i;
-const fileOsuId = (path: string): string => {
+const fileRecordId = (path: string): string | null => {
   const m = FILE_OSUID_RE.exec(path || '');
-  if (m) return `OSU-${m[1].toUpperCase()}`;
+  return m ? `OSU-${m[1].toUpperCase()}` : null;
+};
+const fileOsuId = (path: string): string => {
+  const id = fileRecordId(path);
+  if (id) return id;
   const name = (path || '').split('/').pop() || 'File';
   return name.replace(/\.[^.]+$/, '');
 };
@@ -639,7 +685,7 @@ const buildFileTabs = (doc: any): FileTab[] => {
   const add = (list: any[], related: boolean, moratorium: boolean) => {
     (list || []).filter(isVisibleFile).forEach((f: any) => {
       const fileType = f?.type || 'file';
-      const key = `${related ? 'related' : 'files'}:${fileType}`;
+      const key = fileTabKey(fileType, related);
       if (!groups[key]) {
         groups[key] = {
           key,
@@ -758,7 +804,7 @@ const useFileSize = (path: string) =>
     },
   });
 
-const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean }> = ({ file, moratorium, rotate }) => {
+const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean; selected: boolean; onSelect: () => void }> = ({ file, moratorium, rotate, selected, onSelect }) => {
   const id = fileOsuId(file.path);
   const url = `/api/file/${file.path}`;
   const ext = ((file.path || '').split('.').pop() || 'file').toUpperCase();
@@ -771,7 +817,12 @@ const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean }> = (
   const [dims, setDims] = useState<string | null>(null);
   const onLoaded = (w: number, h: number) => setDims(`${w} × ${h}`);
   return (
-    <tr>
+    // The file itself (thumbnail, image or button) downloads it; anywhere else
+    // on the row selects it.
+    <tr
+      className={`hover cursor-pointer ${selected ? 'active' : ''}`}
+      onClick={(e) => { if (!(e.target as HTMLElement).closest('a')) onSelect(); }}
+    >
       <td className="align-top !whitespace-nowrap w-px">
         <b>{id}</b>
         <div className="flex flex-col items-start gap-1 mt-1">
@@ -818,8 +869,27 @@ const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean }> = (
 // image / document icon and the file extension. Same table markup as the record tables
 // so headers match; the ID column is pinned to its content width (1px + nowrap)
 // and the file column takes all remaining width.
-const FileTable: React.FC<{ tab: FileTab }> = ({ tab }) => {
+// Clicking a row (off the file) highlights it and opens the record the file
+// belongs to on that file type's tab, unless that is the record already open:
+// its own files, or a section half's files under its section.
+const FileTable: React.FC<{ tab: FileTab; osuId: string; onNavigate?: Navigate }> = ({ tab, osuId, onNavigate }) => {
   const rotate = ROTATED_IMAGE_TYPES.includes(tab.fileType);
+  const queryClient = useQueryClient();
+  const [selected, setSelected] = useState<number | null>(null);
+  const lastClick = useRef(0);
+  const select = (index: number, file: any) => {
+    setSelected(index);
+    const id = fileRecordId(file.path);
+    const isOpen = (other?: string) => !!other && other.toUpperCase() === osuId.toUpperCase();
+    if (!onNavigate || !id || isOpen(id)) return;
+    const click = ++lastClick.current;
+    queryClient.fetchQuery(recordQuery(id)).then((results) => {
+      const target = recordFromResults(results);
+      if (click !== lastClick.current || !target._osuid) return;
+      if (isOpen(REDIRECT_TYPES.includes(target._docType) ? target._parentOSUID : target._osuid)) return;
+      onNavigate(id, fileTabKey(tab.fileType, false));
+    }).catch(() => null); // record not found: stay on the highlighted row
+  };
   const rows = [
     ...tab.files.map((f: any) => ({ file: f, moratorium: false })),
     ...tab.moratoriumFiles.map((f: any) => ({ file: f, moratorium: true })),
@@ -840,7 +910,8 @@ const FileTable: React.FC<{ tab: FileTab }> = ({ tab }) => {
         </thead>
         <tbody>
           {rows.slice(0, limit).map(({ file, moratorium }, index) => (
-            <FileRow key={`${moratorium ? 'm' : 'f'}-${index}`} file={file} moratorium={moratorium} rotate={rotate} />
+            <FileRow key={`${moratorium ? 'm' : 'f'}-${index}`} file={file} moratorium={moratorium} rotate={rotate}
+              selected={selected === index} onSelect={() => select(index, file)} />
           ))}
         </tbody>
       </table>
@@ -849,9 +920,9 @@ const FileTable: React.FC<{ tab: FileTab }> = ({ tab }) => {
   );
 };
 
-const FileTypePanel: React.FC<{ tab: FileTab }> = ({ tab }) => (
+const FileTypePanel: React.FC<{ tab: FileTab; osuId: string; onNavigate?: Navigate }> = ({ tab, osuId, onNavigate }) => (
   <Deferred label={`Loading ${tab.label.toLowerCase()}...`}>
-    <FileTable tab={tab} />
+    <FileTable tab={tab} osuId={osuId} onNavigate={onNavigate} />
   </Deferred>
 );
 
@@ -1108,9 +1179,11 @@ const DetailsPanel: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid:
 };
 
 // `compact` drops the page gutters/margins for use inside the search modal.
-export const LandingPage: React.FC<{ data: any; osuId?: string; compact?: boolean; onDocumentLoaded?: (doc: any) => void; onNavigateToChild?: (osuid: string) => void; onFilter?: OnDetailFilter }> = ({
+// `tab` is the tab to open the record on (Details if unset or not shown for it).
+export const LandingPage: React.FC<{ data: any; osuId?: string; tab?: string; compact?: boolean; onDocumentLoaded?: (doc: any) => void; onNavigateToChild?: Navigate; onFilter?: OnDetailFilter }> = ({
     data,
     osuId,
+    tab,
     compact = false,
     onDocumentLoaded,
     onNavigateToChild,
@@ -1126,31 +1199,9 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; compact?: boolea
   const {
     data: results,
     isLoading: isLoadingQuery,
-  } = useQuery({
-    queryKey: ['osuID', osuID],
-    queryFn: async () => { 
-      const payload = {
-        types: ['cruise', 'core', 'dive', 'section', 'sectionHalf', 'diveSample', 'diveSubsample', 'coreSample'],
-        terms: {
-          "_osuid.keyword": [osuID.toUpperCase()],
-        },
-      };
-      const res = await fetch('/api/opensearch?search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const errorresults = await res.json();
-        throw new Error(errorresults.message || 'Failed to fetch search results');
-      }
-      return res.json();
-    },
-  });
+  } = useQuery(recordQuery(osuID));
 
-  const doc = (results?.hits?.total?.value > 0 || results?.hits?.total > 0) && results?.hits?.hits?.[0]?._source 
-    ? results.hits.hits[0]._source 
-    : {};
+  const doc = recordFromResults(results);
 
   // Section halves and core samples are not shown as records: a link to one
   // (e.g. OSU-CASCADES-82-1DC-5R) opens its parent instead. A core sample's
@@ -1158,10 +1209,10 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; compact?: boolea
   // Done from the loaded record's type rather than by ID pattern, because
   // cores, sections and rock samples can also have IDs ending in a digit plus
   // a letter.
-  const redirectTo = ['sectionHalf', 'coreSample'].includes(doc._docType) && doc._parentOSUID ? doc._parentOSUID : null;
+  const redirectTo = REDIRECT_TYPES.includes(doc._docType) && doc._parentOSUID ? doc._parentOSUID : null;
   useEffect(() => {
-    if (redirectTo && onNavigateToChild) onNavigateToChild(redirectTo);
-  }, [redirectTo, onNavigateToChild]);
+    if (redirectTo && onNavigateToChild) onNavigateToChild(redirectTo, tab);
+  }, [redirectTo, onNavigateToChild, tab]);
 
   // Notify parent component when document is loaded
   useEffect(() => {
@@ -1170,9 +1221,16 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; compact?: boolea
     }
   }, [doc, onDocumentLoaded, redirectTo]);
 
-  // Active tab; back to Details whenever the modal navigates to another record.
-  const [activeTab, setActiveTab] = useState('details');
-  useEffect(() => { setActiveTab('details'); }, [osuID]);
+  // Active tab; back to the requested tab (Details by default) whenever the
+  // modal navigates to another record.
+  const [activeTab, setActiveTab] = useState(tab || 'details');
+  useEffect(() => { setActiveTab(tab || 'details'); }, [osuID, tab]);
+
+  // Opening the record that is already open just switches its tab.
+  const navigate: Navigate | undefined = onNavigateToChild && ((id, t) => {
+    if (doc._osuid && id.toUpperCase() === doc._osuid.toUpperCase()) setActiveTab(t || 'details');
+    else onNavigateToChild(id, t);
+  });
 
   // Counts for the tab badges. These share query keys with the panels, so the
   // panel render never triggers a second fetch.
@@ -1235,14 +1293,14 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; compact?: boolea
         <div className={`w-full ${compact ? 'flex flex-col lg:flex-row flex-1 min-h-0 lg:items-stretch' : 'lg:flex lg:gap-6 lg:items-start'}`}>
           <SectionTabs tabs={tabs} active={current} onSelect={setActiveTab} />
           <div className={`flex-1 min-w-0 w-full ${compact ? 'min-h-0 overflow-y-auto' : 'lg:pl-0'}`}>
-            {current === 'details' && <DetailsPanel doc={doc} ancestors={ancestors} onNavigate={onNavigateToChild} onFilter={onFilter} />}
+            {current === 'details' && <DetailsPanel doc={doc} ancestors={ancestors} onNavigate={navigate} onFilter={onFilter} />}
             {descendantTabs.slice(0, MAX_DESCENDANT_TABS).map((t, i) => t.key === current && (
-              <DescendantsPanel key={t.key} tab={t} query={descendantResults[i]} onNavigate={onNavigateToChild} />
+              <DescendantsPanel key={t.key} tab={t} query={descendantResults[i]} onNavigate={navigate} />
             ))}
-            {fileTabs.filter(t => t.key === current).map(t => <FileTypePanel key={t.key} tab={t} />)}
+            {fileTabs.filter(t => t.key === current).map(t => <FileTypePanel key={t.key} tab={t} osuId={doc._osuid} onNavigate={navigate} />)}
             {current === 'parents-loading' && <LoadingRows label="Loading parents..." />}
             {(ancestors || []).filter((a: any) => parentTabKey(a) === current).map((a: any) => (
-              <RecordTable key={a._osuid} rows={[a]} docType={a._docType} onNavigate={onNavigateToChild} />
+              <RecordTable key={a._osuid} rows={[a]} docType={a._docType} onNavigate={navigate} />
             ))}
             {current === 'issues' && <div className="p-4"><DataIssuesPanel doc={doc} /></div>}
           </div>
