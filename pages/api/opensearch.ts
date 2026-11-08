@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Client } from '@opensearch-project/opensearch';
-import { r2rCruiseLinks } from '../../components/search/search-data';
 
 const client: Client = new Client({
   node: process.env.OS_NODE,
@@ -33,15 +32,10 @@ function dataIssuesFilter(search: any): any | null {
   return { bool: { should, minimum_should_match: 1 } };
 }
 
-// "Links" filter: records with a link to outside data. R2R links are keyed by
-// cruise OSU ID (see r2rCruiseLinks) and apply to every record from that cruise,
-// which children store without the "OSU-" prefix in `cruise`.
-const R2R_CRUISES = Object.keys(r2rCruiseLinks);
+// "Links" filter: records with a link to outside data. The pipeline puts a
+// cruise's R2R links (r2rLinks) on the cruise and every record from it.
 const LINK_QUERIES: { [link: string]: any } = {
-  r2r: { bool: { should: [
-    { terms: { '_osuid.keyword': R2R_CRUISES } },
-    { terms: { 'cruise.keyword': R2R_CRUISES.map(id => id.replace(/^OSU-/, '')) } },
-  ], minimum_should_match: 1 } },
+  r2r: { exists: { field: 'r2rLinks' } },
   ...(showPublications ? { publication: { exists: { field: '_publications.doi' } } } : {}),
 };
 
