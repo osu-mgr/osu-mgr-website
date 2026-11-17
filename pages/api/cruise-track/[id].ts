@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { Client } from '@opensearch-project/opensearch';
-import { r2rCruiseLinks } from '../../../components/search/search-data';
 import { MapPoint, toMapPoint } from '../../../components/search/map-points';
 
 // A cruise's ship track, drawn behind its records in their modals' maps:
@@ -135,8 +134,9 @@ const findTrack = async (cruise: any) => {
   const stations = ((cruise._locations || []) as any[]).map(loc => toMapPoint(loc, 'core')).filter((p): p is MapPoint => p !== null);
   const passes = (lines: Line[], required: boolean) =>
     lines.length > 0 && (stations.length ? nearShare(lines, stations) >= NEAR_SHARE : !required);
-  // R2R: the site's links to it are the cruise's own; its code may not be.
-  const linked = (r2rCruiseLinks[osuid] || []).map(url => url.match(/cruise\/([^/?#]+)/)?.[1]).filter(Boolean) as string[];
+  // R2R: the cruise IDs its R2R links name (pipeline r2rCruiseID) are the
+  // cruise's own; its code may not be.
+  const linked = ([] as string[]).concat(cruise.r2rCruiseID || []).filter(Boolean);
   for (const id of linked) {
     const lines = await r2rTrack(id);
     if (passes(lines, false)) return { source: 'r2r', id, lines };
@@ -161,7 +161,7 @@ export default async (req: NextApiRequest, res: NextApiResponse): Promise<void> 
   try {
     const found = await client.search({ index, body: {
       size: 1,
-      _source: ['_osuid', 'cruise', 'rvName', 'startDate', '_locations'],
+      _source: ['_osuid', 'cruise', 'rvName', 'startDate', '_locations', 'r2rCruiseID'],
       query: { bool: {
         filter: [{ term: { '_osuid.keyword': osuid } }, { term: { '_docType.keyword': 'cruise' } }],
         // As pages/api/opensearch.ts: records with data errors are hidden on prod.

@@ -13,7 +13,7 @@ import { ItemsCount } from '../util/items-count';
 import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
 import { LandingPage } from "./landing-page";
-import { r2rCruiseLinks, getCollectionLabel, getFileTypeLabel, getDiveMethodLabel, formatDate, formatTime, formatNumber, formatField, isPlaceholder, shown, SHOW_PUBLICATIONS } from '../search/search-data';
+import { getCollectionLabel, getFileTypeLabel, getDiveMethodLabel, formatDate, formatTime, formatNumber, formatField, isPlaceholder, shown, SHOW_PUBLICATIONS } from '../search/search-data';
 import { FileTypesFilterDropdown } from '../search/file-types-filter';
 import { RelatedFileTypesFilterDropdown } from '../search/related-file-types-filter';
 import { RvNameFilterDropdown } from '../search/rv-name-filter';
@@ -572,7 +572,7 @@ export const Search: React.FC<{ data: any }> = ({
       else if (router.query.osu) {
         const osuParam = Array.isArray(router.query.osu) ? router.query.osu[0] : router.query.osu;
         if (osuParam) {
-          // Used as-is; LandingPage redirects a section half or core sample to its parent section.
+          // Used as-is; LandingPage redirects a section half, core sample or rock subsample to its parent.
           const resolvedId = osuParam;
           console.log('Processing OSU URL parameter:', resolvedId);
           setOsuId(resolvedId);
@@ -1176,9 +1176,9 @@ export const Search: React.FC<{ data: any }> = ({
                       </td>
                       <td className="align-top">
                         {shown(match._source.rvName)}
-                        {r2rCruiseLinks[match._source._osuid] && (
+                        {match._source.r2rLinks?.length > 0 && (
                           <div className="mt-1 flex flex-row flex-wrap gap-1">
-                            {r2rCruiseLinks[match._source._osuid].map((link: string, idx: number) => (
+                            {match._source.r2rLinks.map((link: string, idx: number) => (
                               <a
                                 key={idx}
                                 href={link}

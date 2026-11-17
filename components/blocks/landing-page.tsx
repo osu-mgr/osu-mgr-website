@@ -94,11 +94,12 @@ const recordQuery = (osuID: string) => ({
 const recordFromResults = (results: any) =>
   (hitsTotal(results) ?? 0) > 0 && results?.hits?.hits?.[0]?._source ? results.hits.hits[0]._source : {};
 
-// Section halves and core samples are not shown as records: opening one opens
-// its parent instead.
-const REDIRECT_TYPES = ['sectionHalf', 'coreSample'];
+// Section halves, core samples and rock subsamples are not shown as records:
+// opening one opens its parent instead (their files are already on the parent).
+const REDIRECT_TYPES = ['sectionHalf', 'coreSample', 'diveSubsample'];
 
-// External links are labelled "Site: Title", e.g. "R2R: EW0408".
+// External links are labelled "Site: Title", e.g. "R2R: EW0408". R2R links
+// come from the pipeline (r2rLinks, from the curators' "R2R names" sheet).
 const r2rPageTitle = (link: string) => `R2R: ${link.split('/').pop()}`;
 
 // Citations come from Crossref and may carry inline markup such as
@@ -106,70 +107,6 @@ const r2rPageTitle = (link: string) => `R2R: ${link.split('/').pop()}`;
 const citationHtml = (citation: string) =>
   String(citation).replace(/<(?!\/?(?:sub|sup|i|em|b|strong)>)[^>]*>/gi, '');
 
-const r2rCruiseLinks: { [key: string]: string[] } = {
-  'OSU-AT0003': ['https://www.rvdata.us/search/cruise/AT3-49'],
-  'OSU-BENTHIC3': ['https://www.rvdata.us/search/cruise/BNTH03MV'],
-  'OSU-EW0104': ['https://www.rvdata.us/search/cruise/EW0104'],
-  'OSU-EW0408': ['https://www.rvdata.us/search/cruise/EW0408'],
-  'OSU-EW9504': ['https://www.rvdata.us/search/cruise/EW9504'],
-  'OSU-EW9505': ['https://www.rvdata.us/search/cruise/EW9505'],
-  'OSU-EW9709': ['https://www.rvdata.us/search/cruise/EW9709'],
-  'OSU-FD7503': ['https://www.rvdata.us/search/cruise/FDRK03MV'],
-  'OSU-HE0002': ['https://www.rvdata.us/search/cruise/HLY0001'],
-  'OSU-INMD01': ['https://www.rvdata.us/search/cruise/INMD01MV'],
-  'OSU-KM0419': ['https://www.rvdata.us/search/cruise/KM0419'],
-  'OSU-M8011': ['https://www.rvdata.us/search/cruise/VLCN03MV','https://www.rvdata.us/search/cruise/VLCN04MV'],
-  'OSU-M9907': ['https://www.rvdata.us/search/cruise/AVON09MV'],
-  'OSU-ME0005A': ['https://www.rvdata.us/search/cruise/NEMO03MV'],
-  'OSU-MV0209': ['https://www.rvdata.us/search/cruise/VANC02MV'],
-  'OSU-MV0502': ['https://www.rvdata.us/search/cruise/TUIM03MV'],
-  'OSU-MV0508': ['https://www.rvdata.us/search/cruise/TUIM13MV'],
-  'OSU-MV0811': ['https://www.rvdata.us/search/cruise/BOLT02MV'],
-  'OSU-MV1014': ['https://www.rvdata.us/search/cruise/MV1014'],
-  'OSU-PE2111': ['https://www.rvdata.us/search/cruise/PE21-11'],
-  'OSU-PLDS2': ['https://www.rvdata.us/search/cruise/PLDS02MV'],
-  'OSU-PLUME02': ['https://www.rvdata.us/search/cruise/PLUM02WT'],
-  'OSU-PLUTO3': ['https://www.rvdata.us/search/cruise/PLTO03MV'],
-  'OSU-RAMA1': ['https://www.rvdata.us/search/cruise/RAMA01WT'],
-  'OSU-RR0207': ['https://www.rvdata.us/search/cruise/LPRS02RR'],
-  'OSU-RR0503': ['https://www.rvdata.us/search/cruise/ZHNG03RR'],
-  'OSU-RR0603': ['https://www.rvdata.us/search/cruise/AMAT03RR'],
-  'OSU-RR1310': ['https://www.rvdata.us/search/cruise/RR1310'],
-  'OSU-RR1807': ['https://www.rvdata.us/search/cruise/RR1807'],
-  'OSU-RR2208': ['https://www.rvdata.us/search/vessel/Revelle'],
-  'OSU-RR9702A': ['https://www.rvdata.us/search/cruise/GENE03RR'],
-  'OSU-SH1710': ['https://www.rvdata.us/search/cruise/HRS1710JH'],
-  'OSU-SKQ1603': ['https://www.rvdata.us/search/cruise/SKQ201602S'],
-  'OSU-SKQ1903': ['https://www.rvdata.us/search/cruise/SKQ201905S'],
-  'OSU-SP1716': ['https://www.rvdata.us/search/cruise/SP1716'],
-  'OSU-SR1801': ['https://www.rvdata.us/search/cruise/SR1801'],
-  'OSU-SR2113': ['https://www.rvdata.us/search/cruise/SR2113'],
-  'OSU-TN037': ['https://www.rvdata.us/search/cruise/TN037'],
-  'OSU-TN0909': ['https://www.rvdata.us/search/cruise/TN240'],
-  'OSU-TN314': ['https://www.rvdata.us/search/cruise/TN314'],
-  'OSU-TT1811': ['https://www.rvdata.us/search/cruise/TN362'],
-  'OSU-TT1909': ['https://www.rvdata.us/search/cruise/TN372'],
-  'OSU-OC2109A': ['https://www.rvdata.us/search/cruise/OC2109A'],
-  'OSU-OC1706B': ['https://www.rvdata.us/search/cruise/OC1706B'],
-  'OSU-OC1804C': ['https://www.rvdata.us/search/cruise/OC1804C'],
-  'OSU-OC1906A': ['https://www.rvdata.us/search/cruise/OC1906A'],
-  'OSU-OC1908B': ['https://www.rvdata.us/search/cruise/OC1908B'],
-  'OSU-OC2006A': ['https://www.rvdata.us/search/cruise/OC2006A'],
-  'OSU-SKQ202309T': ['https://www.rvdata.us/search/cruise/SKQ202309T'],
-  'OSU-SKQ202311S': ['https://www.rvdata.us/search/cruise/SKQ202311S'],
-  'OSU-SKQ202404S': ['https://www.rvdata.us/search/cruise/SKQ202404S'],
-  'OSU-SKQ202410S': ['https://www.rvdata.us/search/cruise/SKQ202410S'],
-  'OSU-SKQ2012': ['https://www.rvdata.us/search/cruise/SKQ202016S'],
-  'OSU-SKQ2211': ['https://www.rvdata.us/search/cruise/SKQ202215S'],
-  'OSU-SKQ2303': ['https://www.rvdata.us/search/cruise/SKQ202305S'],
-  'OSU-SKQ202206S': ['https://www.rvdata.us/search/cruise/SKQ202206S'],
-  'OSU-SP2323': ['https://www.rvdata.us/search/cruise/SP2323'],
-  'OSU-SR2510': ['https://www.rvdata.us/search/cruise/SR2510'],
-  'OSU-W0903B': ['https://www.rvdata.us/search/cruise/W0903B'],
-  'OSU-W0906A': ['https://www.rvdata.us/search/cruise/W0906A'],
-  'OSU-W0906C': ['https://www.rvdata.us/search/cruise/W0906C'],
-  'OSU-W0910B': ['https://www.rvdata.us/search/cruise/W0910B']
-};
 
 const TypeTab: React.FC<{
   label: string;
@@ -288,7 +225,7 @@ const DESCENDANT_TABS: { [docType: string]: DescendantTab[] } = {
 };
 // Tabs left out of the modal for now; the definitions stay above so they can be
 // switched back on.
-const HIDDEN_DESCENDANT_TABS = ['coreSamples', 'rockSamples'];
+const HIDDEN_DESCENDANT_TABS = ['coreSamples', 'rockSamples', 'subsamples'];
 // Hooks must run the same number of times on every render, so the descendant
 // queries use a fixed number of slots regardless of record type.
 const MAX_DESCENDANT_TABS = 5;
@@ -367,9 +304,9 @@ const TABLE_COLUMNS: { [docType: string]: Column[] } = {
     { header: 'RV Name', render: (d) => (
       <>
         {shown(d.rvName)}
-        {r2rCruiseLinks[d._osuid] && (
+        {d.r2rLinks?.length > 0 && (
           <div className="mt-1 flex flex-row flex-wrap gap-1">
-            {r2rCruiseLinks[d._osuid].map((link: string, idx: number) => (
+            {d.r2rLinks.map((link: string, idx: number) => (
               <a key={idx} href={link} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                 className="badge badge-ghost badge-tag hover:badge-ghost no-underline flex items-center gap-1">
                 R2R<Icon name="BiLinkExternal" size="xxs" /><span className="font-normal">{link.split('/').pop()}</span>
@@ -871,7 +808,8 @@ const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean; selec
 // and the file column takes all remaining width.
 // Clicking a row (off the file) highlights it and opens the record the file
 // belongs to on that file type's tab, unless that is the record already open:
-// its own files, or a section half's files under its section.
+// its own files, or a redirected record's files under its parent (e.g. a
+// section half's under its section, a rock subsample's under its rock).
 const FileTable: React.FC<{ tab: FileTab; osuId: string; onNavigate?: Navigate }> = ({ tab, osuId, onNavigate }) => {
   const rotate = ROTATED_IMAGE_TYPES.includes(tab.fileType);
   const queryClient = useQueryClient();
@@ -1139,11 +1077,11 @@ const DetailsPanel: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid:
         {t === 'dive' && doc.nSections != null && <DetailRow label="Samples" field="nSections" value={doc.nSections} />}
         {t !== 'section' && t !== 'sectionHalf' && <DetailRow label="Area" field="area" value={doc.area} />}
         <PairedRows doc={doc} />
-        {t === 'cruise' && r2rCruiseLinks[doc._osuid] && (
+        {t === 'cruise' && doc.r2rLinks?.length > 0 && (
           <div className="md:col-span-2 mt-2">
             <strong>External Links:</strong>
             <ul className="m-0 mt-1 pl-5 text-sm">
-              {r2rCruiseLinks[doc._osuid].map((link: string, idx: number) => (
+              {doc.r2rLinks.map((link: string, idx: number) => (
                 <li key={idx} className="m-0">
                   <a href={link} target="_blank" rel="noopener noreferrer" className="no-underline font-normal hover:underline">
                     {r2rPageTitle(link)}
@@ -1203,9 +1141,10 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; tab?: string; co
 
   const doc = recordFromResults(results);
 
-  // Section halves and core samples are not shown as records: a link to one
-  // (e.g. OSU-CASCADES-82-1DC-5R) opens its parent instead. A core sample's
-  // parent is usually a section half, which redirects again to its section.
+  // Section halves, core samples and rock subsamples are not shown as records:
+  // a link to one (e.g. OSU-CASCADES-82-1DC-5R) opens its parent instead. A
+  // core sample's parent is usually a section half, which redirects again to
+  // its section; a rock subsample opens its rock sample.
   // Done from the loaded record's type rather than by ID pattern, because
   // cores, sections and rock samples can also have IDs ending in a digit plus
   // a letter.
