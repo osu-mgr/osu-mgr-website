@@ -94,9 +94,9 @@ const recordQuery = (osuID: string) => ({
 const recordFromResults = (results: any) =>
   (hitsTotal(results) ?? 0) > 0 && results?.hits?.hits?.[0]?._source ? results.hits.hits[0]._source : {};
 
-// Section halves and core samples are not shown as records: opening one opens
-// its parent instead.
-const REDIRECT_TYPES = ['sectionHalf', 'coreSample'];
+// Section halves, core samples and rock subsamples are not shown as records:
+// opening one opens its parent instead (their files are already on the parent).
+const REDIRECT_TYPES = ['sectionHalf', 'coreSample', 'diveSubsample'];
 
 // External links are labelled "Site: Title", e.g. "R2R: EW0408". R2R links
 // come from the pipeline (r2rLinks, from the curators' "R2R names" sheet).
@@ -225,7 +225,7 @@ const DESCENDANT_TABS: { [docType: string]: DescendantTab[] } = {
 };
 // Tabs left out of the modal for now; the definitions stay above so they can be
 // switched back on.
-const HIDDEN_DESCENDANT_TABS = ['coreSamples', 'rockSamples'];
+const HIDDEN_DESCENDANT_TABS = ['coreSamples', 'rockSamples', 'subsamples'];
 // Hooks must run the same number of times on every render, so the descendant
 // queries use a fixed number of slots regardless of record type.
 const MAX_DESCENDANT_TABS = 5;
@@ -808,7 +808,8 @@ const FileRow: React.FC<{ file: any; moratorium: boolean; rotate: boolean; selec
 // and the file column takes all remaining width.
 // Clicking a row (off the file) highlights it and opens the record the file
 // belongs to on that file type's tab, unless that is the record already open:
-// its own files, or a section half's files under its section.
+// its own files, or a redirected record's files under its parent (e.g. a
+// section half's under its section, a rock subsample's under its rock).
 const FileTable: React.FC<{ tab: FileTab; osuId: string; onNavigate?: Navigate }> = ({ tab, osuId, onNavigate }) => {
   const rotate = ROTATED_IMAGE_TYPES.includes(tab.fileType);
   const queryClient = useQueryClient();
@@ -1140,9 +1141,10 @@ export const LandingPage: React.FC<{ data: any; osuId?: string; tab?: string; co
 
   const doc = recordFromResults(results);
 
-  // Section halves and core samples are not shown as records: a link to one
-  // (e.g. OSU-CASCADES-82-1DC-5R) opens its parent instead. A core sample's
-  // parent is usually a section half, which redirects again to its section.
+  // Section halves, core samples and rock subsamples are not shown as records:
+  // a link to one (e.g. OSU-CASCADES-82-1DC-5R) opens its parent instead. A
+  // core sample's parent is usually a section half, which redirects again to
+  // its section; a rock subsample opens its rock sample.
   // Done from the loaded record's type rather than by ID pattern, because
   // cores, sections and rock samples can also have IDs ending in a digit plus
   // a letter.

@@ -572,7 +572,7 @@ export const Search: React.FC<{ data: any }> = ({
       else if (router.query.osu) {
         const osuParam = Array.isArray(router.query.osu) ? router.query.osu[0] : router.query.osu;
         if (osuParam) {
-          // Used as-is; LandingPage redirects a section half or core sample to its parent section.
+          // Used as-is; LandingPage redirects a section half, core sample or rock subsample to its parent.
           const resolvedId = osuParam;
           console.log('Processing OSU URL parameter:', resolvedId);
           setOsuId(resolvedId);
