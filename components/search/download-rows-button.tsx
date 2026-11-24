@@ -74,6 +74,7 @@ const COLUMNS: { header: string; value: (doc: any) => any }[] = [
   { header: 'Principal Texture', value: d => d.texture },
   { header: 'Sample Weight (kg)', value: d => d.weight },
   { header: 'IGSN', value: d => d.igsn },
+  { header: 'Registered IGSN Links', value: d => Array.isArray(d.igsnLinks) && d.igsnLinks.length ? d.igsnLinks.map((l: any) => l.url).join(' ') : undefined },
   { header: 'Storage Location', value: d => d.storageLocation },
   { header: 'Collection', value: d => d.collection },
   { header: 'Notes', value: d => d.notes },

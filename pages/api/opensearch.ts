@@ -33,13 +33,15 @@ function dataIssuesFilter(search: any): any | null {
 }
 
 // "Links" filter: records with a link to outside data. The pipeline puts a
-// cruise's R2R links (r2rLinks) on the cruise and every record from it.
+// cruise's R2R links (r2rLinks) on the cruise and every record from it, and
+// registered IGSNs (igsnLinks) on the exact record they identify.
 const LINK_QUERIES: { [link: string]: any } = {
   r2r: { exists: { field: 'r2rLinks' } },
+  igsn: { exists: { field: 'igsnLinks.igsn' } },
   ...(showPublications ? { publication: { exists: { field: '_publications.doi' } } } : {}),
 };
 
-// Links filter: r2r | publication, combined with the Links AND/OR logic.
+// Links filter: r2r | igsn | publication, combined with the Links AND/OR logic.
 function linksFilter(search: any): any | null {
   const links: string[] = (search?.filters?.links || []).filter((l: string) => LINK_QUERIES[l]);
   if (links.length === 0) return null;

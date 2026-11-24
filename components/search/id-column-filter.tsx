@@ -5,9 +5,10 @@ import { Icon } from "../util/icon";
 import { collectionLabels, getCollectionLabel, SHOW_PUBLICATIONS } from "./search-data";
 
 // Link types a record can have to outside data. Keys match LINK_QUERIES in
-// pages/api/opensearch.ts; add new ones (e.g. IGSN) in both places.
+// pages/api/opensearch.ts; add new ones in both places.
 export const LINK_OPTIONS: { key: string; label: string }[] = [
   { key: 'r2r', label: 'R2R' },
+  { key: 'igsn', label: 'IGSN' },
   ...(SHOW_PUBLICATIONS ? [{ key: 'publication', label: 'Publication' }] : []),
 ];
 

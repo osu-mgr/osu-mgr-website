@@ -26,6 +26,7 @@ import { FilterPanel, countActiveFilters } from '../search/filter-panel';
 import type { Area } from '../search/map-points';
 import type { AreaRequest } from '../search/search-map';
 import { DataIssueBadges } from '../search/data-issues';
+import { IgsnBadges } from '../search/igsn-links';
 import { CountLink, FileCounts, RelatedFileCounts } from '../search/file-counts';
 import { DateTimeCell } from '../search/date-time-cell';
 import { IdColumnFilterDropdown, getLinkLabel } from '../search/id-column-filter';
@@ -101,7 +102,7 @@ export const Search: React.FC<{ data: any }> = ({
       rvNames: [], // Array of selected RV names
       institutions: [], // Array of selected institutions
       dataIssues: [], // 'errors' | 'warnings' (dev deployments only)
-      links: [], // 'r2r' | 'publication'
+      links: [], // 'r2r' | 'igsn' | 'publication'
       collections: [], // collection codes: 'MGG' | 'ACC' | 'NOAA' | 'ODC'
     },
     filterLogic: {
@@ -1172,6 +1173,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source._diveOSUIDs?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'dives')}><b>Dredges/Dives:</b> {numeral(match._source._diveOSUIDs.length).format(0)}</CountLink></>}
                         {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top">
@@ -1310,6 +1312,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.nSections != null && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'sections')}><b>Sections:</b> {numeral(match._source.nSections).format(0)}</CountLink></>}
                         {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top">
@@ -1436,6 +1439,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.nSections != null && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'sections')}><b>Sections:</b> {numeral(match._source.nSections).format(0)}</CountLink></>}
                         {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top">
@@ -1543,6 +1547,7 @@ export const Search: React.FC<{ data: any }> = ({
                             {match._source.nSections != null && <><br /><CountLink onClick={() => openLandingModal(match._source._osuid, 'sections')}><b>Sections:</b> {numeral(match._source.nSections).format(0)}</CountLink></>}
                             {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                             {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                           </td>
                           <td className="align-top">
@@ -1635,6 +1640,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
                         {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top">
@@ -1711,6 +1717,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
                         {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top">
@@ -1820,6 +1827,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
                         {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <DateTimeCell source={match._source} />
