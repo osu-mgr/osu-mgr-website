@@ -3,6 +3,11 @@
 // now, like the raw data view. pages/api/opensearch.ts applies the same rule.
 export const SHOW_PUBLICATIONS = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
 
+// Registered IGSN links (igsnLinks: result-row badges, landing-page External
+// Links, the Links > IGSN filter and the download column) are non-prod only for
+// now too. The metadata sheets' plain IGSN field is unaffected.
+export const SHOW_IGSNS = process.env.NEXT_PUBLIC_TINA_BRANCH !== 'prod';
+
 export const moratoriumCruises = [
   'OSU-KM2201',
   'OSU-NBP1808',

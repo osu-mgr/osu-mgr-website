@@ -10,6 +10,8 @@ const index = isProd ? 'osu-mgr' : 'osu-mgr-dev';
 // components/search/search-data.ts): prod neither filters, matches nor
 // suggests them.
 const showPublications = !isProd;
+// Registered IGSN links likewise (SHOW_IGSNS).
+const showIgsns = !isProd;
 
 // Records the pipeline flagged with data-quality errors (e.g. "Not in any
 // metadata sheet") are only surfaced on non-prod deployments, where the
@@ -37,7 +39,7 @@ function dataIssuesFilter(search: any): any | null {
 // registered IGSNs (igsnLinks) on the exact record they identify.
 const LINK_QUERIES: { [link: string]: any } = {
   r2r: { exists: { field: 'r2rLinks' } },
-  igsn: { exists: { field: 'igsnLinks.igsn' } },
+  ...(showIgsns ? { igsn: { exists: { field: 'igsnLinks.igsn' } } } : {}),
   ...(showPublications ? { publication: { exists: { field: '_publications.doi' } } } : {}),
 };
 
