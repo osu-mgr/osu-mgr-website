@@ -10,6 +10,7 @@ import { useInView } from 'react-hook-inview';
 import { Section } from "../util/section";
 import { Container } from "../util/container";
 import { ItemsCount } from '../util/items-count';
+import { ItemType } from '../util/items';
 import { CollectionMapThumbnail } from '../util/collection-map-thumbnail';
 import { Icon } from "../util/icon";
 import { LandingPage } from "./landing-page";
@@ -26,6 +27,7 @@ import { FilterPanel, countActiveFilters } from '../search/filter-panel';
 import type { Area } from '../search/map-points';
 import type { AreaRequest } from '../search/search-map';
 import { DataIssueBadges } from '../search/data-issues';
+import { IgsnBadges } from '../search/igsn-links';
 import { CountLink, FileCounts, RelatedFileCounts } from '../search/file-counts';
 import { DateTimeCell } from '../search/date-time-cell';
 import { IdColumnFilterDropdown, getLinkLabel } from '../search/id-column-filter';
@@ -56,11 +58,12 @@ const SearchTab: React.FC<{
   label: string;
   isActive: boolean;
   onClick: () => void;
-  type: string;
+  // Doc types counted in the badge; must match the types the tab lists.
+  types: ItemType[];
   searchString?: string;
   filters?: any;
   filterLogic?: any;
-}> = ({ label, isActive, onClick, type, searchString, filters, filterLogic }) => {
+}> = ({ label, isActive, onClick, types, searchString, filters, filterLogic }) => {
   return (
     <div
       className={`tab tab-lg tab-bordered px-0 ${isActive ? 'tab-active text-primary' : ''}`}
@@ -70,7 +73,7 @@ const SearchTab: React.FC<{
       <span className={`badge badge-md mx-2 ${isActive ? 'badge-primary' : 'badge-outline'}`}>
         <ItemsCount
           searchString={searchString}
-          types={[type]}
+          types={types}
           filters={filters}
           filterLogic={filterLogic}
           singularLabel=""
@@ -101,7 +104,7 @@ export const Search: React.FC<{ data: any }> = ({
       rvNames: [], // Array of selected RV names
       institutions: [], // Array of selected institutions
       dataIssues: [], // 'errors' | 'warnings' (dev deployments only)
-      links: [], // 'r2r' | 'publication'
+      links: [], // 'r2r' | 'igsn' | 'publication'
       collections: [], // collection codes: 'MGG' | 'ACC' | 'NOAA' | 'ODC'
     },
     filterLogic: {
@@ -643,7 +646,7 @@ export const Search: React.FC<{ data: any }> = ({
   ], [viewRawData]);
   const tabCounts = useQueries({
     queries: tabTypes.map(types => {
-      const countTypes = [types[0]];
+      const countTypes = types;
       return {
         queryKey: ['itemsCount', countTypes, search.searchString, undefined, search.filters, search.filterLogic],
         queryFn: async () => {
@@ -803,7 +806,7 @@ export const Search: React.FC<{ data: any }> = ({
               label="Cruises"
               isActive={!showMap && search.types.includes('cruise')}
               onClick={() => { setShowMap(false); setSearch({ ...search, types: ['cruise'] }); }}
-              type="cruise"
+              types={['cruise']}
               searchString={search.searchString}
               filters={search.filters}
               filterLogic={search.filterLogic}
@@ -813,7 +816,7 @@ export const Search: React.FC<{ data: any }> = ({
               label="Cores"
               isActive={!showMap && search.types.includes('core')}
               onClick={() => { setShowMap(false); setSearch({ ...search, types: ['core'] }); }}
-              type="core"
+              types={['core']}
               searchString={search.searchString}
               filters={search.filters}
               filterLogic={search.filterLogic}
@@ -823,7 +826,7 @@ export const Search: React.FC<{ data: any }> = ({
               label="Sections"
               isActive={!showMap && search.types.includes('section')}
               onClick={() => { setShowMap(false); setSearch({ ...search, types: ['section'] }); }}
-              type="section"
+              types={['section']}
               searchString={search.searchString}
               filters={search.filters}
               filterLogic={search.filterLogic}
@@ -835,7 +838,7 @@ export const Search: React.FC<{ data: any }> = ({
                   label="Section Halves"
                   isActive={!showMap && search.types.includes('sectionHalf')}
                   onClick={() => { setShowMap(false); setSearch({ ...search, types: ['sectionHalf'] }); }}
-                  type="sectionHalf"
+                  types={['sectionHalf']}
                   searchString={search.searchString}
                   filters={search.filters}
                   filterLogic={search.filterLogic}
@@ -847,7 +850,7 @@ export const Search: React.FC<{ data: any }> = ({
               label="Dredges/Dives"
               isActive={!showMap && search.types.includes('dive')}
               onClick={() => { setShowMap(false); setSearch({ ...search, types: ['dive'] }); }}
-              type="dive"
+              types={['dive']}
               searchString={search.searchString}
               filters={search.filters}
               filterLogic={search.filterLogic}
@@ -857,7 +860,7 @@ export const Search: React.FC<{ data: any }> = ({
               label="Rocks"
               isActive={!showMap && search.types.includes('diveSample')}
               onClick={() => { setShowMap(false); setSearch({ ...search, types: ['diveSample'] }); }}
-              type="diveSample"
+              types={['diveSample']}
               searchString={search.searchString}
               filters={search.filters}
               filterLogic={search.filterLogic}
@@ -869,7 +872,7 @@ export const Search: React.FC<{ data: any }> = ({
                   label="Orphans"
                   isActive={!showMap && search.types.includes('file')}
                   onClick={() => { setShowMap(false); setSearch({ ...search, types: ['file', 'location'] }); }}
-                  type="file"
+                  types={['file', 'location']}
                   searchString={search.searchString}
                   filters={search.filters}
                   filterLogic={search.filterLogic}
@@ -1172,6 +1175,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source._diveOSUIDs?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'dives')}><b>Dredges/Dives:</b> {numeral(match._source._diveOSUIDs.length).format(0)}</CountLink></>}
                         {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top">
@@ -1310,6 +1314,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.nSections != null && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'sections')}><b>Sections:</b> {numeral(match._source.nSections).format(0)}</CountLink></>}
                         {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top">
@@ -1436,6 +1441,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.nSections != null && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'sections')}><b>Sections:</b> {numeral(match._source.nSections).format(0)}</CountLink></>}
                         {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top">
@@ -1543,6 +1549,7 @@ export const Search: React.FC<{ data: any }> = ({
                             {match._source.nSections != null && <><br /><CountLink onClick={() => openLandingModal(match._source._osuid, 'sections')}><b>Sections:</b> {numeral(match._source.nSections).format(0)}</CountLink></>}
                             {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                             {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                           </td>
                           <td className="align-top">
@@ -1635,6 +1642,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
                         {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top">
@@ -1711,6 +1719,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
                         {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <td className="align-top">
@@ -1820,6 +1829,7 @@ export const Search: React.FC<{ data: any }> = ({
                         {match._source.collection && <><br/><span className="font-normal" title={getCollectionLabel(match._source.collection)}>{match._source.collection}</span></>}
                         {SHOW_PUBLICATIONS && match._source._publications?.length > 0 && <><br/><CountLink onClick={() => openLandingModal(match._source._osuid, 'details')}><b>Publications:</b> {numeral(match._source._publications.length).format(0)}</CountLink></>}
                         {match._source._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+                        <IgsnBadges doc={match._source} onMore={() => openLandingModal(match._source._osuid, 'details')} />
                         <DataIssueBadges doc={match._source} />
                       </td>
                       <DateTimeCell source={match._source} />

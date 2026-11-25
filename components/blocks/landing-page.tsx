@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useInView } from 'react-hook-inview';
 import { DataIssueBadges, DataIssuesPanel, SHOW_DATA_ISSUES, getDataIssues } from '../search/data-issues';
+import { IgsnBadges, IgsnLinkItems, getIgsnLinks } from '../search/igsn-links';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import numeral from 'numeral';
 import dynamic from 'next/dynamic';
@@ -99,7 +100,8 @@ const recordFromResults = (results: any) =>
 const REDIRECT_TYPES = ['sectionHalf', 'coreSample', 'diveSubsample'];
 
 // External links are labelled "Site: Title", e.g. "R2R: EW0408". R2R links
-// come from the pipeline (r2rLinks, from the curators' "R2R names" sheet).
+// come from the pipeline (r2rLinks, from the curators' "R2R names" sheet);
+// IGSN links likewise (igsnLinks, from the "IGSN pairs" sheet; see igsn-links.tsx).
 const r2rPageTitle = (link: string) => `R2R: ${link.split('/').pop()}`;
 
 // Citations come from Crossref and may carry inline markup such as
@@ -265,6 +267,7 @@ const idCell = (d: any, open?: (tab: string) => void) => (
     {['core', 'section', 'sectionHalf'].includes(d._docType) && d.nSections != null && <><br/><CountLink onClick={open && (() => open('sections'))}><b>Sections:</b> {numeral(d.nSections).format(0)}</CountLink></>}
     {SHOW_PUBLICATIONS && Array.isArray(d._publications) && d._publications.length > 0 && <><br/><CountLink onClick={open && (() => open('details'))}><b>Publications:</b> {numeral(d._publications.length).format(0)}</CountLink></>}
     {d._moratorium && <div><span className="badge btn-primary badge-tag">Moratorium</span></div>}
+    <IgsnBadges doc={d} onMore={open && (() => open('details'))} />
     <DataIssueBadges doc={d} />
   </>
 );
@@ -1077,17 +1080,18 @@ const DetailsPanel: React.FC<{ doc: any; ancestors?: any[]; onNavigate?: (osuid:
         {t === 'dive' && doc.nSections != null && <DetailRow label="Samples" field="nSections" value={doc.nSections} />}
         {t !== 'section' && t !== 'sectionHalf' && <DetailRow label="Area" field="area" value={doc.area} />}
         <PairedRows doc={doc} />
-        {t === 'cruise' && doc.r2rLinks?.length > 0 && (
+        {((t === 'cruise' && doc.r2rLinks?.length > 0) || getIgsnLinks(doc).length > 0) && (
           <div className="md:col-span-2 mt-2">
             <strong>External Links:</strong>
             <ul className="m-0 mt-1 pl-5 text-sm">
-              {doc.r2rLinks.map((link: string, idx: number) => (
+              {t === 'cruise' && (doc.r2rLinks || []).map((link: string, idx: number) => (
                 <li key={idx} className="m-0">
                   <a href={link} target="_blank" rel="noopener noreferrer" className="no-underline font-normal hover:underline">
                     {r2rPageTitle(link)}
                   </a>
                 </li>
               ))}
+              <IgsnLinkItems doc={doc} />
             </ul>
           </div>
         )}
