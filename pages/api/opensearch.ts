@@ -215,6 +215,8 @@ function buildShould(searchString: string) {
   ];
 }
 
+const SUGGEST_HIDDEN_TYPES = ['sectionHalf', 'coreSample', 'sectionSample', 'diveSubsample'];
+
 // Search-as-you-type suggestions for the search bar: matching OSU IDs, RV names
 // and publications (citation text or DOI). Publications are flattened out of the
 // matching docs and re-checked so only the publication that matched is suggested.
@@ -232,7 +234,11 @@ async function suggest(q: string) {
       _source: ['_osuid', '_docType'],
       // Any substring of the ID matches; IDs starting with the text (with or
       // without the "OSU-" prefix) rank first.
-      query: guardQuery({ bool: { minimum_should_match: 1, should: [
+      // Section halves, section samples and rock subsamples are never shown as
+      // records (opening one opens its parent), so they are not suggested.
+      query: guardQuery({ bool: { minimum_should_match: 1, must_not: [
+        { terms: { '_docType.keyword': SUGGEST_HIDDEN_TYPES } },
+      ], should: [
         { constant_score: { boost: 3, filter: { prefix: { '_osuid.keyword': { value: upper } } } } },
         { constant_score: { boost: 2, filter: { prefix: { '_osuid.keyword': { value: `OSU-${upper}` } } } } },
         { constant_score: { boost: 1, filter: { match: { '_osuid.substring': { query: lower, operator: 'and', analyzer: 'whitespace' } } } } },
