@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery } from '@tanstack/react-query';
 import * as XLSX from 'xlsx';
 import { Icon } from "../util/icon";
-import { fileTimestamp } from './search-data';
+import { fileTimestamp, SHOW_IGSNS } from './search-data';
 
 // The search-result types offered as tabs, in tab order. Each becomes a
 // worksheet in the exported workbook.
@@ -74,7 +74,7 @@ const COLUMNS: { header: string; value: (doc: any) => any }[] = [
   { header: 'Principal Texture', value: d => d.texture },
   { header: 'Sample Weight (kg)', value: d => d.weight },
   { header: 'IGSN', value: d => d.igsn },
-  { header: 'Registered IGSN Links', value: d => Array.isArray(d.igsnLinks) && d.igsnLinks.length ? d.igsnLinks.map((l: any) => l.url).join(' ') : undefined },
+  { header: 'Registered IGSN Links', value: d => SHOW_IGSNS && Array.isArray(d.igsnLinks) && d.igsnLinks.length ? d.igsnLinks.map((l: any) => l.url).join(' ') : undefined },
   { header: 'Storage Location', value: d => d.storageLocation },
   { header: 'Collection', value: d => d.collection },
   { header: 'Notes', value: d => d.notes },

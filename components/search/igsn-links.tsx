@@ -1,5 +1,6 @@
 import React from "react";
 import { Icon } from "../util/icon";
+import { SHOW_IGSNS } from "./search-data";
 
 // Registered IGSNs written by the pipeline (osu_mgr_pipeline.py igsnLinks) from
 // the curators' "IGSN pairs" sheet plus the metadata sheets' IGSN / Alternate
@@ -18,7 +19,7 @@ export type IgsnLink = {
 };
 
 export const getIgsnLinks = (doc: any): IgsnLink[] =>
-  Array.isArray(doc?.igsnLinks) ? doc.igsnLinks.filter((l: any) => l?.igsn && l?.url) : [];
+  SHOW_IGSNS && Array.isArray(doc?.igsnLinks) ? doc.igsnLinks.filter((l: any) => l?.igsn && l?.url) : [];
 
 const isSubPiece = (link: IgsnLink) => link.part === 'sub-piece';
 
